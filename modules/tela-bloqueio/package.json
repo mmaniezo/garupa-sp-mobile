@@ -1,0 +1,7 @@
+{
+  "name": "tela-bloqueio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Módulo nativo local do Garupa SP: mostra a tela da testemunha por cima da tela de bloqueio enquanto há SOS ativo (RF22).",
+  "main": "src/index.ts"
+}
