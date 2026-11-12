@@ -13,7 +13,7 @@ A garupa é quem vai junto, de olho em você. App para o motociclista de São Pa
 | **Cidadão** | Motociclistas da capital paulista, com foco no entregador por aplicativo: quem passa mais horas nas vias de maior risco, nem sempre escolhe a rota e trabalha sob pressão de prazo. |
 | **Problema** | Motociclistas são o maior grupo de mortes no trânsito da capital (475 de 1.034 em 2025, Infosiga) e batem recorde em 2026; 67,3% dos sinistros graves ou fatais de jan–ago de 2026 envolvem moto. O risco tem hora e lugar. |
 | **Como funciona** | Cadastro em camadas (nome, telefone e um contato; ficha médica, uso da moto e distritos opcionais). Antes do turno, o plano mostra os poucos pontos críticos das áreas da pessoa, no horário e com a chuva informada. Com o turno ativo, o app fica em segundo plano: avisa ao chegar perto de um ponto crítico (bipe, vibração e banner curto), detecta a queda (impacto + queda de velocidade + imobilidade), abre uma contagem de 30 s e, sem resposta, registra o SOS com a posição. O contato recebe um link de acompanhamento; quem socorre vê a ficha médica pela tela de bloqueio e liga ao 192. |
-| **Tecnologias** | App: Expo (React Native, TypeScript), SQLite, localização e sensores em segundo plano, notificações. Modelo de risco: Python (Infosiga, INMET). API: C#/.NET. Pulseira opcional: ESP32 no Wokwi. |
+| **Tecnologias** | App: Expo (React Native, TypeScript), SQLite, Google Maps, localização e sensores em segundo plano, notificações. Modelo de risco: Python com XGBoost (Infosiga, INMET), [garupa-sp-ml](https://github.com/Viniciuscont2/garupa-sp-ml). API: C#/.NET com PostgreSQL, [garupa-sp-api](https://github.com/caio-alex/garupa-sp-api). Pulseira opcional: ESP32 no Wokwi. |
 | **Ecossistema** | Motociclistas e entregadores; contatos de emergência; SAMU 192 (discagem confirmada pela pessoa); dados abertos (Infosiga, INMET, GeoSampa). Futuro: CET-SP, plataformas de entrega e seguradoras. |
 | **Medição de impacto** | Lift do modelo contra o mapa histórico; erros do detector em cenários de teste (matriz de confusão); tempo entre a queda e o link disponível ao contato; tempo do cadastro mínimo (meta: até 2 min). |
 
@@ -79,7 +79,7 @@ Prévia rápida das telas no navegador (sem sensores, GPS nem segundo plano):
 npm run web
 ```
 
-Verificações (typecheck, lint e os 47 testes):
+Verificações (typecheck, lint e os 56 testes; os 7 de integração com a API real só rodam com `GARUPA_API_URL`):
 
 ```bash
 npm run typecheck
@@ -93,14 +93,50 @@ npm run lint
 npm test
 ```
 
-### API real ou simulada
+### API real, modelo de ML e API simulada
 
-O app fala com a API pelo contrato de `/api/v1` (`src/api/contrato.ts`). Enquanto a API C# não estiver publicada, ele usa um mock com o mesmo contrato (padrão). No `.env.local`:
+O app fala com a API C# ([garupa-sp-api](https://github.com/caio-alex/garupa-sp-api)) pelo contrato de `/api/v1` (`src/api/contrato.ts`). O risco vem do modelo de ML ([garupa-sp-ml](https://github.com/Viniciuscont2/garupa-sp-ml)): a API importa o `saida/risco_celula.csv` e responde com os pontos de percentil ≥ 95.
+
+Sem servidor, o app usa a **API simulada** (padrão): o mesmo contrato, as mesmas regras e os mesmos dados do modelo (`src/api/mock/risco-modelo.json`, gerado do CSV). Quando o modelo mudar:
+
+```bash
+node scripts/gerar-dados-mock.mjs ../garupa-sp-ml/saida/risco_celula.csv "../garupa-sp-api/Garupa.Infrastructure/Resources/distritos.json"
+```
+
+Para usar a API real no celular:
+
+1. No repositório da API, siga o README dela (PostgreSQL, `preparar-banco`) e carregue o risco: `dotnet run --project 'Garupa API' -- carregar-risco <caminho>/risco_celula.csv`.
+2. Suba a API ouvindo na rede (não só no `localhost`), e libere a porta no firewall do Windows se ele perguntar:
+
+```bash
+dotnet run --project 'Garupa API' --urls http://0.0.0.0:5221
+```
+
+3. No `.env.local` do app (celular e computador no mesmo Wi-Fi). Com o app em desenvolvimento, `localhost` vira o IP do computador sozinho:
 
 ```
 EXPO_PUBLIC_API_MODE=http
-EXPO_PUBLIC_API_URL=https://endereco-da-api
+EXPO_PUBLIC_API_URL=http://localhost:5221
 ```
+
+4. Reinicie o Metro (`npm run go` ou `npm run dev`). Um cadastro feito no mock não existe na API: ao trocar de API, o app volta ao início do cadastro.
+
+Para conferir o app contra a API rodando (cria e apaga um usuário fictício):
+
+```bash
+GARUPA_API_URL=http://127.0.0.1:5221 npx jest src/api/__tests__/api-real.test.ts
+```
+
+A prévia web usa só a API simulada: a API não libera CORS. HTTP sem TLS funciona no Expo Go e no build de desenvolvimento; para um APK de demonstração, publique a API com HTTPS.
+
+### Google Maps
+
+O mapa (tela 08) usa o Google Maps no Android e o Apple Maps no iOS (`react-native-maps`). **No Expo Go não precisa de chave.** No build de desenvolvimento ou no APK, crie uma chave no Google Cloud (ative o *Maps SDK for Android* e restrinja a chave ao pacote `br.com.garupasp.app` com o SHA-1 que aparece em expo.dev → Credentials) e informe:
+
+- local: `GOOGLE_MAPS_API_KEY=...` no `.env.local` (o `app.config.js` lê);
+- EAS Build: `npx eas-cli@latest env:create --name GOOGLE_MAPS_API_KEY --value <chave> --environment development`.
+
+Gere o build de novo depois de pôr a chave. Sem ela, o build mostra o mapa esquemático no lugar do Google Maps.
 
 ### Demonstração
 
@@ -115,6 +151,8 @@ Com o mock ligado (ou em desenvolvimento) aparecem atalhos para gravar o vídeo:
 ## Como funciona por dentro
 
 - **Turno em segundo plano** (`src/servicos/turno.ts`): serviço em primeiro plano do `expo-location` (GPS a cada 1 s) e acelerômetro a 20 Hz. Cada leitura do GPS também é o relógio do turno com a tela bloqueada: vence a contagem da queda, consulta a pulseira a cada 2 s e reenvia a fila.
+- **Mapa** (`src/components/mapa`): cada ponto crítico é a célula do modelo (cerca de 500 m), desenhada como círculo âmbar com o número do ponto no plano; tocar mostra o motivo e o gráfico de risco por horário (`GET /risco/celulas/{id}`). Mapa base escuro no tom Asfalto do manual. Na web e no build sem chave, mapa esquemático.
+- **Cliente da API** (`src/api/http.ts`): converte o formato da API para o do app (ids numéricos ↔ texto, nome do distrito por `GET /distritos`, ficha sem `null`). Regras da API que o app segue: o usuário nasce com o primeiro contato, ficha e perfil só depois do consentimento, perfil só com ao menos um tipo de uso (`src/servicos/cadastro.ts`).
 - **Detector de queda** (`src/domain/queda/detector.ts`): função pura com a máquina de estados do contrato. Os cenários de QA (queda, buraco, semáforo, celular derrubado, mochila, pessoa que levanta) são testes automatizados.
 - **SOS** (`src/servicos/sos.ts`): gravado primeiro no SQLite com `eventoId` gerado no aparelho; sem internet, fica na fila e sai quando a conexão volta, sem duplicar.
 - **Tela de bloqueio** (`modules/tela-bloqueio`): módulo nativo Android pequeno, escrito para este app, que deixa a tela da testemunha abrir por cima do bloqueio **só enquanto há SOS ativo**. Ainda não foi compilado num aparelho; se o build falhar por causa dele, apague a pasta `modules/tela-bloqueio` e o app segue sem esse recurso.
@@ -124,11 +162,13 @@ Com o mock ligado (ou em desenvolvimento) aparecem atalhos para gravar o vídeo:
 
 ```
 index.js                 ponto de entrada (define a tarefa do GPS antes de tudo)
+app.config.js            chave do Google Maps a partir do ambiente
 modules/tela-bloqueio/   módulo nativo Android (testemunha pela tela de bloqueio)
+scripts/                 gera os dados do mock a partir do CSV do modelo e dos distritos da API
 src/
 ├── app/                 rotas (Expo Router): uma tela por arquivo
-├── api/                 contrato tipado, cliente HTTP e mock com o mesmo contrato
-├── components/          componentes do manual da marca, logos, barra de abas
+├── api/                 contrato tipado, cliente HTTP da API C# e mock com os dados do modelo
+├── components/          componentes do manual da marca, logos, barra de abas, mapa
 ├── dados-locais/        preferências, dados sensíveis (armazenamento seguro) e repositórios SQLite
 ├── db/                  SQLite: migrações e chave-valor
 ├── domain/              regras puras e testadas: queda, alertas, mensagens, períodos, telefone, risco
@@ -146,3 +186,4 @@ src/
 - O histórico de locais frequentes fica só no aparelho, como contagem de visitas por célula, sem trajetos, e nunca vai para a API.
 - Cada tipo de dado tem consentimento próprio e revogável; excluir a conta apaga os dados na API e no aparelho.
 - O app não pede permissão de microfone nem de armazenamento.
+- O Google Maps recebe só a área que aparece na tela, para desenhar o mapa. A sua posição é desenhada pelo próprio app (sem a camada de localização do Google).
