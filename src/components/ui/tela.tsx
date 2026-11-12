@@ -49,14 +49,18 @@ export function Tela({
   const baixo = dentroDeAbas ? 12 : Math.max(insets.bottom, 16) + 12;
 
   return (
+    // O teclado empurra a tela para cima no Android e no iOS. No Android com a tela de
+    // ponta a ponta (padrão do SDK), o sistema não redimensiona mais a janela sozinho;
+    // o KeyboardAvoidingView mede só a parte coberta pelo teclado, então não dobra o espaço.
     <KeyboardAvoidingView
       style={[styles.raiz, { backgroundColor: fundo, paddingTop: insets.top + 8 }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      behavior={Platform.OS === 'web' ? undefined : 'padding'}>
       <StatusBar style={barraClara ? 'light' : 'dark'} />
       {rolagem ? (
         <ScrollView
           contentContainerStyle={[conteudo, { paddingBottom: rodape ? 16 : baixo }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           refreshControl={
             aoAtualizar ? (
               <RefreshControl refreshing={atualizando} onRefresh={aoAtualizar} tintColor={brand.teal} colors={[brand.teal]} />
