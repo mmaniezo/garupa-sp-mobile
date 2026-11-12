@@ -1,25 +1,29 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Line } from 'react-native-svg';
 
 import { api } from '@/api';
 import type { DetalheCelula } from '@/api/types';
+import { MapaPontos as Mapa, tipoDoMapa } from '@/components/mapa/mapa-pontos';
 import { ItemPonto } from '@/components/plano/item-ponto';
 import { Aviso, Botao, Icone, Segmentado, Texto } from '@/components/ui';
 import { FAIXAS, rotuloFaixa } from '@/domain/contexto';
-import { projetar } from '@/domain/geo';
 import { acaoDoPonto, AVISO_HISTORICO, localDoPonto, motivoDoPonto, nivelDeRisco } from '@/domain/risco';
 import { mensagemDeErro } from '@/lib/navegacao';
 import { usePlano, type PontoDoPlano } from '@/servicos/plano';
 import { usePosicao } from '@/servicos/posicao';
 import { alerta, brand, raio, tons } from '@/theme';
 
+/** Altura da pílula e do seletor por cima do mapa, e da legenda com a borda da folha embaixo. */
+const FOLGA_TOPO = 72;
+const FOLGA_BAIXO = 84;
+
 /**
  * Tela 08 · Mapa de pontos críticos (RF08, RF09).
- * Mapa esquemático (posições relativas, sem chave de mapa de terceiros) e a mesma informação
- * em lista, que é a forma acessível. Tocar num ponto mostra o motivo e o risco por horário.
+ * Google Maps no Android (Apple Maps no iOS) com os pontos do modelo de ML: cada círculo é a
+ * célula de risco (~500 m) e o número é a posição no plano. A mesma informação está em lista,
+ * que é a forma acessível. Tocar num ponto mostra o motivo e o gráfico de risco por horário.
  */
 export default function MapaPontos() {
   const { celula } = useLocalSearchParams<{ celula?: string }>();
@@ -54,11 +58,6 @@ export default function MapaPontos() {
   }, [idSelecionado]);
 
   const alturaMapa = Math.round(height * 0.46);
-  const geo = useMemo(() => {
-    const todos = pontos.map((p) => ({ lat: p.centroLat, lon: p.centroLon }));
-    if (posicao) todos.push({ lat: posicao.lat, lon: posicao.lon });
-    return projetar(todos, width, alturaMapa, 48);
-  }, [pontos, posicao, width, alturaMapa]);
 
   const distritos = [...new Set(pontos.map((p) => p.distritoNome).filter(Boolean))].slice(0, 3).join(' · ');
 
@@ -133,7 +132,11 @@ export default function MapaPontos() {
         );
       })}
       <Texto variante="legenda" cor="textoSecundario" style={{ fontSize: 14 }}>
-        Mapa esquemático, posições aproximadas. {AVISO_HISTORICO} Base: Infosiga e INMET.
+        {tipoDoMapa === 'esquematico'
+          ? 'Mapa esquemático, posições aproximadas.'
+          : 'Cada círculo é uma área de cerca de 500 m, não um endereço exato.'}{' '}
+        {AVISO_HISTORICO} Risco calculado pelo modelo do Garupa
+        {detalhe?.versaoModelo ? ` (${detalhe.versaoModelo})` : ''} com dados do Infosiga e do INMET.
       </Texto>
     </View>
   ) : null;
@@ -197,49 +200,18 @@ export default function MapaPontos() {
 
   return (
     <View style={styles.raiz}>
-      <View style={{ height: alturaMapa }} accessibilityLabel="Mapa esquemático com os pontos críticos e a sua posição">
-        <Svg width={width} height={alturaMapa} style={StyleSheet.absoluteFill}>
-          {Array.from({ length: 9 }, (_, i) => (
-            <Line key={`v${i}`} x1={(width / 8) * i} y1={0} x2={(width / 8) * i + 30} y2={alturaMapa} stroke="#161C20" strokeWidth={6} />
-          ))}
-          {Array.from({ length: 7 }, (_, i) => (
-            <Line key={`h${i}`} x1={0} y1={(alturaMapa / 6) * i} x2={width} y2={(alturaMapa / 6) * i - 24} stroke="#1E262B" strokeWidth={8} />
-          ))}
-          {pontos.map((p) => {
-            const x = geo.x({ lat: p.centroLat, lon: p.centroLon });
-            const y = geo.y({ lat: p.centroLat, lon: p.centroLon });
-            const sel = p.celulaId === selecionado?.celulaId;
-            return (
-              <Circle key={`h-${p.celulaId}`} cx={x} cy={y} r={sel ? 44 : 30} fill={alerta.atencao} fillOpacity={sel ? 0.28 : 0.16} />
-            );
-          })}
-          {posicao ? (
-            <>
-              <Circle cx={geo.x(posicao)} cy={geo.y(posicao)} r={20} fill={brand.teal} fillOpacity={0.25} />
-              <Circle cx={geo.x(posicao)} cy={geo.y(posicao)} r={9} fill={brand.teal} stroke={brand.branco} strokeWidth={3} />
-            </>
-          ) : null}
-        </Svg>
-        {pontos.map((p, i) => {
-          const x = geo.x({ lat: p.centroLat, lon: p.centroLon });
-          const y = geo.y({ lat: p.centroLat, lon: p.centroLon });
-          const sel = p.celulaId === selecionado?.celulaId;
-          return (
-            <Pressable
-              key={p.celulaId}
-              onPress={() => setSelecionadoId(p.celulaId)}
-              accessibilityRole="button"
-              accessibilityLabel={`Ponto ${i + 1}: ${p.viaReferencia}, risco ${nivelDeRisco(p.percentil)}`}
-              accessibilityState={{ selected: sel }}
-              style={[styles.alvo, { left: x - 24, top: y - 24 }]}>
-              <View style={[styles.marcador, sel && styles.marcadorSel]}>
-                <Texto variante="overline" cor={brand.asfalto} style={{ letterSpacing: 0 }}>
-                  {i + 1}
-                </Texto>
-              </View>
-            </Pressable>
-          );
-        })}
+      <View style={{ height: alturaMapa }}>
+        <Mapa
+          pontos={pontos}
+          focoId={selecionadoId}
+          destaqueId={idSelecionado}
+          posicao={posicao}
+          onSelecionar={setSelecionadoId}
+          largura={width}
+          altura={alturaMapa}
+          folgaTopo={insets.top + FOLGA_TOPO}
+          folgaBaixo={FOLGA_BAIXO}
+        />
 
         <View style={[styles.sobreposicao, { top: insets.top + 12 }]}>
           <View style={styles.pilula}>
@@ -276,7 +248,15 @@ export default function MapaPontos() {
 const styles = StyleSheet.create({
   raiz: { flex: 1, backgroundColor: tons.mapaFundo },
   cabecalho: { gap: 12 },
-  sobreposicao: { position: 'absolute', left: 16, right: 16, gap: 8, flexDirection: 'row', alignItems: 'center' },
+  sobreposicao: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    pointerEvents: 'box-none',
+  },
   pilula: {
     flex: 1,
     minHeight: 48,
@@ -285,7 +265,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
-  legenda: { position: 'absolute', left: 16, bottom: 36, flexDirection: 'row', gap: 8 },
+  legenda: { position: 'absolute', left: 16, bottom: 36, flexDirection: 'row', gap: 8, pointerEvents: 'none' },
   legendaItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -296,18 +276,6 @@ const styles = StyleSheet.create({
     minHeight: 34,
   },
   ponto: { width: 12, height: 12, borderRadius: 6 },
-  alvo: { position: 'absolute', width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  marcador: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: alerta.atencao,
-    borderWidth: 3,
-    borderColor: brand.asfalto,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  marcadorSel: { width: 36, height: 36, borderRadius: 18, borderColor: brand.branco },
   folha: {
     flex: 1,
     marginTop: -24,
