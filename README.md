@@ -65,6 +65,14 @@ Com o APK instalado no celular:
 npm run dev
 ```
 
+Prévia rápida no celular pelo **Expo Go** (app da loja, atualizado para o SDK 58), com o celular e o computador no mesmo Wi-Fi. Escaneie o QR code que aparece no terminal:
+
+```bash
+npm run go
+```
+
+No Expo Go o app abre inteiro, mas o turno só monitora com o app aberto (o Expo Go do Android não roda tarefas em segundo plano) e os sons próprios das notificações não tocam. Se o celular não conectar, rode `npx expo start --go --tunnel`.
+
 Prévia rápida das telas no navegador (sem sensores, GPS nem segundo plano):
 
 ```bash

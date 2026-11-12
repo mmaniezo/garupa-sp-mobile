@@ -8,7 +8,7 @@ import { SosManual } from '@/components/sos/sos-manual';
 import { Aviso, Botao, Icone, Tela, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { simularQueda } from '@/servicos/queda';
-import { finalizarTurno, pausarTurno, useTurno } from '@/servicos/turno';
+import { finalizarTurno, pausarTurno, turnoSoComAppAberto, useTurno } from '@/servicos/turno';
 import { alerta, brand, raio, tons } from '@/theme';
 
 function duracao(ms: number): string {
@@ -104,6 +104,13 @@ export default function TurnoAtivo() {
           Pode abrir seu app de entregas. A gente segue de olho em segundo plano.
         </Texto>
       </View>
+
+      {turnoSoComAppAberto ? (
+        <Aviso
+          tom="info"
+          texto="No Expo Go, o turno só monitora com o app aberto. Para seguir com outro app na frente e a tela bloqueada, use o build de desenvolvimento."
+        />
+      ) : null}
 
       {!gpsOk && !iniciou ? (
         <Aviso tom="erro" texto="Sem sinal de GPS: sem alerta de ponto crítico até o sinal voltar." anunciar />

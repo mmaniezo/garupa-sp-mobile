@@ -49,13 +49,14 @@
   },
   "scripts": {
     "start": "expo start",
+    "go": "expo start --go",
+    "dev": "expo start --dev-client",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
-    "dev": "expo start --dev-client"
+    "test": "jest"
   },
   "private": true,
   "jest": {

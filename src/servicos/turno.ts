@@ -1,4 +1,6 @@
+import { isRunningInExpoGo } from 'expo';
 import * as Location from 'expo-location';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { Accelerometer } from 'expo-sensors';
 import { AppState, Platform } from 'react-native';
 
@@ -119,10 +121,19 @@ export const obterTurno = store.obter;
 const nativo = Platform.OS !== 'web';
 const CHAVE = 'turno';
 
+/**
+ * No Expo Go do Android não há tarefa em segundo plano. Nesse caso o turno roda com o app
+ * aberto (GPS por watchPositionAsync), que é o plano de saída 3 do documento. No build de
+ * desenvolvimento, o turno usa o serviço em primeiro plano e segue com a tela bloqueada.
+ */
+export const turnoSoComAppAberto =
+  nativo && (isRunningInExpoGo() || !requireOptionalNativeModule('ExpoTaskManager'));
+
 // ---------- Memória de trabalho (não vai para a tela a cada leitura) ----------
 
 let restaurado = false;
 let assinaturaSensor: { remove(): void } | null = null;
+let assinaturaGps: Location.LocationSubscription | null = null;
 let ultimaLeituraSensor: number | null = null;
 const contadores = { ...DIAGNOSTICO_VAZIO };
 let ancoraMovimento: Ponto | null = null;
@@ -160,10 +171,26 @@ function definir(mudanca: Partial<EstadoTurno>) {
 
 async function ligarLocalizacao(modo: 'ativo' | 'pausado') {
   if (!nativo) return;
+  const ativo = modo === 'ativo';
+
+  if (turnoSoComAppAberto) {
+    assinaturaGps?.remove();
+    assinaturaGps = await Location.watchPositionAsync(
+      {
+        accuracy: ativo ? Location.Accuracy.BestForNavigation : Location.Accuracy.Balanced,
+        timeInterval: ativo ? 1_000 : 15_000,
+        distanceInterval: ativo ? 0 : 20,
+      },
+      (loc) => {
+        void processarLocalizacoes([loc]).then(() => pulso(Date.now()));
+      },
+    );
+    return;
+  }
+
   if (await Location.hasStartedLocationUpdatesAsync(TAREFA_LOCALIZACAO).catch(() => false)) {
     await Location.stopLocationUpdatesAsync(TAREFA_LOCALIZACAO).catch(() => undefined);
   }
-  const ativo = modo === 'ativo';
   await Location.startLocationUpdatesAsync(TAREFA_LOCALIZACAO, {
     accuracy: ativo ? Location.Accuracy.BestForNavigation : Location.Accuracy.Balanced,
     timeInterval: ativo ? 1_000 : 15_000,
@@ -182,6 +209,11 @@ async function ligarLocalizacao(modo: 'ativo' | 'pausado') {
 
 async function desligarLocalizacao() {
   if (!nativo) return;
+  if (turnoSoComAppAberto) {
+    assinaturaGps?.remove();
+    assinaturaGps = null;
+    return;
+  }
   if (await Location.hasStartedLocationUpdatesAsync(TAREFA_LOCALIZACAO).catch(() => false)) {
     await Location.stopLocationUpdatesAsync(TAREFA_LOCALIZACAO).catch(() => undefined);
   }
@@ -417,7 +449,9 @@ export async function iniciarTurno(): Promise<ResultadoInicio> {
   if (store.obter().situacao !== 'inativo') return { ok: true };
   if (nativo) {
     const status = await lerStatusPermissoes();
-    const faltas = faltasParaOTurno(status, obterPreferencias().consentimentos.localizacaoEmSegundoPlano);
+    const faltas = faltasParaOTurno(status, obterPreferencias().consentimentos.localizacaoEmSegundoPlano, {
+      exigeSegundoPlano: !turnoSoComAppAberto,
+    });
     if (faltas.length) return { ok: false, faltas };
   }
   await configurarNotificacoes();
@@ -509,7 +543,8 @@ export async function restaurarTurno(opcoes: { religar: boolean } = { religar: t
   } as EstadoTurno);
   if (!opcoes.religar) return;
   if (salvo.situacao === 'ativo') {
-    if (!(await Location.hasStartedLocationUpdatesAsync(TAREFA_LOCALIZACAO).catch(() => true))) {
+    // Com o app aberto (Expo Go), a escuta do GPS some quando o app reabre: liga de novo.
+    if (turnoSoComAppAberto || !(await Location.hasStartedLocationUpdatesAsync(TAREFA_LOCALIZACAO).catch(() => true))) {
       await ligarLocalizacao('ativo').catch(() => undefined);
     }
     ligarSensor();

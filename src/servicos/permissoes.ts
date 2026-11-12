@@ -83,11 +83,21 @@ export async function abrirAjusteDeBateria(): Promise<void> {
 
 export const abrirAjustesDoApp = () => Linking.openSettings();
 
-/** O que falta para iniciar o turno e o que deixa de funcionar sem cada item (RF36). */
-export function faltasParaOTurno(s: StatusPermissoes, consentiuSegundoPlano: boolean): string[] {
+/**
+ * O que falta para iniciar o turno e o que deixa de funcionar sem cada item (RF36).
+ * Sem segundo plano (Expo Go), basta a localização com o app aberto.
+ */
+export function faltasParaOTurno(
+  s: StatusPermissoes,
+  consentiuSegundoPlano: boolean,
+  opcoes: { exigeSegundoPlano: boolean } = { exigeSegundoPlano: true },
+): string[] {
   const faltas: string[] = [];
-  if (!s.localizacaoSempre || !consentiuSegundoPlano) {
+  if (opcoes.exigeSegundoPlano && (!s.localizacaoSempre || !consentiuSegundoPlano)) {
     faltas.push('Localização o tempo todo: sem ela não há alerta de ponto crítico nem posição no SOS.');
+  }
+  if (!opcoes.exigeSegundoPlano && !s.localizacaoEmUso) {
+    faltas.push('Localização: sem ela não há alerta de ponto crítico nem posição no SOS.');
   }
   if (!s.notificacoes) faltas.push('Notificações: sem elas a contagem da queda e os alertas não aparecem.');
   return faltas;
