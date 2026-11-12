@@ -10,6 +10,7 @@ import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferenc
 import { gravarValor, lerValor } from '@/db';
 import { horariosHabituais } from '@/domain/periodos';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
+import { salvarPerfilNaApi } from '@/servicos/cadastro';
 import { atualizarSessao, useSessao } from '@/state/sessao';
 import { brand, raio, tons } from '@/theme';
 
@@ -67,7 +68,7 @@ export default function CadastroDistritos() {
     setErro(null);
     setEnviando(true);
     try {
-      await api.salvarPerfil(sessao.usuarioId, {
+      await salvarPerfilNaApi(sessao.usuarioId, {
         tiposDeUso: prefs.perfil.tiposDeUso,
         horariosHabituais: horariosHabituais(prefs.perfil.periodos, prefs.perfil.dias),
         distritosFrequentes: escolhidos.map((d) => d.distritoId),

@@ -2,12 +2,12 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { api } from '@/api';
 import type { TipoDia, TipoUso } from '@/api/types';
 import { Aviso, Botao, CabecalhoPasso, CartaoOpcao, Chip, Tela, Texto } from '@/components/ui';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { DIAS, horariosHabituais, PERIODOS, TIPOS_DE_USO, type Periodo } from '@/domain/periodos';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
+import { salvarPerfilNaApi } from '@/servicos/cadastro';
 import { atualizarSessao, useSessao } from '@/state/sessao';
 
 const alternar = <T,>(lista: T[], item: T) => (lista.includes(item) ? lista.filter((x) => x !== item) : [...lista, item]);
@@ -34,7 +34,7 @@ export default function CadastroUso() {
     setErro(null);
     setEnviando(true);
     try {
-      await api.salvarPerfil(sessao.usuarioId, {
+      await salvarPerfilNaApi(sessao.usuarioId, {
         tiposDeUso: usos,
         horariosHabituais: horariosHabituais(periodos, dias),
         distritosFrequentes: prefs.perfil.distritos.map((d) => d.distritoId),

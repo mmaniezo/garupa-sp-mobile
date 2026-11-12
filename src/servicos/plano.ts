@@ -49,16 +49,31 @@ const chaveCache = (c: ContextoPlano, distritos: number[]) =>
 
 type Bruto = { pontos: CelulaCritica[]; mensagens: Mensagem[]; semLocalizacao: boolean };
 
+/** Um raio de 50 km (o máximo da API) a partir deste ponto cobre o município inteiro. */
+const COBERTURA_SP = { lat: -23.68, lon: -46.6, raioMetros: 50_000 };
+
 async function buscarNaApi(c: ContextoPlano, distritos: number[]): Promise<Bruto> {
   const prefs = obterPreferencias();
   const usuarioId = obterSessao().usuarioId!;
+  const tipoDeUso = prefs.perfil.tiposDeUso[0];
+  const contexto = contextoDaMensagem(c.faixa, c.tipoDia, c.chuva);
   if (distritos.length > 0) {
-    const plano = await api.obterPlanoDoTurno({ usuarioId, faixaHoraria: c.faixa, tipoDia: c.tipoDia, chuva: c.chuva });
-    return { pontos: plano.pontosCriticos, mensagens: plano.mensagens, semLocalizacao: false };
+    // A API só guarda o perfil com o consentimento e ao menos um tipo de uso (servicos/cadastro.ts).
+    const perfilNaApi = prefs.consentimentos.perfilDeUso && prefs.perfil.tiposDeUso.length > 0;
+    if (perfilNaApi) {
+      const plano = await api.obterPlanoDoTurno({ usuarioId, faixaHoraria: c.faixa, tipoDia: c.tipoDia, chuva: c.chuva });
+      return { pontos: plano.pontosCriticos, mensagens: plano.mensagens, semLocalizacao: false };
+    }
+    // Perfil só no aparelho: os mesmos pontos, da cidade toda, filtrados pelos distritos aqui.
+    const [todos, mensagens] = await Promise.all([
+      api.obterRisco({ ...COBERTURA_SP, faixaHoraria: c.faixa, tipoDia: c.tipoDia, chuva: c.chuva }),
+      api.listarMensagens({ contexto, tipoDeUso }),
+    ]);
+    const pontos = todos.filter((p) => p.distritoId !== undefined && distritos.includes(p.distritoId));
+    return { pontos, mensagens: mensagens.slice(0, 2), semLocalizacao: false };
   }
   // RB07: sem distritos, pontos num raio da posição atual.
-  const tipoDeUso = prefs.perfil.tiposDeUso[0];
-  const mensagens = await api.listarMensagens({ contexto: contextoDaMensagem(c.faixa, c.tipoDia, c.chuva), tipoDeUso });
+  const mensagens = await api.listarMensagens({ contexto, tipoDeUso });
   const pos = await obterPosicao(5 * 60_000, 6_000);
   if (!pos) return { pontos: [], mensagens: mensagens.slice(0, 2), semLocalizacao: true };
   const pontos = await api.obterRisco({
@@ -84,7 +99,9 @@ async function ordenar(pontos: CelulaCritica[]): Promise<PontoDoPlano[]> {
 
 export async function carregarPlano(contexto: ContextoPlano = contextoAgora()): Promise<void> {
   if (!obterSessao().usuarioId) return;
-  const distritos = obterPreferencias().perfil.distritos.map((d) => d.distritoId);
+  // "Usar meu perfil de uso e distritos" desmarcado: o plano não usa os distritos (raio da posição).
+  const prefs = obterPreferencias();
+  const distritos = prefs.consentimentos.perfilDeUso ? prefs.perfil.distritos.map((d) => d.distritoId) : [];
   const chave = chaveCache(contexto, distritos);
   store.definir({ ...store.obter(), carregando: true, erro: null });
 

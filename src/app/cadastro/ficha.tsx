@@ -2,11 +2,11 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { api } from '@/api';
 import type { FichaMedica } from '@/api/types';
 import { Aviso, Botao, CabecalhoPasso, Campo, Chip, Tela, Texto } from '@/components/ui';
 import { gravarFicha, lerFicha } from '@/dados-locais/seguro';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
+import { salvarFichaNaApi } from '@/servicos/cadastro';
 import { atualizarSessao, useSessao } from '@/state/sessao';
 
 const TIPOS_SANGUINEOS = ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'];
@@ -40,7 +40,7 @@ export default function CadastroFicha() {
       medicamentos: ficha.medicamentos?.trim() || null,
     };
     try {
-      await api.salvarFichaMedica(sessao.usuarioId, limpa);
+      await salvarFichaNaApi(sessao.usuarioId, limpa);
       await gravarFicha(limpa);
       if (editar) return voltarOu('/perfil');
       await atualizarSessao({ passos: { ficha: 'feito' } });
@@ -125,7 +125,7 @@ export default function CadastroFicha() {
         maxLength={140}
       />
       <Texto variante="legenda" cor="textoSecundario">
-        Use dados fictícios no protótipo.
+        Ao salvar, você autoriza guardar a ficha criptografada. Dá para revogar no Perfil. Use dados fictícios no protótipo.
       </Texto>
     </Tela>
   );
