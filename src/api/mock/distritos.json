@@ -1,0 +1,386 @@
+[
+ {
+  "distritoId": 355030801,
+  "nome": "Água Rasa"
+ },
+ {
+  "distritoId": 355030802,
+  "nome": "Alto de Pinheiros"
+ },
+ {
+  "distritoId": 355030803,
+  "nome": "Anhanguera"
+ },
+ {
+  "distritoId": 355030804,
+  "nome": "Aricanduva"
+ },
+ {
+  "distritoId": 355030805,
+  "nome": "Artur Alvim"
+ },
+ {
+  "distritoId": 355030806,
+  "nome": "Barra Funda"
+ },
+ {
+  "distritoId": 355030807,
+  "nome": "Bela Vista"
+ },
+ {
+  "distritoId": 355030808,
+  "nome": "Belém"
+ },
+ {
+  "distritoId": 355030809,
+  "nome": "Bom Retiro"
+ },
+ {
+  "distritoId": 355030810,
+  "nome": "Brás"
+ },
+ {
+  "distritoId": 355030811,
+  "nome": "Brasilândia"
+ },
+ {
+  "distritoId": 355030812,
+  "nome": "Butantã"
+ },
+ {
+  "distritoId": 355030813,
+  "nome": "Cachoeirinha"
+ },
+ {
+  "distritoId": 355030814,
+  "nome": "Cambuci"
+ },
+ {
+  "distritoId": 355030815,
+  "nome": "Campo Belo"
+ },
+ {
+  "distritoId": 355030816,
+  "nome": "Campo Grande"
+ },
+ {
+  "distritoId": 355030817,
+  "nome": "Campo Limpo"
+ },
+ {
+  "distritoId": 355030818,
+  "nome": "Cangaiba"
+ },
+ {
+  "distritoId": 355030819,
+  "nome": "Capão Redondo"
+ },
+ {
+  "distritoId": 355030820,
+  "nome": "Carrão"
+ },
+ {
+  "distritoId": 355030821,
+  "nome": "Casa Verde"
+ },
+ {
+  "distritoId": 355030822,
+  "nome": "Cidade Ademar"
+ },
+ {
+  "distritoId": 355030823,
+  "nome": "Cidade Dutra"
+ },
+ {
+  "distritoId": 355030824,
+  "nome": "Cidade Lider"
+ },
+ {
+  "distritoId": 355030825,
+  "nome": "Cidade Tiradentes"
+ },
+ {
+  "distritoId": 355030826,
+  "nome": "Consolação"
+ },
+ {
+  "distritoId": 355030827,
+  "nome": "Cursino"
+ },
+ {
+  "distritoId": 355030828,
+  "nome": "Ermelino Matarazzo"
+ },
+ {
+  "distritoId": 355030829,
+  "nome": "Freguesia do Ó"
+ },
+ {
+  "distritoId": 355030830,
+  "nome": "Grajaú"
+ },
+ {
+  "distritoId": 355030831,
+  "nome": "Guaianases"
+ },
+ {
+  "distritoId": 355030833,
+  "nome": "Iguatemi"
+ },
+ {
+  "distritoId": 355030834,
+  "nome": "Ipiranga"
+ },
+ {
+  "distritoId": 355030835,
+  "nome": "Itaim Bibi"
+ },
+ {
+  "distritoId": 355030836,
+  "nome": "Itaim Paulista"
+ },
+ {
+  "distritoId": 355030837,
+  "nome": "Itaquera"
+ },
+ {
+  "distritoId": 355030838,
+  "nome": "Jabaquara"
+ },
+ {
+  "distritoId": 355030839,
+  "nome": "Jaçanã"
+ },
+ {
+  "distritoId": 355030840,
+  "nome": "Jaguara"
+ },
+ {
+  "distritoId": 355030841,
+  "nome": "Jaguaré"
+ },
+ {
+  "distritoId": 355030842,
+  "nome": "Jaraguá"
+ },
+ {
+  "distritoId": 355030843,
+  "nome": "Jardim Ângela"
+ },
+ {
+  "distritoId": 355030844,
+  "nome": "Jardim Helena"
+ },
+ {
+  "distritoId": 355030845,
+  "nome": "Jardim Paulista"
+ },
+ {
+  "distritoId": 355030846,
+  "nome": "Jardim São Luís"
+ },
+ {
+  "distritoId": 355030847,
+  "nome": "José Bonifácio"
+ },
+ {
+  "distritoId": 355030896,
+  "nome": "Lajeado"
+ },
+ {
+  "distritoId": 355030848,
+  "nome": "Lapa"
+ },
+ {
+  "distritoId": 355030849,
+  "nome": "Liberdade"
+ },
+ {
+  "distritoId": 355030850,
+  "nome": "Limão"
+ },
+ {
+  "distritoId": 355030851,
+  "nome": "Mandaqui"
+ },
+ {
+  "distritoId": 355030852,
+  "nome": "Marsilac"
+ },
+ {
+  "distritoId": 355030832,
+  "nome": "Moema"
+ },
+ {
+  "distritoId": 355030853,
+  "nome": "Mooca"
+ },
+ {
+  "distritoId": 355030854,
+  "nome": "Morumbi"
+ },
+ {
+  "distritoId": 355030855,
+  "nome": "Parelheiros"
+ },
+ {
+  "distritoId": 355030856,
+  "nome": "Pari"
+ },
+ {
+  "distritoId": 355030857,
+  "nome": "Parque do Carmo"
+ },
+ {
+  "distritoId": 355030858,
+  "nome": "Pedreira"
+ },
+ {
+  "distritoId": 355030859,
+  "nome": "Penha"
+ },
+ {
+  "distritoId": 355030860,
+  "nome": "Perdizes"
+ },
+ {
+  "distritoId": 355030861,
+  "nome": "Perus"
+ },
+ {
+  "distritoId": 355030862,
+  "nome": "Pinheiros"
+ },
+ {
+  "distritoId": 355030863,
+  "nome": "Pirituba"
+ },
+ {
+  "distritoId": 355030864,
+  "nome": "Ponte Rasa"
+ },
+ {
+  "distritoId": 355030865,
+  "nome": "Raposo Tavares"
+ },
+ {
+  "distritoId": 355030866,
+  "nome": "República"
+ },
+ {
+  "distritoId": 355030867,
+  "nome": "Rio Pequeno"
+ },
+ {
+  "distritoId": 355030868,
+  "nome": "Sacomã"
+ },
+ {
+  "distritoId": 355030869,
+  "nome": "Santa Cecília"
+ },
+ {
+  "distritoId": 355030870,
+  "nome": "Santana"
+ },
+ {
+  "distritoId": 355030871,
+  "nome": "Santo Amaro"
+ },
+ {
+  "distritoId": 355030895,
+  "nome": "São Domingos"
+ },
+ {
+  "distritoId": 355030872,
+  "nome": "São Lucas"
+ },
+ {
+  "distritoId": 355030873,
+  "nome": "São Mateus"
+ },
+ {
+  "distritoId": 355030874,
+  "nome": "São Miguel"
+ },
+ {
+  "distritoId": 355030875,
+  "nome": "São Rafael"
+ },
+ {
+  "distritoId": 355030876,
+  "nome": "Sapopemba"
+ },
+ {
+  "distritoId": 355030877,
+  "nome": "Saúde"
+ },
+ {
+  "distritoId": 355030878,
+  "nome": "Sé"
+ },
+ {
+  "distritoId": 355030879,
+  "nome": "Socorro"
+ },
+ {
+  "distritoId": 355030880,
+  "nome": "Tatuapé"
+ },
+ {
+  "distritoId": 355030881,
+  "nome": "Tremembé"
+ },
+ {
+  "distritoId": 355030882,
+  "nome": "Tucuruvi"
+ },
+ {
+  "distritoId": 355030883,
+  "nome": "Vila Andrade"
+ },
+ {
+  "distritoId": 355030884,
+  "nome": "Vila Curuçá"
+ },
+ {
+  "distritoId": 355030885,
+  "nome": "Vila Formosa"
+ },
+ {
+  "distritoId": 355030886,
+  "nome": "Vila Guilherme"
+ },
+ {
+  "distritoId": 355030887,
+  "nome": "Vila Jacuí"
+ },
+ {
+  "distritoId": 355030888,
+  "nome": "Vila Leopoldina"
+ },
+ {
+  "distritoId": 355030889,
+  "nome": "Vila Maria"
+ },
+ {
+  "distritoId": 355030890,
+  "nome": "Vila Mariana"
+ },
+ {
+  "distritoId": 355030891,
+  "nome": "Vila Matilde"
+ },
+ {
+  "distritoId": 355030892,
+  "nome": "Vila Medeiros"
+ },
+ {
+  "distritoId": 355030893,
+  "nome": "Vila Prudente"
+ },
+ {
+  "distritoId": 355030894,
+  "nome": "Vila Sônia"
+ }
+]
