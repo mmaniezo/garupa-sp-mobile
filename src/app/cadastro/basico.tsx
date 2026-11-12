@@ -142,12 +142,12 @@ export default function CadastroBasico() {
       />
       <View style={styles.titulo}>
         <Texto variante="titulo" accessibilityRole="header">
-          {editar ? 'Quem a gente avisa?' : 'Quem vai com você?'}
+          {editar ? 'Quem a gente avisa?' : 'Quem é você?'}
         </Texto>
         <Texto variante="corpoMenor" cor="textoSecundario">
           {editar
             ? `Até ${regras.maxContatos} contatos. Eles recebem o link de acompanhamento do SOS.`
-            : 'Só o essencial para o socorro funcionar. O resto é opcional.'}
+            : 'Seus dados e alguém para a gente avisar se você precisar de socorro. O resto é opcional.'}
         </Texto>
       </View>
 
@@ -156,7 +156,7 @@ export default function CadastroBasico() {
       {!jaTemUsuario ? (
         <>
           <Campo
-            rotulo="Nome ou apelido"
+            rotulo="Seu nome ou apelido"
             value={nome}
             onChangeText={(v) => {
               limparErro('nome');
