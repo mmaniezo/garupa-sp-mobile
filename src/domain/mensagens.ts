@@ -31,3 +31,25 @@ export function contextoDaMensagem(faixa: FaixaHoraria, tipoDia: TipoDia, chuva:
   if (faixa >= 4 || faixa === 0) return 'noite';
   return 'geral';
 }
+
+/** Órgãos conhecidos pelo endereço da página (a API manda a fonte como link). */
+const ORGAOS: [RegExp, string][] = [
+  [/^(www\.)?gov\.br\/dnit\b/i, 'DNIT'],
+  [/^(www\.)?gov\.br\/transportes\b/i, 'Ministério dos Transportes'],
+  [/^(www\.)?detran\.sp\.gov\.br/i, 'Detran-SP'],
+  [/^(www\.)?cetsp\.com\.br/i, 'CET-SP'],
+  [/^(www\.)?infosiga\.sp\.gov\.br/i, 'Infosiga SP'],
+  [/^vitoria\.es\.gov\.br/i, 'Prefeitura de Vitória'],
+];
+
+/** "https://www.gov.br/dnit/..." vira "DNIT"; texto que não é link fica como está. */
+export function rotuloDaFonte(fonte: string): string {
+  const semProtocolo = fonte.trim().replace(/^https?:\/\//i, '');
+  if (semProtocolo === fonte.trim()) return fonte.trim();
+  const achado = ORGAOS.find(([padrao]) => padrao.test(semProtocolo));
+  if (achado) return achado[1];
+  return semProtocolo.split('/')[0].replace(/^www\./i, '');
+}
+
+/** A fonte é um link que dá para abrir? */
+export const fonteEhLink = (fonte: string) => /^https:\/\//i.test(fonte.trim());

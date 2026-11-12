@@ -1,5 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 
+import { fonteEhLink, rotuloDaFonte } from '@/domain/mensagens';
 import { brand, raio, tons } from '@/theme';
 
 import { BotaoIcone } from './botao-icone';
@@ -31,9 +32,21 @@ export function CartaoMensagem({ texto, fonte, titulo, onDispensar }: Props) {
           <Texto variante="corpoMenor" style={styles.texto}>
             {texto}
           </Texto>
-          <Texto variante="legenda" cor={tons.informacaoTexto} style={styles.fonte}>
-            Fonte: {fonte}
-          </Texto>
+          {fonteEhLink(fonte) ? (
+            <Texto
+              variante="legenda"
+              cor={tons.informacaoTexto}
+              style={[styles.fonte, styles.link]}
+              accessibilityRole="link"
+              accessibilityHint="Abre a página da fonte no navegador"
+              onPress={() => void Linking.openURL(fonte.trim())}>
+              Fonte: {rotuloDaFonte(fonte)}
+            </Texto>
+          ) : (
+            <Texto variante="legenda" cor={tons.informacaoTexto} style={styles.fonte}>
+              Fonte: {fonte}
+            </Texto>
+          )}
         </View>
         {onDispensar ? (
           <BotaoIcone
@@ -55,4 +68,5 @@ const styles = StyleSheet.create({
   corpo: { flex: 1, gap: 4 },
   texto: { color: brand.branco, fontSize: 17, lineHeight: 23 },
   fonte: { fontSize: 14 },
+  link: { textDecorationLine: 'underline' },
 });

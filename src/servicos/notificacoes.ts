@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 
 import type { Mensagem } from '@/api/types';
 import { TITULO_BANNER_ALERTA } from '@/domain/alertas';
+import { rotuloDaFonte } from '@/domain/mensagens';
 import { alerta, brand } from '@/theme';
 
 /**
@@ -227,7 +228,7 @@ export function notificarPontoCritico(celulaId: string, distanciaM: number) {
 export function notificarMensagem(m: Mensagem) {
   return apresentar(IDS.mensagem, CANAIS.mensagens, {
     title: 'Para o seu turno',
-    body: `${m.texto} Fonte: ${m.fonte}`,
+    body: `${m.texto} Fonte: ${rotuloDaFonte(m.fonte)}`,
     color: alerta.informacao,
     data: { tipo: 'mensagem', mensagemId: m.id },
   });

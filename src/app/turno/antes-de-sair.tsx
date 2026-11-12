@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Logo } from '@/components/brand/logo';
 import { Aviso, Botao, BotaoIcone, Etiqueta, ItemMarcavel, Tela, Texto } from '@/components/ui';
+import { rotuloDaFonte } from '@/domain/mensagens';
 import { voltarOu } from '@/lib/navegacao';
 import { carregarPlano, usePlano } from '@/servicos/plano';
 import { iniciarTurno } from '@/servicos/turno';
@@ -73,7 +74,7 @@ export default function AntesDeSair() {
             {mensagem.texto}
           </Texto>
           <Texto variante="legenda" cor={tons.informacaoTexto} style={{ fontSize: 14 }}>
-            Fonte: {mensagem.fonte}
+            Fonte: {rotuloDaFonte(mensagem.fonte)}
           </Texto>
         </View>
       ) : null}
