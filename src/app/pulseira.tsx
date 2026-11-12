@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
-import { mock } from '@/api';
+import { api, mock } from '@/api';
 import type { TipoAlertaVestivel, TipoEventoVestivel } from '@/api/types';
 import { Aviso, Botao, BotaoIcone, Campo, Tela, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
@@ -65,9 +65,17 @@ export default function Pulseira() {
     setAviso(`Enviado: ${l.titulo.toLowerCase()}. A luz acende em até 3 s.`);
   }
 
-  function simular(tipo: TipoEventoVestivel) {
-    if (!mock || !sessao.usuarioId) return;
-    mock.simularEventoVestivel(sessao.usuarioId, tipo);
+  /** Faz o papel da pulseira: com a API real, manda o evento para POST /eventos-vestivel. */
+  async function simular(tipo: TipoEventoVestivel) {
+    if (!sessao.usuarioId || !pareada) return;
+    setErro(null);
+    try {
+      if (mock) mock.simularEventoVestivel(sessao.usuarioId, tipo);
+      else await api.enviarEventoVestivel({ dispositivoId: pareada.dispositivoId, tipo, ocorridoEm: new Date().toISOString() });
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível simular o evento.'));
+      return;
+    }
     setAviso(
       tipo === 'cancelar' && turno.situacao === 'inativo'
         ? 'Evento simulado. "Cancelar" só tem efeito com a contagem ou um SOS em andamento.'
@@ -173,15 +181,15 @@ export default function Pulseira() {
         </Texto>
       </View>
 
-      {pareada && mock ? (
+      {pareada && (mock || __DEV__) ? (
         <View style={{ gap: 8 }}>
           <Texto variante="overline" cor="textoSecundario">
             Demonstração sem o Wokwi
           </Texto>
           <View style={styles.linha}>
-            <Botao titulo="Impacto" variante="neutro" tamanho="compacto" larguraTotal={false} onPress={() => simular('impacto')} />
-            <Botao titulo="SOS" variante="neutro" tamanho="compacto" larguraTotal={false} onPress={() => simular('sos')} />
-            <Botao titulo="Cancelar" variante="neutro" tamanho="compacto" larguraTotal={false} onPress={() => simular('cancelar')} />
+            <Botao titulo="Impacto" variante="neutro" tamanho="compacto" larguraTotal={false} onPress={() => void simular('impacto')} />
+            <Botao titulo="SOS" variante="neutro" tamanho="compacto" larguraTotal={false} onPress={() => void simular('sos')} />
+            <Botao titulo="Cancelar" variante="neutro" tamanho="compacto" larguraTotal={false} onPress={() => void simular('cancelar')} />
           </View>
         </View>
       ) : null}

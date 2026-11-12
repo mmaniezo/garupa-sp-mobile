@@ -4,13 +4,27 @@
  * Os números abaixo são as "propostas" do documento de requisitos (v1.3):
  * pontos de partida para ajustar depois de medir, num lugar só.
  */
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
 export type ModoApi = 'mock' | 'http';
+
+/**
+ * No celular, "localhost" é o próprio celular. Em desenvolvimento, troca pelo IP do computador
+ * que roda o Metro (o mesmo que roda a API), para EXPO_PUBLIC_API_URL=http://localhost:5221 funcionar.
+ */
+function urlDaApi(): string {
+  const url = (process.env.EXPO_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '');
+  const ipDoMetro = Constants.expoConfig?.hostUri?.split(':')[0];
+  if (Platform.OS === 'web' || !__DEV__ || !ipDoMetro || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ipDoMetro)) return url;
+  return url.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)(?=[:/]|$)/i, `$1${ipDoMetro}`);
+}
 
 export const config = {
   /** 'mock' usa a API simulada (mesmo contrato); 'http' fala com a API C# de verdade. */
   modoApi: (process.env.EXPO_PUBLIC_API_MODE === 'http' ? 'http' : 'mock') as ModoApi,
-  /** Endereço da API sem o /api/v1 (ex.: https://garupa-vm.exemplo.com). */
-  urlApi: (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, ''),
+  /** Endereço da API sem o /api/v1 (ex.: http://192.168.0.10:5221). */
+  urlApi: urlDaApi(),
   /** Tempo máximo de uma requisição comum. */
   timeoutMs: 10_000,
 } as const;

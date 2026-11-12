@@ -12,6 +12,7 @@ import type {
   Mensagem,
   NovoAlertaVestivel,
   NovoContato,
+  NovoEventoVestivel,
   NovoRelato,
   NovoSos,
   NovoUsuario,
@@ -20,6 +21,7 @@ import type {
   RelatoCriado,
   Saude,
   SosCriado,
+  Usuario,
   UsuarioCriado,
 } from './types';
 
@@ -33,13 +35,15 @@ export interface GarupaApi {
   /** GET /risco/celulas/{id} */
   obterCelula(celulaId: string): Promise<DetalheCelula>;
 
-  /** POST /usuarios */
+  /** POST /usuarios (com o primeiro contato de emergência) */
   criarUsuario(dados: NovoUsuario): Promise<UsuarioCriado>;
-  /** PUT /usuarios/{id}/ficha-medica */
+  /** GET /usuarios/{id}: nome, telefone e contatos (sem a ficha). */
+  obterUsuario(usuarioId: string): Promise<Usuario>;
+  /** PUT /usuarios/{id}/ficha-medica (409 sem o consentimento fichaMedica) */
   salvarFichaMedica(usuarioId: string, ficha: FichaMedica): Promise<void>;
   /** POST /usuarios/{id}/contatos */
   adicionarContato(usuarioId: string, contato: NovoContato): Promise<ContatoCriado>;
-  /** PUT /usuarios/{id}/perfil */
+  /** PUT /usuarios/{id}/perfil (409 sem o consentimento perfilDeUso) */
   salvarPerfil(usuarioId: string, perfil: PerfilUso): Promise<void>;
   /** PUT /usuarios/{id}/consentimentos */
   salvarConsentimentos(usuarioId: string, consentimentos: Consentimentos): Promise<void>;
@@ -73,6 +77,8 @@ export interface GarupaApi {
   desparearVestivel(usuarioId: string): Promise<void>;
   /** POST /usuarios/{id}/alertas-vestivel (202; fica pendente para a pulseira) */
   enviarAlertaVestivel(usuarioId: string, alerta: NovoAlertaVestivel): Promise<void>;
+  /** POST /eventos-vestivel (202): o que a pulseira manda. No app, só para simular no demo. */
+  enviarEventoVestivel(evento: NovoEventoVestivel): Promise<void>;
 
   /** GET /saude */
   saude(): Promise<Saude>;

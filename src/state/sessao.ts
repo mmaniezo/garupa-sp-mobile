@@ -13,6 +13,8 @@ export type Sessao = {
   carregada: boolean;
   usuarioId: string | null;
   nome: string | null;
+  /** Em qual API o cadastro existe ('mock' ou o endereço da API real). */
+  apiDoCadastro?: string | null;
   passos: {
     basico: SituacaoPasso;
     ficha: SituacaoPasso;

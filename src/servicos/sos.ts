@@ -1,6 +1,6 @@
 import { definirSobreBloqueio } from 'tela-bloqueio';
 
-import { api, ehErroDeRede } from '@/api';
+import { api, ehErroApi, ehErroDeRede } from '@/api';
 import type { NovoSos, OrigemSos, TipoSos } from '@/api/types';
 import {
   atualizarSos,
@@ -146,8 +146,10 @@ export async function processarFilaSos(): Promise<void> {
       try {
         await (r.acaoPendente === 'cancelar' ? api.cancelarSos(r.sosId) : api.encerrarSos(r.sosId));
         await atualizarSos(r.eventoId, { acaoPendente: null });
-      } catch {
-        // continua pendente
+      } catch (e) {
+        // 404 ou 409: o SOS já saiu do estado ativo na API (encerrado em 12 h, por exemplo).
+        // Não há mais o que reenviar; só erro de rede continua na fila.
+        if (ehErroApi(e, 404) || ehErroApi(e, 409)) await atualizarSos(r.eventoId, { acaoPendente: null });
       }
     }
   }

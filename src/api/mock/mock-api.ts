@@ -13,17 +13,20 @@ import type {
   FichaMedica,
   Mensagem,
   NovoAlertaVestivel,
+  NovoSos,
   PerfilUso,
   SosCriado,
   TipoDia,
   TipoEventoVestivel,
   TipoRelato,
+  TipoUso,
 } from '../types';
-import { CELULAS, DISTRITOS, MENSAGENS, type CelulaMock } from './dados';
+import { CELULAS, DIAS, DISTRITOS, MENSAGENS, riscoDaCelula, VERSAO_MODELO, type CelulaMock } from './dados';
 
 /**
- * API simulada com o mesmo contrato da API C# (responsabilidades_por_disciplina.md, seção 3,
- * item 5: "Se a API ainda não existir, um mock com o mesmo contrato").
+ * API simulada com o mesmo contrato e as mesmas regras da API C# (garupa-sp-api):
+ * risco do modelo de ML, só percentil ≥ 95, consentimento antes da ficha e do perfil,
+ * usuário criado junto com o primeiro contato, SOS e relato idempotentes pelo eventoId (GUID).
  * Guarda tudo em memória: fechar o app zera o mock (o que é do aparelho fica no SQLite).
  */
 
@@ -37,7 +40,7 @@ type UsuarioMock = {
   dispositivoId?: string;
 };
 
-type SosMock = SosCriado & { estado: EstadoSos; usuarioId: string };
+type SosMock = SosCriado & { estado: EstadoSos; usuarioId: string; dados: string };
 
 /** Controles extras do mock, para testes e para o demo sem API. */
 export interface ControlesMock {
@@ -53,22 +56,13 @@ export interface ControlesMock {
 export type ApiMock = GarupaApi & ControlesMock;
 
 const TIPOS_RELATO: TipoRelato[] = ['buraco', 'oleo_pista', 'acidente', 'semaforo_apagado'];
+const TIPOS_USO: TipoUso[] = ['entregador_app', 'trabalho_moto', 'ida_volta', 'lazer'];
+const TIPOS_EVENTO: TipoEventoVestivel[] = ['impacto', 'sos', 'cancelar'];
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const GUID_VAZIO = '00000000-0000-0000-0000-000000000000';
 
-/** Retângulo que envolve o município. A API real usa o polígono do GeoSampa (RF26). */
+/** Retângulo que envolve o município. A API real usa o polígono do município (RF26). */
 const LIMITES_SP = { latMin: -24.01, latMax: -23.35, lonMin: -46.83, lonMax: -46.36 };
-
-const FATOR_FAIXA: Record<FaixaHoraria, number> = { 0: 0.6, 1: 0.55, 2: 0.8, 3: 0.85, 4: 1, 5: 0.9 };
-
-/** Risco de exemplo: base da célula modulada por faixa, dia e chuva. O mesmo para todos (RB06). */
-export function riscoMock(c: CelulaMock, faixa: FaixaHoraria, dia: TipoDia, chuva: boolean) {
-  let score = c.base * FATOR_FAIXA[faixa];
-  if (chuva) score += 0.12;
-  if (dia === 'domingo' && (faixa === 0 || faixa >= 4)) score += 0.05;
-  if (dia === 'sabado' && faixa >= 4) score += 0.03;
-  score = Math.min(1, Math.max(0, +score.toFixed(3)));
-  const percentil = Math.min(100, Math.max(0, Math.round(70 + 30 * score)));
-  return { score, percentil };
-}
 
 function distanciaMetros(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6_371_000;
@@ -90,6 +84,22 @@ function erro400(campo: string, mensagem: string): ErroApi {
 function erro404(titulo: string): ErroApi {
   return new ErroApi(404, { title: titulo, status: 404 });
 }
+
+/** Regra de estado (consentimento que falta, SOS já encerrado...), como na API. */
+function erro409(titulo: string): ErroApi {
+  return new ErroApi(409, { title: titulo, status: 409 });
+}
+
+const guidValido = (id: string) => GUID.test(id) && id !== GUID_VAZIO;
+
+/** A frase que a API manda com cada ponto (ConteudoService.Ponto). */
+const motivoDaApi = (chuva: boolean) =>
+  chuva
+    ? 'Histórico de sinistros neste horário com chuva. Reduza a velocidade.'
+    : 'Histórico de sinistros neste horário. Mantenha distância e atenção.';
+
+/** O que a API compara para saber se um reenvio é o mesmo SOS. */
+const dadosDoSos = (s: NovoSos) => JSON.stringify([s.usuarioId, s.tipo, s.origem, s.ocorridoEm, s.lat, s.lon]);
 
 export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
   const latencia = opcoes.latenciaMs ?? 250;
@@ -128,7 +138,7 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
   }
 
   function paraCelulaCritica(c: CelulaMock, faixa: FaixaHoraria, dia: TipoDia, chuva: boolean): CelulaCritica {
-    const { score, percentil } = riscoMock(c, faixa, dia, chuva);
+    const { score, percentil } = riscoDaCelula(c, faixa, dia, chuva);
     return {
       celulaId: c.celulaId,
       centroLat: c.centroLat,
@@ -138,32 +148,39 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
       viaReferencia: c.viaReferencia,
       distritoId: c.distritoId,
       distritoNome: c.distritoNome,
+      versaoModelo: VERSAO_MODELO,
+      motivo: motivoDaApi(chuva),
     };
   }
 
-  function contextosDoMomento(faixa: FaixaHoraria, dia: TipoDia, chuva: boolean): ContextoMensagem[] {
-    const lista: ContextoMensagem[] = [];
-    if (chuva) lista.push('chuva');
-    if (faixa >= 4 || faixa === 0) lista.push('noite');
-    if (dia === 'domingo') lista.push('domingo');
-    lista.push('geral');
-    return lista;
+  /** Como a API: só o contexto pedido, só percentil ≥ 95, maior score primeiro (empate pelo id). */
+  function pontosDoContexto(celulas: CelulaMock[], faixa: FaixaHoraria, dia: TipoDia, chuva: boolean) {
+    return celulas
+      .map((cel) => paraCelulaCritica(cel, faixa, dia, chuva))
+      .filter((cel) => cel.percentil >= regras.percentilCorte)
+      .sort((a, b) => b.score - a.score || a.celulaId.localeCompare(b.celulaId));
+  }
+
+  function validarContato(contato: { nome?: string; telefone?: string } | undefined) {
+    const nome = contato?.nome?.trim();
+    if (!nome) throw erro400('nome', 'Informe o nome do contato.');
+    const tel = validarTelefone(contato?.telefone ?? '');
+    if (!tel.valido) throw erro400('telefone', 'Telefone fora do padrão brasileiro.');
+    return { nome, telefone: tel.e164 };
   }
 
   const api: ApiMock = {
     obterRisco: (c) =>
-      responder(() =>
-        CELULAS.filter((cel) => distanciaMetros(c.lat, c.lon, cel.centroLat, cel.centroLon) <= c.raioMetros)
-          .map((cel) => paraCelulaCritica(cel, c.faixaHoraria, c.tipoDia, c.chuva))
-          .filter((cel) => cel.percentil >= regras.percentilCorte)
-          .sort((a, b) => b.score - a.score),
-      ),
+      responder(() => {
+        if (!(c.raioMetros >= 1 && c.raioMetros <= 50_000)) throw erro400('raioMetros', 'Raio inválido.');
+        const perto = CELULAS.filter((cel) => distanciaMetros(c.lat, c.lon, cel.centroLat, cel.centroLon) <= c.raioMetros);
+        return pontosDoContexto(perto, c.faixaHoraria, c.tipoDia, c.chuva);
+      }),
 
     obterCelula: (celulaId) =>
       responder(() => {
         const c = CELULAS.find((cel) => cel.celulaId === celulaId);
         if (!c) throw erro404('Célula não encontrada');
-        const dias: TipoDia[] = ['util', 'sabado', 'domingo'];
         const faixas: FaixaHoraria[] = [0, 1, 2, 3, 4, 5];
         return {
           celulaId: c.celulaId,
@@ -172,9 +189,10 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
           viaReferencia: c.viaReferencia,
           distritoId: c.distritoId,
           distritoNome: c.distritoNome,
-          riscoPorFaixa: dias.flatMap((tipoDia) =>
-            faixas.flatMap((faixaHoraria) =>
-              [false, true].map((chuva) => ({ faixaHoraria, tipoDia, chuva, ...riscoMock(c, faixaHoraria, tipoDia, chuva) })),
+          versaoModelo: VERSAO_MODELO,
+          riscoPorFaixa: faixas.flatMap((faixaHoraria) =>
+            DIAS.flatMap((tipoDia) =>
+              [false, true].map((chuva) => ({ faixaHoraria, tipoDia, chuva, ...riscoDaCelula(c, faixaHoraria, tipoDia, chuva) })),
             ),
           ),
         };
@@ -187,27 +205,35 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
         if (nome.length > 60) throw erro400('nome', 'Use até 60 caracteres.');
         const tel = validarTelefone(dados.telefone ?? '');
         if (!tel.valido) throw erro400('telefone', 'Telefone fora do padrão brasileiro.');
+        // Como na API: o usuário só nasce com um contato de emergência.
+        const contato = validarContato(dados.contato);
         const usuarioId = novoId('usr');
-        usuarios.set(usuarioId, { nome, telefone: tel.e164, contatos: [] });
+        usuarios.set(usuarioId, { nome, telefone: tel.e164, contatos: [{ contatoId: novoId('ctt'), ...contato }] });
         return { usuarioId };
+      }),
+
+    obterUsuario: (usuarioId) =>
+      responder(() => {
+        const u = usuario(usuarioId);
+        return { usuarioId, nome: u.nome, telefone: u.telefone, contatos: u.contatos.map((c) => ({ ...c })) };
       }),
 
     salvarFichaMedica: (usuarioId, ficha) =>
       responder(() => {
-        usuario(usuarioId).ficha = { ...ficha };
+        const u = usuario(usuarioId);
+        if (!u.consentimentos?.fichaMedica) throw erro409('É necessário consentir com o armazenamento da ficha.');
+        u.ficha = { ...ficha };
       }),
 
     adicionarContato: (usuarioId, contato) =>
       responder(() => {
         const u = usuario(usuarioId);
-        if (!contato.nome?.trim()) throw erro400('nome', 'Informe o nome do contato.');
-        const tel = validarTelefone(contato.telefone ?? '');
-        if (!tel.valido) throw erro400('telefone', 'Telefone fora do padrão brasileiro.');
+        const valido = validarContato(contato);
         if (u.contatos.length >= regras.maxContatos) {
           throw erro400('contatos', `Até ${regras.maxContatos} contatos.`);
         }
         const contatoId = novoId('ctt');
-        u.contatos.push({ contatoId, nome: contato.nome.trim(), telefone: tel.e164 });
+        u.contatos.push({ contatoId, ...valido });
         return { contatoId };
       }),
 
@@ -221,12 +247,23 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
         if (distritos.some((id) => !DISTRITOS.some((d) => d.distritoId === id))) {
           throw erro400('distritosFrequentes', 'Distrito inexistente.');
         }
+        if ((perfil.tiposDeUso ?? []).some((t) => !TIPOS_USO.includes(t)) || (perfil.horariosHabituais ?? []).length > 18) {
+          throw erro400('perfil', 'Perfil inválido.');
+        }
+        if (!u.consentimentos?.perfilDeUso) throw erro409('É necessário consentir com o perfil de uso.');
         u.perfil = { ...perfil, distritosFrequentes: [...new Set(distritos)] };
       }),
 
     salvarConsentimentos: (usuarioId, c) =>
       responder(() => {
-        usuario(usuarioId).consentimentos = { ...c };
+        const u = usuario(usuarioId);
+        if (c.localizacaoEmSegundoPlano && !c.localizacaoEmUso) {
+          throw erro400('localizacaoEmSegundoPlano', 'Localização em segundo plano exige localização em uso.');
+        }
+        u.consentimentos = { ...c };
+        // Revogar apaga o dado na hora, como na API.
+        if (!c.fichaMedica) u.ficha = undefined;
+        if (!c.perfilDeUso) u.perfil = undefined;
       }),
 
     excluirUsuario: (usuarioId) =>
@@ -243,61 +280,73 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
       responder(() => {
         const u = usuario(c.usuarioId);
         const distritos = u.perfil?.distritosFrequentes ?? [];
-        // Sem distritos, o app usa GET /risco num raio da posição atual (RB07).
-        const pontosCriticos = CELULAS.filter((cel) => distritos.includes(cel.distritoId))
-          .map((cel) => paraCelulaCritica(cel, c.faixaHoraria, c.tipoDia, c.chuva))
-          .filter((cel) => cel.percentil >= regras.percentilCorte)
-          .sort((a, b) => b.score - a.score);
+        // Sem distritos, a lista vem vazia e o app usa GET /risco num raio da posição atual (RB07).
+        const pontosCriticos = pontosDoContexto(
+          CELULAS.filter((cel) => distritos.includes(cel.distritoId)),
+          c.faixaHoraria,
+          c.tipoDia,
+          c.chuva,
+        );
 
+        // Mesma escolha da API: um contexto do momento, depois as do tipo de uso, depois pelo id.
         const usos = u.perfil?.tiposDeUso ?? [];
-        const contextos = contextosDoMomento(c.faixaHoraria, c.tipoDia, c.chuva);
-        const candidatas = MENSAGENS.filter(
-          (m) => contextos.includes(m.contexto) && (m.tipoDeUso === null || usos.includes(m.tipoDeUso)),
-        ).sort((a, b) => {
-          // Primeiro as do perfil, depois as do contexto mais específico.
-          const perfil = Number(b.tipoDeUso !== null) - Number(a.tipoDeUso !== null);
-          return perfil || contextos.indexOf(a.contexto) - contextos.indexOf(b.contexto);
-        });
-        const mensagens: Mensagem[] = candidatas.slice(0, 2).map(({ id, texto, fonte, contexto, tipoDeUso }) => ({
-          id,
-          texto,
-          fonte,
-          contexto,
-          tipoDeUso,
-        }));
-        return { pontosCriticos, mensagens };
+        const noite = c.faixaHoraria === 0 || c.faixaHoraria === 5;
+        const contexto: ContextoMensagem = c.chuva ? 'chuva' : noite ? 'noite' : c.tipoDia === 'domingo' ? 'domingo' : 'geral';
+        const mensagens: Mensagem[] = MENSAGENS.filter(
+          (m) => (m.contexto === contexto || m.contexto === 'geral') && (m.tipoDeUso === null || usos.includes(m.tipoDeUso)),
+        )
+          .sort(
+            (a, b) =>
+              Number(b.contexto === contexto) - Number(a.contexto === contexto) ||
+              Number(b.tipoDeUso !== null) - Number(a.tipoDeUso !== null) ||
+              Number(a.id) - Number(b.id),
+          )
+          .slice(0, 2)
+          .map(({ id, texto, fonte }) => ({ id, texto, fonte }));
+        return { pontosCriticos, mensagens, faixaHoraria: c.faixaHoraria, origemFaixa: 'consulta' as const };
       }),
 
     listarMensagens: (c) =>
       responder(() =>
         MENSAGENS.filter(
           (m) => m.contexto === c.contexto && (!c.tipoDeUso || m.tipoDeUso === null || m.tipoDeUso === c.tipoDeUso),
-        ).map((m) => ({ ...m })),
+        ).map(({ id, texto, fonte }) => ({ id, texto, fonte })),
       ),
 
     enviarSos: (novo) =>
       responder(() => {
         usuario(novo.usuarioId);
+        if (!guidValido(novo.eventoId)) throw erro400('eventoId', 'Evento inválido.');
+        if (typeof novo.lat !== 'number' || typeof novo.lon !== 'number') throw erro400('lat', 'Posição inválida.');
+        if (Date.parse(novo.ocorridoEm) > Date.now()) throw erro400('ocorridoEm', 'Horário inválido.');
+        const dados = dadosDoSos(novo);
         const existente = sosPorEvento.get(novo.eventoId);
-        if (existente) return { ...existente }; // idempotente pelo eventoId (RB13)
+        if (existente) {
+          // Mesmo evento e mesmos dados: o mesmo SOS (RB13). Outros dados: 409, como na API.
+          if (sos.get(existente.sosId)?.dados !== dados) throw erro409('Evento já utilizado com outros dados.');
+          return { ...existente };
+        }
         const criado: SosCriado = { sosId: novoId('sos'), tokenAcompanhamento: novoId('tok') };
         sosPorEvento.set(novo.eventoId, criado);
-        sos.set(criado.sosId, { ...criado, estado: 'ativo', usuarioId: novo.usuarioId });
+        sos.set(criado.sosId, { ...criado, estado: 'ativo', usuarioId: novo.usuarioId, dados });
         return { ...criado };
       }),
 
+    // Repetir a mesma transição é sucesso; trocar um estado final pelo outro é 409.
     cancelarSos: (sosId) =>
       responder(() => {
         const s = sos.get(sosId);
         if (!s) throw erro404('SOS não encontrado');
-        if (s.estado === 'ativo') s.estado = 'cancelado';
+        if (s.estado === 'encerrado') throw erro409('SOS já encerrado.');
+        s.estado = 'cancelado';
       }),
 
     encerrarSos: (sosId) =>
       responder(() => {
         const s = sos.get(sosId);
         if (!s) throw erro404('SOS não encontrado');
-        if (s.estado === 'ativo') s.estado = 'encerrado';
+        if (s.estado === 'cancelado') throw erro409('SOS já cancelado.');
+        s.estado = 'encerrado';
       }),
 
     urlAcompanhamento: (token) => `https://api.exemplo.invalid/api/v1/acompanhar/${encodeURIComponent(token)}`,
@@ -305,6 +354,7 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
     enviarRelato: (relato) =>
       responder(() => {
         usuario(relato.usuarioId);
+        if (!guidValido(relato.eventoId)) throw erro400('eventoId', 'Relato inválido.');
         const existente = relatosPorEvento.get(relato.eventoId);
         if (existente) return { relatoId: existente };
         if (!TIPOS_RELATO.includes(relato.tipo)) throw erro400('tipo', 'Tipo de relato inválido.');
@@ -328,13 +378,20 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
 
     parearVestivel: (usuarioId, dispositivoId) =>
       responder(() => {
-        if (!dispositivoId?.trim()) throw erro400('dispositivoId', 'Informe o código da pulseira.');
-        usuario(usuarioId).dispositivoId = dispositivoId.trim();
+        const id = dispositivoId?.trim();
+        if (!id) throw erro400('dispositivoId', 'Informe o código da pulseira.');
+        const u = usuario(usuarioId);
+        if ([...usuarios.entries()].some(([outro, x]) => outro !== usuarioId && x.dispositivoId === id)) {
+          throw erro409('Dispositivo já pareado.');
+        }
+        if (u.dispositivoId !== id) eventosVestivel.set(usuarioId, []); // trocar de pulseira descarta pendências
+        u.dispositivoId = id;
       }),
 
     desparearVestivel: (usuarioId) =>
       responder(() => {
         usuario(usuarioId).dispositivoId = undefined;
+        eventosVestivel.set(usuarioId, []);
       }),
 
     enviarAlertaVestivel: (usuarioId, alerta) =>
@@ -342,6 +399,16 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
         const u = usuario(usuarioId);
         if (!u.dispositivoId) throw erro404('Nenhuma pulseira pareada');
         alertasVestivel.push({ ...alerta, dispositivoId: u.dispositivoId, recebidoEm: Date.now() });
+      }),
+
+    enviarEventoVestivel: (evento) =>
+      responder(() => {
+        if (!TIPOS_EVENTO.includes(evento.tipo)) throw erro400('tipo', 'Evento inválido.');
+        const dono = [...usuarios.entries()].find(([, u]) => u.dispositivoId === evento.dispositivoId);
+        if (!dono) throw erro404('Dispositivo não pareado');
+        const lista = eventosVestivel.get(dono[0]) ?? [];
+        lista.push({ eventoId: novoId('evv'), tipo: evento.tipo, ocorridoEm: evento.ocorridoEm });
+        eventosVestivel.set(dono[0], lista);
       }),
 
     saude: () => responder(() => ({ versao: 'mock', banco: 'memoria' })),
@@ -352,7 +419,7 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
       const u = usuarios.get(usuarioId);
       if (!u?.dispositivoId) return; // não pareado: a API real responde 404 e não gera evento
       const lista = eventosVestivel.get(usuarioId) ?? [];
-      lista.push({ eventoId: novoId('evv'), dispositivoId: u.dispositivoId, tipo, ocorridoEm: new Date().toISOString() });
+      lista.push({ eventoId: novoId('evv'), tipo, ocorridoEm: new Date().toISOString() });
       eventosVestivel.set(usuarioId, lista);
     },
 

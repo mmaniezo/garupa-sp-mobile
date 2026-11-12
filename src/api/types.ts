@@ -1,9 +1,10 @@
 /**
- * Tipos do contrato da API (/api/v1), conforme responsabilidades_por_disciplina.md v1.4.
+ * Tipos do contrato da API (/api/v1), conforme responsabilidades_por_disciplina.md v1.4,
+ * conferidos com o Swagger da API C# (garupa-sp-api, docs/evidencias/swagger-v1.json).
  * JSON em camelCase, datas em ISO 8601 UTC, IDs de evento em GUID gerado no aparelho.
  *
- * Quando a API publicar o Swagger, conferir estes tipos com ele (ou gerar a partir dele).
- * Campos marcados com "a confirmar" não estão fechados no contrato.
+ * Na API, os ids de usuário, contato, SOS, relato, mensagem e evento são números.
+ * O app trata todos como texto; o cliente HTTP (http.ts) converte na ida e na volta.
  */
 
 export type Iso8601 = string;
@@ -33,9 +34,14 @@ export type CelulaCritica = {
   /** Ranking entre todas as células, 0 a 100. */
   percentil: number;
   viaReferencia: string;
-  /** A confirmar no contrato: útil para mostrar "Pinheiros · ..." no plano. */
+  /** Id IBGE do distrito (o mesmo de GET /distritos). */
   distritoId?: number;
+  /** Não vem da API: o app completa a partir de GET /distritos. */
   distritoNome?: string;
+  /** Versão do modelo de ML que gerou o score (ex.: v1-xgb-2025). */
+  versaoModelo?: string;
+  /** Frase curta da API sobre o histórico do ponto no contexto consultado. */
+  motivo?: string;
 };
 
 export type RiscoNaFaixa = {
@@ -46,7 +52,7 @@ export type RiscoNaFaixa = {
   percentil: number;
 };
 
-export type DetalheCelula = Omit<CelulaCritica, 'score' | 'percentil'> & {
+export type DetalheCelula = Omit<CelulaCritica, 'score' | 'percentil' | 'motivo'> & {
   riscoPorFaixa: RiscoNaFaixa[];
 };
 
@@ -59,7 +65,7 @@ export type Mensagem = {
   id: string;
   /** Até 140 caracteres (RB05). */
   texto: string;
-  /** Fonte oficial (CET-SP, Detran-SP, Código de Trânsito, Infosiga). */
+  /** Fonte oficial. Na API é o link (https) da página de onde o texto saiu. */
   fonte: string;
   contexto?: ContextoMensagem;
   tipoDeUso?: TipoUso | null;
@@ -77,6 +83,9 @@ export type PlanoDoTurno = {
   pontosCriticos: CelulaCritica[];
   /** Até 2 mensagens de conscientização do contexto e do tipo de uso. */
   mensagens: Mensagem[];
+  /** Faixa usada pela API (a da consulta, a habitual do perfil ou a de agora). */
+  faixaHoraria?: FaixaHoraria;
+  origemFaixa?: 'consulta' | 'perfil' | 'horario_atual';
 };
 
 export type ConsultaMensagens = {
@@ -88,8 +97,20 @@ export type ConsultaMensagens = {
 
 export type Distrito = { distritoId: number; nome: string };
 
-export type NovoUsuario = { nome: string; telefone: string };
+export type NovoContato = { nome: string; telefone: string };
+export type ContatoCriado = { contatoId: string };
+
+/** A API grava o usuário e o primeiro contato juntos, na mesma transação. */
+export type NovoUsuario = { nome: string; telefone: string; contato: NovoContato };
 export type UsuarioCriado = { usuarioId: string };
+
+/** GET /usuarios/{id}: sem a ficha médica, que nunca volta pela API. */
+export type Usuario = {
+  usuarioId: string;
+  nome: string;
+  telefone: string;
+  contatos: (NovoContato & { contatoId: string })[];
+};
 
 export type FichaMedica = {
   tipoSanguineo?: string | null;
@@ -97,9 +118,6 @@ export type FichaMedica = {
   condicoes?: string | null;
   medicamentos?: string | null;
 };
-
-export type NovoContato = { nome: string; telefone: string };
-export type ContatoCriado = { contatoId: string };
 
 export type HorarioHabitual = { faixaHoraria: FaixaHoraria; tipoDia: TipoDia };
 
@@ -138,7 +156,7 @@ export type SosCriado = { sosId: string; tokenAcompanhamento: string };
 
 // ---------- Relatos ----------
 
-/** A confirmar com a API: o contrato não lista os tipos; estes são os do design (tela 19). */
+/** Os tipos do design (tela 19). A API aceita qualquer texto de até 40 caracteres. */
 export type TipoRelato = 'buraco' | 'oleo_pista' | 'acidente' | 'semaforo_apagado';
 
 export type NovoRelato = {
@@ -156,13 +174,16 @@ export type RelatoCriado = { relatoId: string };
 
 export type TipoEventoVestivel = 'impacto' | 'sos' | 'cancelar';
 
-/** A confirmar com a API: o contrato diz só "eventos ainda não consumidos". */
+/** GET /eventos-vestivel/pendentes: cada evento é entregue uma vez. */
 export type EventoVestivel = {
   eventoId: string;
   dispositivoId?: string;
   tipo: TipoEventoVestivel;
   ocorridoEm: Iso8601;
 };
+
+/** POST /eventos-vestivel: o que a pulseira (ESP32) manda. O app usa só no demo. */
+export type NovoEventoVestivel = { dispositivoId: string; tipo: TipoEventoVestivel; ocorridoEm: Iso8601 };
 
 /** Os sete alertas que o app repete na pulseira (RF39). */
 export type TipoAlertaVestivel =

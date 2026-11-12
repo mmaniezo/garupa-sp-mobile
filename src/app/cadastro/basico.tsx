@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { api, ehErroApi } from '@/api';
+import { api, ehErroApi, origemApi } from '@/api';
 import { Aviso, Botao, CabecalhoPasso, Campo, Icone, Tela, Texto } from '@/components/ui';
 import { regras } from '@/config';
 import { gravarContatos, lerContatos, type ContatoLocal } from '@/dados-locais/seguro';
@@ -72,16 +72,38 @@ export default function CadastroBasico() {
     setEnviando(true);
     try {
       let usuarioId = sessao.usuarioId;
+      let lista = contatos;
       if (!usuarioId) {
+        // A API cria o usuário junto com o primeiro contato, na mesma transação.
+        const i0 = lista.findIndex((c) => !c.contatoId && (c.nome.trim() || c.telefone.trim()));
+        const primeiro = lista[i0];
         const t = validarTelefone(telefone);
-        const criado = await api.criarUsuario({ nome: nome.trim(), telefone: t.valido ? t.e164 : telefone });
+        const tc = validarTelefone(primeiro.telefone);
+        const criado = await api.criarUsuario({
+          nome: nome.trim(),
+          telefone: t.valido ? t.e164 : telefone,
+          contato: { nome: primeiro.nome.trim(), telefone: tc.valido ? tc.e164 : primeiro.telefone },
+        });
         usuarioId = criado.usuarioId;
-        // Guarda já: se o contato falhar, tentar de novo não cria outro usuário.
-        await atualizarSessao({ usuarioId, nome: nome.trim() });
+        // Guarda já: se outro contato falhar, tentar de novo não cria outro usuário.
+        await atualizarSessao({ usuarioId, nome: nome.trim(), apiDoCadastro: origemApi });
+        // O id do contato não volta no POST; vem na consulta do cadastro.
+        const contatoId = await api
+          .obterUsuario(usuarioId)
+          .then((u) => u.contatos[0]?.contatoId ?? null)
+          .catch(() => null);
+        const salvo = {
+          contatoId: contatoId ?? 'inicial',
+          nome: primeiro.nome.trim(),
+          telefone: tc.valido ? tc.exibicao : primeiro.telefone,
+        };
+        lista = lista.map((x, j) => (j === i0 ? salvo : x));
+        await gravarContatos(lista.filter((x) => x.contatoId) as ContatoLocal[]);
+        setContatos(lista);
       }
 
       const salvos: ContatoLocal[] = [];
-      for (const [i, c] of contatos.entries()) {
+      for (const [i, c] of lista.entries()) {
         if (c.contatoId) {
           salvos.push(c);
           continue;

@@ -2,7 +2,7 @@ import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { api, mock } from '@/api';
+import { api, mock, origemApi } from '@/api';
 import { Logo } from '@/components/brand/logo';
 import {
   BannerAlerta,
@@ -63,13 +63,24 @@ export default function CatalogoDev() {
 
   /** Cadastro completo com dados fictícios, para ver o plano e o turno sem digitar tudo. */
   async function simularCadastro() {
-    const { usuarioId } = await api.criarUsuario({ nome: 'Léo Motoca', telefone: '(11) 90000-0000' });
-    const { contatoId } = await api.adicionarContato(usuarioId, { nome: 'Ana (irmã)', telefone: '(11) 90000-0001' });
-    await gravarContatos([{ contatoId, nome: 'Ana (irmã)', telefone: '(11) 90000-0001' }]);
+    const contato = { nome: 'Ana (irmã)', telefone: '(11) 90000-0001' };
+    const { usuarioId } = await api.criarUsuario({ nome: 'Léo Motoca', telefone: '(11) 90000-0000', contato });
+    const { contatos } = await api.obterUsuario(usuarioId);
+    await gravarContatos([{ ...contato, contatoId: contatos[0]?.contatoId ?? 'inicial' }]);
+    // A API só guarda ficha e perfil depois dos consentimentos.
+    const consentimentos = {
+      localizacaoEmUso: true,
+      localizacaoEmSegundoPlano: true,
+      fichaMedica: true,
+      historicoDeLocais: true,
+      perfilDeUso: true,
+    };
+    await api.salvarConsentimentos(usuarioId, consentimentos);
     const ficha = { tipoSanguineo: 'O+', alergias: 'Dipirona (fictício)', condicoes: null, medicamentos: null };
     await api.salvarFichaMedica(usuarioId, ficha);
     await gravarFicha(ficha);
-    const distritos = ['Pinheiros', 'Butantã', 'Vila Mariana'].map((n) => DISTRITOS.find((d) => d.nome === n)!);
+    // Distritos com pontos críticos no modelo de ML (risco_celula.csv).
+    const distritos = ['Itaim Bibi', 'Pinheiros', 'Vila Mariana'].map((n) => DISTRITOS.find((d) => d.nome === n)!);
     const perfil = {
       tiposDeUso: ['entregador_app' as const, 'ida_volta' as const],
       periodos: ['almoco' as const, 'jantar' as const],
@@ -81,18 +92,11 @@ export default function CatalogoDev() {
       horariosHabituais: horariosHabituais(perfil.periodos, perfil.dias),
       distritosFrequentes: distritos.map((d) => d.distritoId),
     });
-    const consentimentos = {
-      localizacaoEmUso: true,
-      localizacaoEmSegundoPlano: true,
-      fichaMedica: true,
-      historicoDeLocais: true,
-      perfilDeUso: true,
-    };
-    await api.salvarConsentimentos(usuarioId, consentimentos);
     await atualizarPreferencias({ perfil, consentimentos });
     await atualizarSessao({
       usuarioId,
       nome: 'Léo Motoca',
+      apiDoCadastro: origemApi,
       passos: { basico: 'feito', ficha: 'feito', uso: 'feito', distritos: 'feito', permissoes: 'feito' },
     });
     void carregarPlano();

@@ -73,7 +73,8 @@ export default function PlanoDoTurno() {
       rodape={<Botao titulo={botaoTurno.titulo} icone="play" tamanho="destaque" onPress={botaoTurno.ir} />}>
       <View style={styles.topo}>
         <Logo variante="horizontal-branca" altura={40} />
-        {mock ? <Etiqueta texto="dados de exemplo" /> : null}
+        {/* O risco do mock é o do modelo de ML; o que é simulado é o servidor (e o cadastro some ao fechar). */}
+        {mock ? <Etiqueta texto="API simulada" /> : null}
       </View>
 
       <View style={{ gap: 4 }}>
