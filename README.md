@@ -43,7 +43,17 @@ O app informa e avisa mais rápido; não promete salvar vidas. O mapa mostra his
 
 ## Como rodar
 
-Pré-requisitos: Node 20 ou mais novo, conta no Expo e um Android (alvo principal do protótipo).
+**Só quer instalar?** Baixe o APK de Android na página [Releases](https://github.com/mmaniezo/garupa-sp-mobile/releases). Ele vem com a API simulada e funciona sem servidor. Cada tag `v*` enviada ao GitHub gera um APK novo pelo workflow `.github/workflows/release-android.yml`:
+
+```bash
+git tag v0.1.1
+```
+
+```bash
+git push origin v0.1.1
+```
+
+Para desenvolver, os pré-requisitos são Node 22 (o Expo SDK 58 pede 22.13 ou mais novo), conta no Expo e um Android (alvo principal do protótipo).
 
 ```bash
 npm install
