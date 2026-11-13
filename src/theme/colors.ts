@@ -72,21 +72,118 @@ export const tons = {
   cinzaMapaClaro: '#D5DBDE',
 } as const;
 
-/** Paleta semântica do tema escuro (padrão do app, RB: menos ofuscamento à noite). */
-export const cores = {
-  fundo: brand.asfalto,
-  superficie: tons.superficie,
-  superficieElevada: brand.viseira,
-  borda: tons.borda,
-  divisor: brand.viseira,
-  texto: brand.branco,
-  textoSecundario: tons.textoSecundario,
-  textoSobreTeal: brand.asfalto,
-  textoSobreAtencao: brand.asfalto,
-  primaria: brand.teal,
-  link: brand.teal,
-  foco: brand.teal,
-  ...alerta,
-} as const;
+/**
+ * Paletas dos dois temas. O padrão segue o sistema do celular; a pessoa pode fixar um
+ * tema no Perfil. Tudo o que muda com o tema sai daqui (via useTema); o que não muda
+ * (teal da marca, cores de alerta, texto sobre teal, âmbar, verde e vermelho) continua
+ * nas constantes acima.
+ *
+ * Tema claro do manual: fundo Neblina, cartões brancos, texto Asfalto, texto de apoio
+ * #3D474D, divisórias #DDE2E4 e teal profundo para texto e links (5,8:1).
+ */
+export type NomeTema = 'escuro' | 'claro';
+export type PreferenciaTema = 'sistema' | NomeTema;
 
-export type CorSemantica = keyof typeof cores;
+export type Paleta = {
+  /** Fundo das telas. */
+  fundo: string;
+  /** Campos, cartões e itens de lista. */
+  superficie: string;
+  /** Chips, pílulas, botão neutro, folhas sobre o mapa. */
+  superficieElevada: string;
+  /** Borda de campo e de chip não selecionado. */
+  borda: string;
+  /** Linhas divisórias e trilhos de barra. */
+  divisor: string;
+  texto: string;
+  textoSecundario: string;
+  /** Texto sobre uma superfície da cor do texto (o inverso do tema). */
+  textoInverso: string;
+  /** Links e texto teal (no claro, o teal profundo, por contraste). */
+  link: string;
+  /** Texto teal sobre o fundo de item selecionado. */
+  tealTexto: string;
+  /** Fundo de cartão ou chip selecionado. */
+  selecionadoFundo: string;
+  neutroBarra: string;
+  /** Âmbar como texto (no claro, um tom escuro que passa 4,5:1). */
+  atencaoTexto: string;
+  /** Verde como texto ou indicador sobre o fundo. */
+  seguroTexto: string;
+  /** Vermelho de ação destrutiva em texto. */
+  emergenciaTexto: string;
+  /** Fundo de item de emergência (SOS manual, passos da testemunha). */
+  emergenciaSuperficie: string;
+  informacaoFundo: string;
+  informacaoTexto: string;
+  informacaoIcone: string;
+  /** Fundo e ruas do mapa esquemático. */
+  mapaFundo: string;
+  mapaRuaFina: string;
+  mapaRuaLarga: string;
+  /** Véu atrás de folhas e modais. */
+  veu: string;
+  /** Conteúdo da barra de status do sistema. */
+  barraStatus: 'light' | 'dark';
+};
+
+export const paletas: Record<NomeTema, Paleta> = {
+  escuro: {
+    fundo: brand.asfalto,
+    superficie: tons.superficie,
+    superficieElevada: brand.viseira,
+    borda: tons.borda,
+    divisor: brand.viseira,
+    texto: brand.branco,
+    textoSecundario: tons.textoSecundario,
+    textoInverso: brand.asfalto,
+    link: brand.teal,
+    tealTexto: tons.tealClaro,
+    selecionadoFundo: tons.tealSelecionadoFundo,
+    neutroBarra: tons.neutroBarra,
+    atencaoTexto: alerta.atencao,
+    seguroTexto: tons.seguroClaro,
+    emergenciaTexto: tons.emergenciaTexto,
+    emergenciaSuperficie: tons.emergenciaEscura,
+    informacaoFundo: tons.informacaoFundo,
+    informacaoTexto: tons.informacaoTexto,
+    informacaoIcone: tons.informacaoIcone,
+    mapaFundo: tons.mapaFundo,
+    mapaRuaFina: '#161C20',
+    mapaRuaLarga: '#1E262B',
+    veu: 'rgba(0,0,0,0.6)',
+    barraStatus: 'light',
+  },
+  claro: {
+    fundo: brand.neblina,
+    superficie: brand.branco,
+    superficieElevada: '#E6EBED',
+    borda: '#9AA4A9',
+    divisor: tons.divisorClaro,
+    texto: brand.asfalto,
+    textoSecundario: tons.textoSecundarioClaro,
+    textoInverso: brand.branco,
+    link: brand.tealProfundo,
+    tealTexto: brand.tealProfundo,
+    selecionadoFundo: '#DDF1F3',
+    neutroBarra: tons.neutroBarra,
+    atencaoTexto: '#8A5A00',
+    seguroTexto: alerta.seguro,
+    emergenciaTexto: tons.emergenciaProfunda,
+    emergenciaSuperficie: tons.emergenciaSuave,
+    informacaoFundo: '#E3ECFB',
+    informacaoTexto: '#173F8A',
+    informacaoIcone: alerta.informacao,
+    mapaFundo: tons.cinzaMapaClaro,
+    mapaRuaFina: '#E9EDEF',
+    mapaRuaLarga: '#F7F9FA',
+    veu: 'rgba(17,20,23,0.45)',
+    barraStatus: 'dark',
+  },
+};
+
+/** Paleta do tema escuro, para código fora de componentes (notificações, por exemplo). */
+export const cores = { ...paletas.escuro, primaria: brand.teal, foco: brand.teal, ...alerta } as const;
+
+/** Nome de cor aceito pelo <Texto cor="...">: chave da paleta ou cor de alerta. */
+export type CorSemantica = Exclude<keyof Paleta, 'barraStatus'> | keyof typeof alerta | 'primaria';

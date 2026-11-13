@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { brand, raio } from '@/theme';
+import { useEstilos } from '@/lib/tema';
+import { raio, type Paleta } from '@/theme';
 
 import { Texto } from './texto';
 
@@ -13,8 +14,9 @@ type Props<T extends string> = {
   onChange: (v: T) => void;
 };
 
-/** Escolha entre poucas opções (Seco | Chovendo). Selecionada: fundo branco e texto em negrito. */
+/** Escolha entre poucas opções (Seco | Chovendo). Selecionada: fundo invertido e texto em negrito. */
 export function Segmentado<T extends string>({ rotulo, opcoes, valor, onChange }: Props<T>) {
+  const styles = useEstilos(criarEstilos);
   return (
     <View style={styles.grupo} accessibilityRole="radiogroup" accessibilityLabel={rotulo}>
       {opcoes.map((o) => {
@@ -30,7 +32,7 @@ export function Segmentado<T extends string>({ rotulo, opcoes, valor, onChange }
             style={[styles.opcao, ativo && styles.ativa]}>
             <Texto
               variante="corpoMenor"
-              cor={ativo ? brand.asfalto : brand.branco}
+              cor={ativo ? 'textoInverso' : 'texto'}
               style={{ fontFamily: ativo ? 'BricolageGrotesque_700Bold' : 'BricolageGrotesque_600SemiBold', fontSize: 15 }}>
               {o.rotulo}
             </Texto>
@@ -41,8 +43,9 @@ export function Segmentado<T extends string>({ rotulo, opcoes, valor, onChange }
   );
 }
 
-const styles = StyleSheet.create({
-  grupo: { flexDirection: 'row', backgroundColor: brand.viseira, borderRadius: raio.pilula, padding: 4, gap: 4 },
-  opcao: { minHeight: 40, paddingHorizontal: 14, borderRadius: raio.pilula, justifyContent: 'center' },
-  ativa: { backgroundColor: brand.branco },
-});
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    grupo: { flexDirection: 'row', backgroundColor: c.superficieElevada, borderRadius: raio.pilula, padding: 4, gap: 4 },
+    opcao: { minHeight: 40, paddingHorizontal: 14, borderRadius: raio.pilula, justifyContent: 'center' },
+    ativa: { backgroundColor: c.texto },
+  });

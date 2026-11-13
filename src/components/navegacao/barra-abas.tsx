@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icone, type NomeIcone } from '@/components/ui/icone';
 import { Texto } from '@/components/ui/texto';
-import { altura, brand, tons } from '@/theme';
+import { useTema } from '@/lib/tema';
+import { altura } from '@/theme';
 
 const abas: Record<string, { rotulo: string; icone: NomeIcone }> = {
   plano: { rotulo: 'Plano', icone: 'casa' },
@@ -16,15 +17,19 @@ const abas: Record<string, { rotulo: string; icone: NomeIcone }> = {
 /** Barra de navegação do design: quatro abas, ativa em teal, 72 dp de altura. */
 export function BarraAbas({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { c } = useTema();
   return (
     <View
       accessibilityRole="tablist"
-      style={[styles.barra, { height: altura.barraNavegacao + insets.bottom, paddingBottom: insets.bottom }]}>
+      style={[
+        styles.barra,
+        { height: altura.barraNavegacao + insets.bottom, paddingBottom: insets.bottom, backgroundColor: c.fundo, borderTopColor: c.divisor },
+      ]}>
       {state.routes.map((rota, indice) => {
         const aba = abas[rota.name];
         if (!aba) return null;
         const ativa = state.index === indice;
-        const cor = ativa ? brand.teal : tons.textoSecundario;
+        const cor = ativa ? c.link : c.textoSecundario;
         return (
           <Pressable
             key={rota.key}
@@ -57,9 +62,7 @@ export function BarraAbas({ state, emitter, navigateToTab }: BottomTabBarProps) 
 const styles = StyleSheet.create({
   barra: {
     flexDirection: 'row',
-    backgroundColor: brand.asfalto,
     borderTopWidth: 1,
-    borderTopColor: brand.viseira,
   },
   aba: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 48 },
 });

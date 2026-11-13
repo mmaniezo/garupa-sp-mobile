@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { useTema } from '@/lib/tema';
 import { brand, margemTela } from '@/theme';
 
 type Props = {
@@ -18,7 +19,9 @@ type Props = {
   /** Ações fixas no pé da tela (botão principal). */
   rodape?: ReactNode;
   rolagem?: boolean;
+  /** Sem informar, o fundo do tema (Asfalto no escuro, Neblina no claro). */
   fundo?: string;
+  /** Ícones claros na barra de status. Sem informar, o do tema. */
   barraClara?: boolean;
   margem?: number;
   /** Tela dentro das abas: a barra de navegação já cuida da área segura de baixo. */
@@ -35,8 +38,8 @@ export function Tela({
   children,
   rodape,
   rolagem = true,
-  fundo = brand.asfalto,
-  barraClara = true,
+  fundo,
+  barraClara,
   margem = margemTela,
   dentroDeAbas = false,
   gap = 18,
@@ -45,6 +48,9 @@ export function Tela({
   atualizando = false,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { c } = useTema();
+  const fundoFinal = fundo ?? c.fundo;
+  const barraFinal = barraClara ?? c.barraStatus === 'light';
   const conteudo = [styles.conteudo, { paddingHorizontal: margem, gap }, style];
   const baixo = dentroDeAbas ? 12 : Math.max(insets.bottom, 16) + 12;
 
@@ -53,9 +59,9 @@ export function Tela({
     // ponta a ponta (padrão do SDK), o sistema não redimensiona mais a janela sozinho;
     // o KeyboardAvoidingView mede só a parte coberta pelo teclado, então não dobra o espaço.
     <KeyboardAvoidingView
-      style={[styles.raiz, { backgroundColor: fundo, paddingTop: insets.top + 8 }]}
+      style={[styles.raiz, { backgroundColor: fundoFinal, paddingTop: insets.top + 8 }]}
       behavior={Platform.OS === 'web' ? undefined : 'padding'}>
-      <StatusBar style={barraClara ? 'light' : 'dark'} />
+      <StatusBar style={barraFinal ? 'light' : 'dark'} />
       {rolagem ? (
         <ScrollView
           contentContainerStyle={[conteudo, { paddingBottom: rodape ? 16 : baixo }]}

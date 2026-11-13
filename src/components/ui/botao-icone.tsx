@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet } from 'react-native';
 
-import { altura, brand } from '@/theme';
+import { useTema } from '@/lib/tema';
+import { altura } from '@/theme';
 
 import { Icone, type NomeIcone } from './icone';
 
@@ -19,10 +20,11 @@ export function BotaoIcone({
   icone,
   rotulo,
   onPress,
-  fundo = brand.viseira,
-  cor = brand.branco,
+  fundo,
+  cor,
   tamanho = altura.minimoToque,
 }: Props) {
+  const { c } = useTema();
   return (
     <Pressable
       onPress={onPress}
@@ -31,10 +33,10 @@ export function BotaoIcone({
       hitSlop={6}
       style={({ pressed }) => [
         styles.base,
-        { width: tamanho, height: tamanho, backgroundColor: fundo },
+        { width: tamanho, height: tamanho, backgroundColor: fundo ?? c.superficieElevada },
         pressed && { opacity: 0.8 },
       ]}>
-      <Icone nome={icone} tamanho={Math.round(tamanho * 0.45)} cor={cor} />
+      <Icone nome={icone} tamanho={Math.round(tamanho * 0.45)} cor={cor ?? c.texto} />
     </Pressable>
   );
 }

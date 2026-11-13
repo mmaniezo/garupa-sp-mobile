@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { altura, brand, cores, raio, texto, tons } from '@/theme';
+import { useEstilos } from '@/lib/tema';
+import { alerta, altura, brand, raio, texto, type Paleta } from '@/theme';
 
 import { Icone, type NomeIcone } from './icone';
 import { Texto } from './texto';
@@ -14,7 +15,11 @@ export type VarianteBotao =
   | 'link' // texto teal, sem fundo
   | 'seguro' // verde: "Estou bem"
   | 'perigo' // vermelho: SOS
-  | 'perigoTexto'; // ação destrutiva discreta (excluir, desparear)
+  | 'perigoTexto' // ação destrutiva discreta (excluir, desparear)
+  // Cores fixas, para superfícies que não mudam com o tema (tela vermelha da queda, testemunha):
+  | 'contornoClaro' // borda e texto brancos sobre vermelho ou verde
+  | 'branco' // fundo branco, texto Asfalto
+  | 'linkProfundo'; // texto teal profundo sobre fundo branco fixo
 
 export type TamanhoBotao = 'compacto' | 'padrao' | 'principal' | 'destaque' | 'emergencia';
 
@@ -26,17 +31,23 @@ const alturas: Record<TamanhoBotao, number> = {
   emergencia: altura.botaoEmergencia,
 };
 
-const estilos: Record<VarianteBotao, { fundo: string; texto: string; borda?: string }> = {
-  primario: { fundo: brand.teal, texto: brand.asfalto },
-  contorno: { fundo: 'transparent', texto: brand.branco, borda: brand.branco },
-  neutro: { fundo: brand.viseira, texto: brand.branco },
-  claro: { fundo: brand.branco, texto: brand.asfalto },
-  fantasma: { fundo: 'transparent', texto: brand.branco },
-  link: { fundo: 'transparent', texto: brand.teal },
-  seguro: { fundo: cores.seguro, texto: brand.branco },
-  perigo: { fundo: cores.emergencia, texto: brand.branco },
-  perigoTexto: { fundo: 'transparent', texto: tons.emergenciaTexto },
-};
+/** Cores por variante no tema. "claro" é o botão invertido: branco no escuro, Asfalto no claro. */
+function estilosDoTema(c: Paleta): Record<VarianteBotao, { fundo: string; texto: string; borda?: string }> {
+  return {
+    primario: { fundo: brand.teal, texto: brand.asfalto },
+    contorno: { fundo: 'transparent', texto: c.texto, borda: c.texto },
+    neutro: { fundo: c.superficieElevada, texto: c.texto },
+    claro: { fundo: c.texto, texto: c.textoInverso },
+    fantasma: { fundo: 'transparent', texto: c.texto },
+    link: { fundo: 'transparent', texto: c.link },
+    seguro: { fundo: alerta.seguro, texto: brand.branco },
+    perigo: { fundo: alerta.emergencia, texto: brand.branco },
+    perigoTexto: { fundo: 'transparent', texto: c.emergenciaTexto },
+    contornoClaro: { fundo: 'transparent', texto: brand.branco, borda: brand.branco },
+    branco: { fundo: brand.branco, texto: brand.asfalto },
+    linkProfundo: { fundo: 'transparent', texto: brand.tealProfundo },
+  };
+}
 
 type Props = {
   titulo: string;
@@ -67,7 +78,7 @@ export function Botao({
   style,
   testID,
 }: Props) {
-  const e = estilos[variante];
+  const e = useEstilos(estilosDoTema)[variante];
   const inativo = desabilitado || carregando;
   const grande = tamanho === 'principal' || tamanho === 'destaque' || tamanho === 'emergencia';
   const estiloTexto =

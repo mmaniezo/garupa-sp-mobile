@@ -4,7 +4,8 @@ import type { TipoSos } from '@/api/types';
 import { Botao, Texto } from '@/components/ui';
 import { useDesfazer } from '@/lib/use-desfazer';
 import { dispararSos } from '@/servicos/sos';
-import { alerta, raio, tons } from '@/theme';
+import { useEstilos } from '@/lib/tema';
+import { alerta, raio, type Paleta } from '@/theme';
 
 /** Tempo para desfazer o SOS manual depois de escolher o tipo. */
 export const SEGUNDOS_PARA_DESFAZER_SOS = 10;
@@ -25,6 +26,7 @@ export function SosManual({ onEnviado }: Props) {
   const { pendente, iniciar, desfazer } = useDesfazer<TipoSos>(SEGUNDOS_PARA_DESFAZER_SOS, (tipo) => {
     void dispararSos({ tipo, origem: 'celular' }).then((id) => id && onEnviado(id));
   });
+  const styles = useEstilos(criarEstilos);
 
   if (pendente) {
     const rotulo = TIPOS_SOS.find((t) => t.id === pendente.valor)?.rotulo ?? '';
@@ -59,17 +61,18 @@ export function SosManual({ onEnviado }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
   grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   metade: { flexBasis: '45%', flexGrow: 1 },
   inteira: { flexBasis: '100%' },
-  botao: { borderRadius: raio.xl, borderWidth: 2, borderColor: alerta.emergencia, backgroundColor: tons.emergenciaEscura },
+  botao: { borderRadius: raio.xl, borderWidth: 2, borderColor: alerta.emergencia, backgroundColor: c.emergenciaSuperficie },
   pendente: {
     gap: 10,
     padding: 16,
     borderRadius: raio.xl,
     borderWidth: 2,
     borderColor: alerta.emergencia,
-    backgroundColor: tons.emergenciaEscura,
+    backgroundColor: c.emergenciaSuperficie,
   },
 });

@@ -6,29 +6,35 @@ import {
   BricolageGrotesque_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/bricolage-grotesque';
-import { DarkTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import * as SystemUI from 'expo-system-ui';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Vigia } from '@/components/navegacao/vigia';
+import { usePreferencias } from '@/dados-locais/preferencias';
+import { aplicarTemaNoSistema, useTema } from '@/lib/tema';
 import { iniciarServicos } from '@/servicos/inicializacao';
 import { cadastroConcluido, carregarSessao, useSessao } from '@/state/sessao';
-import { brand, tons } from '@/theme';
+import { brand, tons, type NomeTema, type Paleta } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
-const temaNavegacao: Theme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    primary: brand.teal,
-    background: brand.asfalto,
-    card: brand.asfalto,
-    text: brand.branco,
-    border: brand.viseira,
-    notification: tons.emergenciaLed,
-  },
-};
+function temaDaNavegacao(nome: NomeTema, c: Paleta): Theme {
+  const base = nome === 'claro' ? DefaultTheme : DarkTheme;
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: brand.teal,
+      background: c.fundo,
+      card: c.fundo,
+      text: c.texto,
+      border: c.divisor,
+      notification: tons.emergenciaLed,
+    },
+  };
+}
 
 export default function RaizLayout() {
   const [fontesProntas, erroFontes] = useFonts({
@@ -40,6 +46,18 @@ export default function RaizLayout() {
   });
   const sessao = useSessao();
   const [servicosProntos, setServicosProntos] = useState(false);
+  const { nome: tema, c } = useTema();
+  const { tema: preferenciaTema } = usePreferencias();
+  const temaNavegacao = useMemo(() => temaDaNavegacao(tema, c), [tema, c]);
+
+  // Aparência: a escolha do Perfil vale também para o sistema (alertas, teclado),
+  // e o fundo da janela acompanha o tema (sem flash da cor errada ao trocar de tela).
+  useEffect(() => {
+    aplicarTemaNoSistema(preferenciaTema);
+  }, [preferenciaTema]);
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(c.fundo).catch(() => undefined);
+  }, [c.fundo]);
 
   useEffect(() => {
     void (async () => {
@@ -64,7 +82,7 @@ export default function RaizLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: brand.asfalto },
+          contentStyle: { backgroundColor: c.fundo },
           animation: 'slide_from_right',
         }}>
         <Stack.Screen name="index" options={{ animation: 'none' }} />

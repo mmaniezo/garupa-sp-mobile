@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { useTema } from '@/lib/tema';
 import { brand } from '@/theme';
 
 import { BotaoIcone } from './botao-icone';
@@ -17,6 +18,7 @@ type Props = {
 
 /** Cabeçalho do cadastro em camadas: voltar, passo atual, "Pular" e barra de progresso. */
 export function CabecalhoPasso({ rotulo, onVoltar, onPular, passo, total = 4 }: Props) {
+  const { c } = useTema();
   return (
     <View style={styles.bloco}>
       <View style={styles.linha}>
@@ -31,7 +33,7 @@ export function CabecalhoPasso({ rotulo, onVoltar, onPular, passo, total = 4 }: 
             accessibilityLabel="Pular este passo"
             hitSlop={8}
             style={styles.pular}>
-            <Texto variante="botao" cor={brand.teal} style={{ fontSize: 17 }}>
+            <Texto variante="botao" cor="link" style={{ fontSize: 17 }}>
               Pular
             </Texto>
           </Pressable>
@@ -49,7 +51,7 @@ export function CabecalhoPasso({ rotulo, onVoltar, onPular, passo, total = 4 }: 
           {Array.from({ length: total }, (_, i) => (
             <View
               key={i}
-              style={[styles.segmento, { backgroundColor: i < passo ? brand.teal : brand.viseira }]}
+              style={[styles.segmento, { backgroundColor: i < passo ? brand.teal : c.divisor }]}
             />
           ))}
         </View>

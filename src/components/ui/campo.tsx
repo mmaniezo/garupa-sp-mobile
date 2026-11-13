@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { altura, brand, cores, familias, raio, tons } from '@/theme';
+import { useEstilos } from '@/lib/tema';
+import { alerta, altura, brand, familias, raio, type Paleta } from '@/theme';
 
 import { Texto } from './texto';
 
@@ -9,15 +10,16 @@ type Props = Omit<TextInputProps, 'style'> & {
   rotulo: string;
   erro?: string | null;
   dica?: string;
-  /** 'escuro' é o campo padrão sobre Asfalto; 'interno' fica dentro de um cartão Superfície. */
+  /** 'escuro' é o campo padrão sobre o fundo da tela; 'interno' fica dentro de um cartão Superfície. */
   aparencia?: 'escuro' | 'interno';
 };
 
 /** Campo de texto com rótulo sempre visível (nunca só placeholder) e erro anunciado. */
 export function Campo({ rotulo, erro, dica, aparencia = 'escuro', onFocus, onBlur, ...input }: Props) {
   const [focado, setFocado] = useState(false);
+  const styles = useEstilos(criarEstilos);
   const interno = aparencia === 'interno';
-  const corBorda = erro ? cores.emergencia : focado ? brand.teal : tons.borda;
+  const corBorda = erro ? alerta.emergencia : focado ? brand.teal : styles.cores.borda;
 
   return (
     <View style={styles.grupo}>
@@ -28,7 +30,7 @@ export function Campo({ rotulo, erro, dica, aparencia = 'escuro', onFocus, onBlu
         accessibilityLabel={rotulo}
         accessibilityHint={dica}
         aria-invalid={!!erro}
-        placeholderTextColor={tons.neutroBarra}
+        placeholderTextColor={styles.cores.placeholder}
         selectionColor={brand.teal}
         cursorColor={brand.teal}
         maxFontSizeMultiplier={1.6}
@@ -40,15 +42,11 @@ export function Campo({ rotulo, erro, dica, aparencia = 'escuro', onFocus, onBlu
           setFocado(false);
           onBlur?.(e);
         }}
-        style={[
-          styles.input,
-          interno ? styles.inputInterno : styles.inputEscuro,
-          { borderColor: corBorda },
-        ]}
+        style={[styles.input, interno ? styles.inputInterno : styles.inputEscuro, { borderColor: corBorda }]}
         {...input}
       />
       {erro ? (
-        <Texto variante="legenda" cor={tons.emergenciaTexto} accessibilityLiveRegion="polite" role="alert">
+        <Texto variante="legenda" cor="emergenciaTexto" accessibilityLiveRegion="polite" role="alert">
           {erro}
         </Texto>
       ) : dica ? (
@@ -60,25 +58,29 @@ export function Campo({ rotulo, erro, dica, aparencia = 'escuro', onFocus, onBlu
   );
 }
 
-const styles = StyleSheet.create({
-  grupo: { gap: 8 },
-  input: {
-    borderWidth: 2,
-    color: brand.branco,
-    fontFamily: familias.regular,
-  },
-  inputEscuro: {
-    minHeight: altura.campo,
-    borderRadius: raio.lg,
-    backgroundColor: tons.superficie,
-    paddingHorizontal: 16,
-    fontSize: 18,
-  },
-  inputInterno: {
-    minHeight: 52,
-    borderRadius: raio.md,
-    backgroundColor: brand.asfalto,
-    paddingHorizontal: 14,
-    fontSize: 17,
-  },
+const criarEstilos = (c: Paleta) => ({
+  cores: { borda: c.borda, placeholder: c.neutroBarra },
+  ...StyleSheet.create({
+    grupo: { gap: 8 },
+    input: {
+      borderWidth: 2,
+      color: c.texto,
+      fontFamily: familias.regular,
+    },
+    inputEscuro: {
+      minHeight: altura.campo,
+      borderRadius: raio.lg,
+      backgroundColor: c.superficie,
+      paddingHorizontal: 16,
+      fontSize: 18,
+    },
+    // Dentro de um cartão Superfície: o campo usa o fundo da tela para se destacar.
+    inputInterno: {
+      minHeight: 52,
+      borderRadius: raio.md,
+      backgroundColor: c.fundo,
+      paddingHorizontal: 14,
+      fontSize: 17,
+    },
+  }),
 });

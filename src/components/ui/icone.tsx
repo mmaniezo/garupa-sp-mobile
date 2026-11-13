@@ -1,6 +1,6 @@
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 
-import { cores } from '@/theme';
+import { useTema } from '@/lib/tema';
 
 /**
  * Ícones de traço usados nas telas do design (24×24, traço 2,2, pontas arredondadas).
@@ -126,7 +126,9 @@ type Props = {
 };
 
 /** Ícone decorativo: fica escondido do leitor de tela. Quem dá o nome é o botão ou o texto ao lado. */
-export function Icone({ nome, tamanho = 24, cor = cores.texto, espessura = 2.2 }: Props) {
+export function Icone({ nome, tamanho = 24, cor: corInformada, espessura = 2.2 }: Props) {
+  const { c } = useTema();
+  const cor = corInformada ?? c.texto;
   const preenchido = nome in preenchidos;
   return (
     <Svg

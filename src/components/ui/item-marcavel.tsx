@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { brand, raio, tons } from '@/theme';
+import { useEstilos } from '@/lib/tema';
+import { brand, raio, type Paleta } from '@/theme';
 
 import { Icone } from './icone';
 import { Texto } from './texto';
@@ -25,6 +26,7 @@ export function ItemMarcavel({
   aparencia = 'simples',
   caixaA = 'esquerda',
 }: Props) {
+  const styles = useEstilos(criarEstilos);
   const caixa = (
     <View style={[styles.caixa, marcado ? styles.caixaMarcada : styles.caixaVazia]}>
       {marcado ? <Icone nome="check" tamanho={18} cor={brand.asfalto} espessura={3} /> : null}
@@ -59,10 +61,11 @@ export function ItemMarcavel({
   );
 }
 
-const styles = StyleSheet.create({
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
   linha: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   cartao: {
-    backgroundColor: tons.superficie,
+    backgroundColor: c.superficie,
     borderRadius: raio.xl,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -76,6 +79,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  caixaVazia: { borderWidth: 2, borderColor: tons.neutroBarra },
+  caixaVazia: { borderWidth: 2, borderColor: c.neutroBarra },
   caixaMarcada: { backgroundColor: brand.teal },
 });

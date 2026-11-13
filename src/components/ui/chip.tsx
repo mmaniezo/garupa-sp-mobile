@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { altura, brand, raio, tons } from '@/theme';
+import { useTema } from '@/lib/tema';
+import { altura, brand, raio } from '@/theme';
 
 import { Icone } from './icone';
 import { Texto } from './texto';
@@ -27,6 +28,7 @@ export function Chip({
   formato = 'pilula',
   desabilitado,
 }: Props) {
+  const { c } = useTema();
   return (
     <Pressable
       onPress={onPress}
@@ -38,7 +40,7 @@ export function Chip({
       style={({ pressed }) => [
         styles.base,
         formato === 'bloco' ? styles.bloco : styles.pilula,
-        selecionado ? styles.selecionado : styles.normal,
+        selecionado ? styles.selecionado : [styles.normal, { borderColor: c.borda }],
         pressed && { opacity: 0.85 },
         desabilitado && { opacity: 0.45 },
       ]}>
@@ -46,7 +48,7 @@ export function Chip({
         <Texto
           variante="corpoMenor"
           style={{ fontFamily: selecionado ? 'BricolageGrotesque_700Bold' : 'BricolageGrotesque_600SemiBold' }}
-          cor={selecionado ? brand.asfalto : brand.branco}>
+          cor={selecionado ? brand.asfalto : c.texto}>
           {rotulo}
         </Texto>
         {selecionado ? <Icone nome="check" tamanho={16} cor={brand.asfalto} espessura={3} /> : null}
@@ -64,7 +66,7 @@ const styles = StyleSheet.create({
   },
   pilula: { borderRadius: raio.pilula, paddingHorizontal: 14 },
   bloco: { borderRadius: raio.md, paddingHorizontal: 8, flexGrow: 1, flexBasis: 0 },
-  normal: { backgroundColor: 'transparent', borderColor: tons.borda },
+  normal: { backgroundColor: 'transparent' },
   selecionado: { backgroundColor: brand.teal, borderColor: brand.teal },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

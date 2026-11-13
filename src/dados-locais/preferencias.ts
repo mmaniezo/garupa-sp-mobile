@@ -2,6 +2,7 @@ import type { Consentimentos, Distrito, TipoDia, TipoUso } from '@/api/types';
 import { gravarValor, lerValor } from '@/db';
 import type { Periodo } from '@/domain/periodos';
 import { criarStore } from '@/lib/store';
+import type { PreferenciaTema } from '@/theme/colors';
 
 /**
  * Preferências guardadas no aparelho (SQLite, chave e valor):
@@ -25,6 +26,8 @@ export type Preferencias = {
   pulseira: { dispositivoId: string } | null;
   /** A pessoa já foi levada ao ajuste de economia de bateria (Android). */
   bateriaOrientada: boolean;
+  /** Aparência: igual ao sistema do celular (padrão), ou sempre clara ou escura. */
+  tema: PreferenciaTema;
 };
 
 export const PERFIL_VAZIO: PerfilLocal = { tiposDeUso: [], periodos: [], dias: [], distritos: [] };
@@ -40,14 +43,16 @@ export const CONSENTIMENTOS_VAZIOS: Consentimentos = {
 
 const CHAVE = 'preferencias';
 
-const store = criarStore<Preferencias>({
-  carregadas: false,
+const INICIAIS: Omit<Preferencias, 'carregadas'> = {
   perfil: PERFIL_VAZIO,
   consentimentos: CONSENTIMENTOS_VAZIOS,
   chuva: false,
   pulseira: null,
   bateriaOrientada: false,
-});
+  tema: 'sistema',
+};
+
+const store = criarStore<Preferencias>({ carregadas: false, ...INICIAIS });
 
 export const usePreferencias = store.useStore;
 export const obterPreferencias = store.obter;
@@ -73,13 +78,9 @@ export async function atualizarPreferencias(mudanca: Partial<Omit<Preferencias, 
   await gravarValor(CHAVE, paraGravar);
 }
 
+/** Apaga os dados da pessoa; a aparência escolhida é do aparelho e fica. */
 export async function limparPreferencias(): Promise<void> {
-  store.definir({
-    carregadas: true,
-    perfil: PERFIL_VAZIO,
-    consentimentos: CONSENTIMENTOS_VAZIOS,
-    chuva: false,
-    pulseira: null,
-    bateriaOrientada: false,
-  });
+  const { tema } = store.obter();
+  store.definir({ carregadas: true, ...INICIAIS, tema });
+  if (tema !== 'sistema') await gravarValor(CHAVE, { ...INICIAIS, tema });
 }

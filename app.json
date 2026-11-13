@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "garupasp",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#111417",
     "primaryColor": "#099BA9",
     "description": "Prevenção e socorro para o motociclista de São Paulo.",
@@ -47,9 +47,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#111417",
+          "backgroundColor": "#F4F6F7",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200
+          "imageWidth": 200,
+          "dark": {
+            "backgroundColor": "#111417",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
       "expo-sqlite",

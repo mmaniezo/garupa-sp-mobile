@@ -2,7 +2,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Texto } from '@/components/ui';
 import type { PontoDoPlano } from '@/servicos/plano';
-import { alerta, brand, raio, tons } from '@/theme';
+import { useTema } from '@/lib/tema';
+import { alerta, brand, raio } from '@/theme';
 import { nivelDeRisco } from '@/domain/risco';
 
 type Props = {
@@ -16,15 +17,16 @@ type Props = {
 /** Item da lista de pontos críticos (tela 07): número, via, onde e por quê, nível de risco. */
 export function ItemPonto({ ponto, posicao, linha, destaque, onPress }: Props) {
   const nivel = nivelDeRisco(ponto.percentil);
+  const { c } = useTema();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Ponto ${posicao}: ${ponto.viaReferencia}. ${linha}. Risco ${nivel}.`}
       accessibilityHint="Mostra o ponto no mapa e o risco por horário"
-      style={({ pressed }) => [styles.item, pressed && { opacity: 0.85 }]}>
-      <View style={[styles.numero, { backgroundColor: destaque ? alerta.atencao : tons.borda }]}>
-        <Texto variante="corpo" cor={destaque ? brand.asfalto : brand.branco} style={styles.numeroTexto}>
+      style={({ pressed }) => [styles.item, { backgroundColor: c.superficie }, pressed && { opacity: 0.85 }]}>
+      <View style={[styles.numero, { backgroundColor: destaque ? alerta.atencao : c.borda }]}>
+        <Texto variante="corpo" cor={destaque ? brand.asfalto : c.texto} style={styles.numeroTexto}>
           {posicao}
         </Texto>
       </View>
@@ -36,12 +38,12 @@ export function ItemPonto({ ponto, posicao, linha, destaque, onPress }: Props) {
           {linha}
         </Texto>
         {ponto.visitas > 0 ? (
-          <Texto variante="legenda" cor={brand.teal} style={{ fontSize: 14 }}>
+          <Texto variante="legenda" cor="link" style={{ fontSize: 14 }}>
             Você costuma passar aqui
           </Texto>
         ) : null}
       </View>
-      <Texto variante="overline" cor={destaque ? alerta.atencao : tons.textoSecundario} style={styles.nivel}>
+      <Texto variante="overline" cor={destaque ? c.atencaoTexto : c.textoSecundario} style={styles.nivel}>
         {nivel}
       </Texto>
     </Pressable>
@@ -50,7 +52,6 @@ export function ItemPonto({ ponto, posicao, linha, destaque, onPress }: Props) {
 
 const styles = StyleSheet.create({
   item: {
-    backgroundColor: tons.superficie,
     borderRadius: raio.xl,
     paddingHorizontal: 16,
     paddingVertical: 14,

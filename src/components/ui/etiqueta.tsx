@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { tons } from '@/theme';
+import { useTema } from '@/lib/tema';
 
 import { Texto } from './texto';
 
@@ -14,13 +14,14 @@ type Props = {
 
 /** Pílula curta de texto (selo, estado). */
 export function Etiqueta({ texto, aparencia = 'contorno', fundo, cor }: Props) {
+  const { c } = useTema();
   return (
     <View
       style={[
         styles.base,
         aparencia === 'contorno'
-          ? { borderWidth: 1, borderColor: tons.borda }
-          : { backgroundColor: fundo ?? tons.superficie },
+          ? { borderWidth: 1, borderColor: c.borda }
+          : { backgroundColor: fundo ?? c.superficie },
       ]}>
       <Texto
         variante="legenda"

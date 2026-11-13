@@ -1,6 +1,8 @@
 import { Platform, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
+import { useTema } from '@/lib/tema';
+
 import {
   LOGO_CAPACETE_RATIO,
   LOGO_CAPACETE_XML,
@@ -9,7 +11,8 @@ import {
   LOGO_HORIZONTAL_RATIO,
 } from './logo-xml';
 
-type Variante = 'capacete' | 'horizontal-branca' | 'horizontal-preta';
+/** 'horizontal' escolhe sozinha: branca no tema escuro, preta no claro. */
+type Variante = 'capacete' | 'horizontal' | 'horizontal-branca' | 'horizontal-preta';
 
 type Props = {
   variante?: Variante;
@@ -25,13 +28,15 @@ type Props = {
  * horizontal com no mínimo 120 px de largura, abaixo disso só o capacete.
  */
 export function Logo({ variante = 'capacete', largura, altura, decorativa }: Props) {
-  const ratio = variante === 'capacete' ? LOGO_CAPACETE_RATIO : LOGO_HORIZONTAL_RATIO;
+  const { nome: tema } = useTema();
+  const escolhida = variante === 'horizontal' ? (tema === 'claro' ? 'horizontal-preta' : 'horizontal-branca') : variante;
+  const ratio = escolhida === 'capacete' ? LOGO_CAPACETE_RATIO : LOGO_HORIZONTAL_RATIO;
   const w = largura ?? (altura ? altura * ratio : 120);
   const h = altura ?? w / ratio;
   const xml =
-    variante === 'capacete'
+    escolhida === 'capacete'
       ? LOGO_CAPACETE_XML
-      : variante === 'horizontal-branca'
+      : escolhida === 'horizontal-branca'
         ? LOGO_HORIZONTAL_BRANCA_XML
         : LOGO_HORIZONTAL_PRETA_XML;
 
