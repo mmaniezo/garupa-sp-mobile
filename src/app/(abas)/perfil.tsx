@@ -4,19 +4,23 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { api, mock } from '@/api';
 import type { Consentimentos } from '@/api/types';
-import { Aviso, Botao, Icone, ItemMarcavel, Tela, Texto } from '@/components/ui';
+import { Aviso, Botao, Icone, ItemMarcavel, Segmentado, Tela, Texto } from '@/components/ui';
 import { atualizarPreferencias, limparPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { apagarHistoricoDeLocais, contarCelulasVisitadas, registrarVisita } from '@/dados-locais/repositorios';
 import { apagarDadosSeguros, fichaTemDados, lerContatos, lerFicha } from '@/dados-locais/seguro';
 import { celulaLocal } from '@/domain/geo';
 import { rotuloUso } from '@/domain/periodos';
 import { mensagemDeErro } from '@/lib/navegacao';
+import { useEstilos, useTema } from '@/lib/tema';
 import { carregarPlano, limparPlano, usePlano } from '@/servicos/plano';
+import { pedirPermissaoSms, smsAutomaticoSuportado, temPermissaoSms } from '@/servicos/sms';
 import { finalizarTurno, useTurno } from '@/servicos/turno';
 import { encerrarSessaoNoAparelho, useSessao } from '@/state/sessao';
-import { brand, raio, tons } from '@/theme';
+import { brand, raio, type Paleta, type PreferenciaTema } from '@/theme';
 
 function Linha({ titulo, valor, href, corValor }: { titulo: string; valor: string; href: Href; corValor?: string }) {
+  const styles = useEstilos(criarEstilos);
+  const { c } = useTema();
   return (
     <Pressable
       onPress={() => router.push(href)}
@@ -26,10 +30,10 @@ function Linha({ titulo, valor, href, corValor }: { titulo: string; valor: strin
       <Texto variante="corpoMenor" style={{ flex: 1, fontFamily: 'BricolageGrotesque_600SemiBold', fontSize: 17 }}>
         {titulo}
       </Texto>
-      <Texto variante="legenda" cor={corValor ?? tons.textoSecundario}>
+      <Texto variante="legenda" cor={corValor ?? c.textoSecundario}>
         {valor}
       </Texto>
-      <Icone nome="chevronDireita" tamanho={18} cor={tons.textoSecundario} />
+      <Icone nome="chevronDireita" tamanho={18} cor={c.textoSecundario} />
     </Pressable>
   );
 }
@@ -48,14 +52,30 @@ export default function Perfil() {
   const [temFicha, setTemFicha] = useState(false);
   const [celulas, setCelulas] = useState(0);
   const [aviso, setAviso] = useState<{ tom: 'sucesso' | 'erro' | 'neutro'; texto: string } | null>(null);
+  const [permissaoSms, setPermissaoSms] = useState(false);
+  const styles = useEstilos(criarEstilos);
+  const { c } = useTema();
 
   useFocusEffect(
     useCallback(() => {
-      void lerContatos().then((c) => setContatos(c.length));
+      void lerContatos().then((lista) => setContatos(lista.length));
       void lerFicha().then((f) => setTemFicha(fichaTemDados(f)));
       void contarCelulasVisitadas().then(setCelulas);
+      void temPermissaoSms().then(setPermissaoSms);
     }, []),
   );
+
+  /** SMS automático: ligar pede a permissão de SMS; sem ela, o app abre o SMS pronto. */
+  async function mudarSmsAutomatico() {
+    if (prefs.smsAutomatico && permissaoSms) {
+      await atualizarPreferencias({ smsAutomatico: false });
+      return;
+    }
+    const ok = permissaoSms || (await pedirPermissaoSms());
+    setPermissaoSms(ok);
+    await atualizarPreferencias({ smsAutomatico: ok });
+    if (!ok) setAviso({ tom: 'neutro', texto: 'Sem a permissão de SMS, o app abre a mensagem pronta e você toca em enviar.' });
+  }
 
   async function mudarConsentimento(campo: keyof Consentimentos) {
     const consentimentos = { ...prefs.consentimentos, [campo]: !prefs.consentimentos[campo] };
@@ -173,10 +193,48 @@ export default function Perfil() {
         <Linha
           titulo="Pulseira"
           valor={prefs.pulseira ? 'Pareada' : 'Não pareada'}
-          corValor={prefs.pulseira ? tons.seguroClaro : undefined}
+          corValor={prefs.pulseira ? c.seguroTexto : undefined}
           href="/pulseira"
         />
         <Linha titulo="Permissões do celular" valor="Revisar" href="/cadastro/permissoes?editar=1" />
+      </View>
+
+      <Texto variante="overline" cor="textoSecundario" accessibilityRole="header" style={{ marginTop: 6 }}>
+        Socorro
+      </Texto>
+      <View style={[styles.grupo, { paddingHorizontal: 16, paddingVertical: 4 }]}>
+        <ItemMarcavel
+          caixaA="direita"
+          titulo="SMS automático aos contatos"
+          descricao={
+            !smsAutomaticoSuportado
+              ? 'Neste celular o SMS abre pronto e você toca em enviar.'
+              : permissaoSms
+                ? 'Numa queda sem resposta, o SMS com a sua localização sai sozinho, mesmo sem internet.'
+                : 'Precisa da permissão de SMS do Android. Toque para permitir.'
+          }
+          marcado={smsAutomaticoSuportado && prefs.smsAutomatico && permissaoSms}
+          onPress={() => void mudarSmsAutomatico()}
+        />
+      </View>
+
+      <Texto variante="overline" cor="textoSecundario" accessibilityRole="header" style={{ marginTop: 6 }}>
+        Aparência
+      </Texto>
+      <View style={{ gap: 6 }}>
+        <Segmentado<PreferenciaTema>
+          rotulo="Tema do app"
+          valor={prefs.tema}
+          opcoes={[
+            { valor: 'sistema', rotulo: 'Sistema' },
+            { valor: 'claro', rotulo: 'Claro' },
+            { valor: 'escuro', rotulo: 'Escuro' },
+          ]}
+          onChange={(tema) => void atualizarPreferencias({ tema })}
+        />
+        <Texto variante="legenda" cor="textoSecundario">
+          Em Sistema, o app segue o modo claro ou escuro do celular.
+        </Texto>
       </View>
 
       <Texto variante="overline" cor="textoSecundario" accessibilityRole="header" style={{ marginTop: 6 }}>
@@ -213,7 +271,7 @@ export default function Perfil() {
         />
       </View>
 
-      <Botao titulo="Apagar histórico de locais" variante="contorno" tamanho="padrao" style={{ borderColor: tons.borda }} onPress={apagarHistorico} />
+      <Botao titulo="Apagar histórico de locais" variante="contorno" tamanho="padrao" style={{ borderColor: c.borda }} onPress={apagarHistorico} />
       <Botao titulo="Excluir minha conta e todos os dados" variante="perigoTexto" tamanho="padrao" onPress={excluirConta} />
 
       {__DEV__ || mock ? (
@@ -230,10 +288,11 @@ export default function Perfil() {
   );
 }
 
-const styles = StyleSheet.create({
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
   cabecalho: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' },
-  grupo: { backgroundColor: tons.superficie, borderRadius: raio.xxl, overflow: 'hidden' },
+  grupo: { backgroundColor: c.superficie, borderRadius: raio.xxl, overflow: 'hidden' },
   linha: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,6 +300,6 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: brand.viseira,
+    borderBottomColor: c.divisor,
   },
 });
