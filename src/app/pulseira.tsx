@@ -6,23 +6,39 @@ import type { TipoAlertaVestivel, TipoEventoVestivel } from '@/api/types';
 import { Aviso, Botao, BotaoIcone, Campo, Tela, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
+import { useEstilos } from '@/lib/tema';
 import { useTurno } from '@/servicos/turno';
 import { avisarPulseira, desparearPulseira, parearPulseira } from '@/servicos/vestivel';
 import { useSessao } from '@/state/sessao';
-import { brand, raio, tons } from '@/theme';
+import { brand, raio, tons, type NomeTema, type Paleta } from '@/theme';
 
-type Luz = { tipo: TipoAlertaVestivel | null; titulo: string; padrao: string; cor: string; fixa?: boolean; contorno?: boolean };
+type Luz = {
+  tipo: TipoAlertaVestivel | null;
+  titulo: string;
+  padrao: string;
+  cor: string;
+  fixa?: boolean;
+  contorno?: boolean;
+  /** Borda fina para uma luz clara não sumir no cartão branco do tema claro. */
+  borda?: string;
+};
 
 /** Mesma linguagem do app e da pulseira (RF39, RB19): cor e padrão de piscada, nunca só cor. */
-const LUZES: Luz[] = [
-  { tipo: 'turno_ativo', titulo: 'Turno ativo', padrao: 'pulso a cada 10 s', cor: tons.seguroClaro },
+const criarLuzes = (c: Paleta, nome: NomeTema): Luz[] => [
+  { tipo: 'turno_ativo', titulo: 'Turno ativo', padrao: 'pulso a cada 10 s', cor: c.seguroTexto },
   { tipo: 'ponto_critico', titulo: 'Ponto crítico', padrao: '3 piscadas + bipe', cor: '#F5A524' },
   { tipo: 'mensagem', titulo: 'Mensagem', padrao: '1 piscada lenta', cor: tons.informacaoLed },
   { tipo: 'contagem_queda', titulo: 'Contagem da queda', padrao: 'rápida + buzzer', cor: tons.emergenciaLed },
   { tipo: 'sos_enviado', titulo: 'SOS enviado', padrao: 'fixa + 2 bipes', cor: tons.emergenciaLed, fixa: true },
-  { tipo: 'cancelado', titulo: 'Estou bem', padrao: 'fixa por 3 s', cor: tons.seguroClaro, fixa: true },
-  { tipo: 'turno_encerrado', titulo: 'Turno encerrado ou pausado', padrao: '2 piscadas e apaga', cor: tons.seguroClaro, contorno: true },
-  { tipo: null, titulo: 'Sem conexão', padrao: 'piscada lenta', cor: brand.branco },
+  { tipo: 'cancelado', titulo: 'Estou bem', padrao: 'fixa por 3 s', cor: c.seguroTexto, fixa: true },
+  { tipo: 'turno_encerrado', titulo: 'Turno encerrado ou pausado', padrao: '2 piscadas e apaga', cor: c.seguroTexto, contorno: true },
+  {
+    tipo: null,
+    titulo: 'Sem conexão',
+    padrao: 'piscada lenta',
+    cor: brand.branco,
+    borda: nome === 'claro' ? c.borda : undefined,
+  },
 ];
 
 /**
@@ -33,6 +49,8 @@ export default function Pulseira() {
   const prefs = usePreferencias();
   const sessao = useSessao();
   const turno = useTurno();
+  const styles = useEstilos(criarEstilos);
+  const luzes = useEstilos(criarLuzes);
   const [codigo, setCodigo] = useState('pulseira-demo-01');
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -112,8 +130,8 @@ export default function Pulseira() {
             variante="contorno"
             tamanho="compacto"
             larguraTotal={false}
-            style={{ borderColor: tons.borda }}
-            onPress={() => void testar(LUZES[0])}
+            style={styles.bordaBotao}
+            onPress={() => void testar(luzes[0])}
           />
         </View>
       ) : (
@@ -147,7 +165,7 @@ export default function Pulseira() {
         </Texto>
       </View>
       <View style={styles.lista}>
-        {LUZES.map((l, i) => (
+        {luzes.map((l, i) => (
           <Pressable
             key={l.titulo}
             disabled={!l.tipo || !pareada}
@@ -160,6 +178,7 @@ export default function Pulseira() {
                 styles.cor,
                 l.contorno ? { borderWidth: 3, borderColor: l.cor } : { backgroundColor: l.cor },
                 l.fixa && { outlineWidth: 3, outlineColor: l.cor, outlineOffset: 2, outlineStyle: 'solid' },
+                l.borda && { borderWidth: 1, borderColor: l.borda },
               ]}
             />
             <Texto variante="corpoMenor" style={{ flex: 1, fontFamily: 'BricolageGrotesque_600SemiBold' }}>
@@ -199,32 +218,34 @@ export default function Pulseira() {
   );
 }
 
-const styles = StyleSheet.create({
-  topo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dispositivo: {
-    backgroundColor: tons.superficie,
-    borderRadius: raio.xxl,
-    padding: 16,
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'center',
-  },
-  icone: { width: 64, height: 64, borderRadius: 20, backgroundColor: brand.viseira, alignItems: 'center', justifyContent: 'center' },
-  corpo: {
-    width: 30,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 3,
-    borderColor: tons.neutroBarra,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  led: { width: 12, height: 12, borderRadius: 6, backgroundColor: tons.seguroClaro, boxShadow: '0 0 10px #3CCB7F' },
-  parear: { backgroundColor: tons.superficie, borderRadius: raio.xxl, padding: 16, gap: 12 },
-  lista: { backgroundColor: tons.superficie, borderRadius: raio.xxl, overflow: 'hidden' },
-  luz: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, minHeight: 48 },
-  divisor: { borderTopWidth: 1, borderTopColor: brand.viseira },
-  cor: { width: 16, height: 16, borderRadius: 8 },
-  dica: { backgroundColor: tons.superficie, borderRadius: raio.xl, padding: 16, gap: 4 },
-  linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-});
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    topo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    dispositivo: {
+      backgroundColor: c.superficie,
+      borderRadius: raio.xxl,
+      padding: 16,
+      flexDirection: 'row',
+      gap: 14,
+      alignItems: 'center',
+    },
+    icone: { width: 64, height: 64, borderRadius: 20, backgroundColor: c.superficieElevada, alignItems: 'center', justifyContent: 'center' },
+    corpo: {
+      width: 30,
+      height: 44,
+      borderRadius: 10,
+      borderWidth: 3,
+      borderColor: c.neutroBarra,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    led: { width: 12, height: 12, borderRadius: 6, backgroundColor: c.seguroTexto, boxShadow: `0 0 10px ${c.seguroTexto}` },
+    parear: { backgroundColor: c.superficie, borderRadius: raio.xxl, padding: 16, gap: 12 },
+    lista: { backgroundColor: c.superficie, borderRadius: raio.xxl, overflow: 'hidden' },
+    luz: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, minHeight: 48 },
+    divisor: { borderTopWidth: 1, borderTopColor: c.divisor },
+    cor: { width: 16, height: 16, borderRadius: 8 },
+    dica: { backgroundColor: c.superficie, borderRadius: raio.xl, padding: 16, gap: 4 },
+    linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    bordaBotao: { borderColor: c.borda },
+  });

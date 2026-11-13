@@ -10,6 +10,7 @@ import { Botao, Icone, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { fichaTemDados, lerFicha } from '@/dados-locais/seguro';
 import { voltarOu } from '@/lib/navegacao';
+import { useTema } from '@/lib/tema';
 import { useSos } from '@/servicos/sos';
 import { alerta, brand, raio, tons } from '@/theme';
 
@@ -34,6 +35,7 @@ export default function Testemunha() {
   const sos = useSos();
   const prefs = usePreferencias();
   const insets = useSafeAreaInsets();
+  const { c } = useTema();
   const [ficha, setFicha] = useState<FichaMedica | null>(null);
   const [bloqueado, setBloqueado] = useState(estaBloqueado());
   const [etapa, setEtapa] = useState<'chamada' | 'detalhes'>(estaBloqueado() ? 'chamada' : 'detalhes');
@@ -48,8 +50,8 @@ export default function Testemunha() {
 
   if (!ativo) {
     return (
-      <View style={[styles.raizEscura, { paddingTop: insets.top + 32 }]}>
-        <StatusBar style="light" />
+      <View style={[styles.raizEscura, { backgroundColor: c.fundo, paddingTop: insets.top + 32 }]}>
+        <StatusBar style={c.barraStatus} />
         <Texto variante="titulo">Nenhum SOS ativo</Texto>
         <Texto variante="corpoMenor" cor="textoSecundario">
           Esta tela só aparece enquanto há um pedido de socorro ativo.
@@ -68,17 +70,19 @@ export default function Testemunha() {
         <View style={styles.linhaTopo}>
           <View style={styles.chip}>
             <Icone nome="cadeado" tamanho={14} cor={brand.branco} espessura={2.4} />
-            <Texto variante="rotulo" style={{ fontFamily: 'BricolageGrotesque_700Bold', fontSize: 14 }}>
+            <Texto variante="rotulo" cor={brand.branco} style={{ fontFamily: 'BricolageGrotesque_700Bold', fontSize: 14 }}>
               Celular bloqueado
             </Texto>
           </View>
-          <Texto variante="rotulo">SOS ativo · {hora}</Texto>
+          <Texto variante="rotulo" cor={brand.branco}>
+            SOS ativo · {hora}
+          </Texto>
         </View>
         <View style={{ gap: 10 }}>
-          <Texto variante="hero" accessibilityRole="header">
+          <Texto variante="hero" cor={brand.branco} accessibilityRole="header">
             Este motociclista precisa de ajuda
           </Texto>
-          <Texto variante="corpo" style={{ fontSize: 19 }}>
+          <Texto variante="corpo" cor={brand.branco} style={{ fontSize: 19 }}>
             Você não precisa da senha. Toque abaixo para ver como ajudar.
           </Texto>
         </View>
@@ -90,7 +94,7 @@ export default function Testemunha() {
                   {i + 1}
                 </Texto>
               </View>
-              <Texto variante="corpo" style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
+              <Texto variante="corpo" cor={brand.branco} style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
                 {t}
               </Texto>
             </View>
@@ -99,14 +103,15 @@ export default function Testemunha() {
         <View style={{ marginTop: 'auto', gap: 10 }}>
           <Botao
             titulo="Ver ficha médica e como ajudar"
-            variante="claro"
+            variante="branco"
             tamanho="emergencia"
-            style={{ backgroundColor: brand.branco }}
             onPress={() => setEtapa('detalhes')}
           />
           <Pressable onPress={ligar192} accessibilityRole="button" accessibilityLabel="Ligar 192" style={styles.ligarContorno}>
             <Icone nome="telefone" tamanho={24} cor={brand.branco} espessura={2.4} />
-            <Texto variante="botaoGrande">Ligar 192</Texto>
+            <Texto variante="botaoGrande" cor={brand.branco}>
+              Ligar 192
+            </Texto>
           </Pressable>
         </View>
       </View>
@@ -130,7 +135,7 @@ export default function Testemunha() {
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, gap: 16, paddingBottom: 16 }}>
         <View style={styles.seloSos}>
-          <Texto variante="rotulo" style={{ fontFamily: 'BricolageGrotesque_700Bold', fontSize: 14 }}>
+          <Texto variante="rotulo" cor={brand.branco} style={{ fontFamily: 'BricolageGrotesque_700Bold', fontSize: 14 }}>
             SOS ativo · {hora}
           </Texto>
         </View>
@@ -146,7 +151,7 @@ export default function Testemunha() {
           {INSTRUCOES.map((t, i) => (
             <View key={t} style={styles.instrucaoClara}>
               <View style={styles.numeroVermelho}>
-                <Texto variante="rotulo" style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 17 }}>
+                <Texto variante="rotulo" cor={brand.branco} style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 17 }}>
                   {i + 1}
                 </Texto>
               </View>
@@ -186,7 +191,7 @@ export default function Testemunha() {
           accessibilityLabel="Ligar 192, SAMU"
           style={({ pressed }) => [styles.ligar, pressed && { opacity: 0.9 }]}>
           <Icone nome="telefone" tamanho={28} cor={brand.branco} espessura={2.4} />
-          <Texto variante="botaoGrande" style={{ fontSize: 24 }}>
+          <Texto variante="botaoGrande" cor={brand.branco} style={{ fontSize: 24 }}>
             Ligar 192 (SAMU)
           </Texto>
         </Pressable>
@@ -196,7 +201,7 @@ export default function Testemunha() {
         {!bloqueado ? (
           <Botao
             titulo="Fechar"
-            variante="link"
+            variante="linkProfundo"
             tamanho="compacto"
             onPress={() => (router.canGoBack() ? router.back() : router.replace(`/sos/${sos.eventoId}`))}
           />
@@ -207,7 +212,7 @@ export default function Testemunha() {
 }
 
 const styles = StyleSheet.create({
-  raizEscura: { flex: 1, backgroundColor: brand.asfalto, paddingHorizontal: 20, gap: 16 },
+  raizEscura: { flex: 1, paddingHorizontal: 20, gap: 16 },
   raizVermelha: { flex: 1, backgroundColor: tons.emergenciaProfunda, paddingHorizontal: 20, gap: 20 },
   raizClara: { flex: 1, backgroundColor: brand.branco },
   linhaTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

@@ -7,9 +7,10 @@ import { Logo } from '@/components/brand/logo';
 import { SosManual } from '@/components/sos/sos-manual';
 import { Aviso, Botao, Icone, Tela, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
+import { useEstilos, useTema } from '@/lib/tema';
 import { simularQueda } from '@/servicos/queda';
 import { finalizarTurno, pausarTurno, turnoSoComAppAberto, useTurno } from '@/servicos/turno';
-import { alerta, brand, raio, tons } from '@/theme';
+import { alerta, brand, raio, tons, type NomeTema, type Paleta } from '@/theme';
 
 function duracao(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -18,9 +19,11 @@ function duracao(ms: number): string {
 }
 
 function Indicador({ titulo, ok, texto }: { titulo: string; ok: boolean; texto: string }) {
+  const styles = useEstilos(criarEstilos);
+  const { c } = useTema();
   return (
     <View style={styles.indicador} accessible accessibilityLabel={`${titulo}: ${texto}`}>
-      <View style={[styles.bolinha, { backgroundColor: ok ? tons.seguroClaro : tons.emergenciaLed }]} />
+      <View style={[styles.bolinha, { backgroundColor: ok ? c.seguroTexto : tons.emergenciaLed }]} />
       <Texto variante="rotulo" style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
         {titulo}
       </Texto>
@@ -38,6 +41,8 @@ function Indicador({ titulo, ok, texto }: { titulo: string; ok: boolean; texto: 
 export default function TurnoAtivo() {
   const turno = useTurno();
   const prefs = usePreferencias();
+  const { c } = useTema();
+  const styles = useEstilos(criarEstilos);
   const [agora, setAgora] = useState(() => Date.now());
   const [sosAberto, setSosAberto] = useState(false);
 
@@ -80,7 +85,7 @@ export default function TurnoAtivo() {
         </View>
       }>
       <View style={styles.topo}>
-        <Logo variante="horizontal-branca" altura={36} />
+        <Logo variante="horizontal" altura={36} />
         <Botao
           titulo="SOS"
           variante="contorno"
@@ -94,7 +99,7 @@ export default function TurnoAtivo() {
 
       <View style={styles.centro}>
         <View style={styles.anel} accessible accessibilityLabel={`Turno ativo há ${duracao(agora - (turno.iniciadoEm ?? agora))}`}>
-          <Icone nome="escudoOk" tamanho={40} cor={tons.seguroClaro} />
+          <Icone nome="escudoOk" tamanho={40} cor={c.seguroTexto} />
           <Texto variante="alerta" style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 24 }}>
             Turno ativo
           </Texto>
@@ -182,41 +187,44 @@ export default function TurnoAtivo() {
   );
 }
 
-const styles = StyleSheet.create({
-  topo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  centro: { alignItems: 'center', gap: 14, paddingTop: 12 },
-  anel: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    borderWidth: 3,
-    borderColor: alerta.seguro,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    boxShadow: '0 0 0 14px rgba(21,128,61,0.16), 0 0 0 30px rgba(21,128,61,0.07)',
-  },
-  indicadores: { flexDirection: 'row', gap: 8 },
-  indicador: { flex: 1, backgroundColor: tons.superficie, borderRadius: raio.lg, padding: 12, gap: 6 },
-  bolinha: { width: 10, height: 10, borderRadius: 5 },
-  notificacao: {
-    backgroundColor: brand.neblina,
-    borderRadius: raio.xl,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  notifIcone: { width: 36, height: 36, borderRadius: 10, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' },
-  acoes: { flexDirection: 'row', gap: 10 },
-  fundoModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  folha: {
-    backgroundColor: brand.asfalto,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    paddingBottom: 40,
-    gap: 14,
-  },
-});
+const criarEstilos = (c: Paleta, nome: NomeTema) =>
+  StyleSheet.create({
+    topo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    centro: { alignItems: 'center', gap: 14, paddingTop: 12 },
+    anel: {
+      width: 220,
+      height: 220,
+      borderRadius: 110,
+      borderWidth: 3,
+      borderColor: alerta.seguro,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      boxShadow: '0 0 0 14px rgba(21,128,61,0.16), 0 0 0 30px rgba(21,128,61,0.07)',
+    },
+    indicadores: { flexDirection: 'row', gap: 8 },
+    indicador: { flex: 1, backgroundColor: c.superficie, borderRadius: raio.lg, padding: 12, gap: 6 },
+    bolinha: { width: 10, height: 10, borderRadius: 5 },
+    notificacao: {
+      backgroundColor: nome === 'claro' ? brand.branco : brand.neblina,
+      borderWidth: 1,
+      borderColor: nome === 'claro' ? c.divisor : 'transparent',
+      borderRadius: raio.xl,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+    },
+    notifIcone: { width: 36, height: 36, borderRadius: 10, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' },
+    acoes: { flexDirection: 'row', gap: 10 },
+    fundoModal: { flex: 1, backgroundColor: c.veu, justifyContent: 'flex-end' },
+    folha: {
+      backgroundColor: c.fundo,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      padding: 24,
+      paddingBottom: 40,
+      gap: 14,
+    },
+  });

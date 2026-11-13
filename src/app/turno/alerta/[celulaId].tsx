@@ -17,6 +17,7 @@ import { gravarValor, lerValor } from '@/db';
 import { escolherMensagem } from '@/domain/mensagens';
 import { acaoDoPonto, motivoDoPonto } from '@/domain/risco';
 import { voltarOu } from '@/lib/navegacao';
+import { useTema } from '@/lib/tema';
 import { contextoAgora, usePlano } from '@/servicos/plano';
 import { usePosicao } from '@/servicos/posicao';
 import { alerta, brand, raio } from '@/theme';
@@ -31,6 +32,7 @@ export default function MotivoDoAlerta() {
   const plano = usePlano();
   const prefs = usePreferencias();
   const posicao = usePosicao();
+  const { c } = useTema();
   const [ponto, setPonto] = useState<CelulaCritica | null>(
     plano.dados?.pontos.find((p) => p.celulaId === celulaId) ?? null,
   );
@@ -86,7 +88,7 @@ export default function MotivoDoAlerta() {
     return (
       <Tela rolagem={false} rodape={<Botao titulo="Voltar ao turno" onPress={() => voltarOu('/turno/ativo')} />}>
         <View style={styles.movimento}>
-          <Icone nome="alerta" tamanho={64} cor={alerta.atencao} />
+          <Icone nome="alerta" tamanho={64} cor={c.atencaoTexto} />
           <Texto variante="display" centro>
             Pare a moto para ler.
           </Texto>

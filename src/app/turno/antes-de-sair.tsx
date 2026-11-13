@@ -6,10 +6,11 @@ import { Logo } from '@/components/brand/logo';
 import { Aviso, Botao, BotaoIcone, Etiqueta, ItemMarcavel, Tela, Texto } from '@/components/ui';
 import { rotuloDaFonte } from '@/domain/mensagens';
 import { voltarOu } from '@/lib/navegacao';
+import { useEstilos, useTema } from '@/lib/tema';
 import { carregarPlano, usePlano } from '@/servicos/plano';
 import { iniciarTurno } from '@/servicos/turno';
 import { useSessao } from '@/state/sessao';
-import { brand, raio, tons } from '@/theme';
+import { raio, type Paleta } from '@/theme';
 
 const CHECKLIST = ['Capacete afivelado e viseira limpa', 'Celular firme no suporte', 'Farol aceso e capa de chuva'];
 
@@ -20,6 +21,8 @@ const CHECKLIST = ['Capacete afivelado e viseira limpa', 'Celular firme no supor
 export default function AntesDeSair() {
   const sessao = useSessao();
   const plano = usePlano();
+  const { c } = useTema();
+  const styles = useEstilos(criarEstilos);
   const [marcados, setMarcados] = useState<boolean[]>(CHECKLIST.map(() => false));
   const [faltas, setFaltas] = useState<string[]>([]);
   const [iniciando, setIniciando] = useState(false);
@@ -52,7 +55,7 @@ export default function AntesDeSair() {
       }>
       <View style={styles.topo}>
         <BotaoIcone icone="voltar" rotulo="Voltar" onPress={() => voltarOu('/plano')} />
-        <Etiqueta texto="Antes de sair" aparencia="cheia" fundo={tons.tealSelecionadoFundo} cor={tons.tealClaro} />
+        <Etiqueta texto="Antes de sair" aparencia="cheia" fundo={c.selecionadoFundo} cor={c.tealTexto} />
       </View>
 
       <View style={{ gap: 10 }}>
@@ -67,13 +70,13 @@ export default function AntesDeSair() {
 
       {mensagem ? (
         <View style={styles.mensagem}>
-          <Texto variante="overline" cor={tons.informacaoTexto}>
+          <Texto variante="overline" cor="informacaoTexto">
             Para o turno de hoje
           </Texto>
           <Texto variante="alerta" style={{ fontSize: 19, lineHeight: 25 }}>
             {mensagem.texto}
           </Texto>
-          <Texto variante="legenda" cor={tons.informacaoTexto} style={{ fontSize: 14 }}>
+          <Texto variante="legenda" cor="informacaoTexto" style={{ fontSize: 14 }}>
             Fonte: {rotuloDaFonte(mensagem.fonte)}
           </Texto>
         </View>
@@ -108,7 +111,8 @@ export default function AntesDeSair() {
   );
 }
 
-const styles = StyleSheet.create({
-  topo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  mensagem: { backgroundColor: tons.informacaoFundo, borderRadius: raio.xxl, padding: 16, gap: 8, borderColor: brand.asfalto },
-});
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    topo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    mensagem: { backgroundColor: c.informacaoFundo, borderRadius: raio.xxl, padding: 16, gap: 8, borderColor: c.fundo },
+  });

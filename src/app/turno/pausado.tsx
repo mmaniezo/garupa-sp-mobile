@@ -4,8 +4,9 @@ import { StyleSheet, View } from 'react-native';
 import { Botao, Icone, Tela, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { regras } from '@/config';
+import { useEstilos, useTema } from '@/lib/tema';
 import { finalizarTurno, retomarTurno, useTurno } from '@/servicos/turno';
-import { brand, raio, tons } from '@/theme';
+import { brand, raio, tons, type NomeTema, type Paleta } from '@/theme';
 
 /**
  * Tela 13 · Turno pausado (RB18): 30 minutos parado pausa o turno, com aviso 5 minutos antes,
@@ -14,6 +15,8 @@ import { brand, raio, tons } from '@/theme';
 export default function TurnoPausado() {
   const turno = useTurno();
   const prefs = usePreferencias();
+  const { c } = useTema();
+  const styles = useEstilos(criarEstilos);
 
   if (turno.situacao === 'ativo') return <Redirect href="/turno/ativo" />;
   if (turno.situacao === 'inativo') return <Redirect href="/plano" />;
@@ -62,7 +65,7 @@ export default function TurnoPausado() {
 
       <View style={styles.centro}>
         <View style={styles.anel} accessible accessibilityLabel="Turno pausado">
-          <Icone nome="pausa" tamanho={40} cor={tons.textoSecundario} />
+          <Icone nome="pausa" tamanho={40} cor={c.textoSecundario} />
           <Texto variante="alerta" style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 26 }}>
             Turno pausado
           </Texto>
@@ -89,29 +92,32 @@ export default function TurnoPausado() {
   );
 }
 
-const styles = StyleSheet.create({
-  notificacao: {
-    backgroundColor: brand.neblina,
-    borderRadius: raio.xl,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  notifIcone: { width: 36, height: 36, borderRadius: 10, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' },
-  centro: { alignItems: 'center', gap: 14, paddingTop: 18 },
-  anel: {
-    width: 210,
-    height: 210,
-    borderRadius: 105,
-    borderWidth: 3,
-    borderStyle: 'dashed',
-    borderColor: tons.neutroBarra,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  pulseira: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: tons.superficie, borderRadius: raio.xl, padding: 16 },
-  led: { width: 14, height: 14, borderRadius: 7, backgroundColor: tons.seguroClaro },
-});
+const criarEstilos = (c: Paleta, nome: NomeTema) =>
+  StyleSheet.create({
+    notificacao: {
+      backgroundColor: nome === 'claro' ? brand.branco : brand.neblina,
+      borderWidth: 1,
+      borderColor: nome === 'claro' ? c.divisor : 'transparent',
+      borderRadius: raio.xl,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+    },
+    notifIcone: { width: 36, height: 36, borderRadius: 10, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' },
+    centro: { alignItems: 'center', gap: 14, paddingTop: 18 },
+    anel: {
+      width: 210,
+      height: 210,
+      borderRadius: 105,
+      borderWidth: 3,
+      borderStyle: 'dashed',
+      borderColor: c.neutroBarra,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    pulseira: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: c.superficie, borderRadius: raio.xl, padding: 16 },
+    led: { width: 14, height: 14, borderRadius: 7, backgroundColor: c.seguroTexto },
+  });

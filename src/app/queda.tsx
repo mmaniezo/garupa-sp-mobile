@@ -77,10 +77,10 @@ export default function ContagemDaQueda() {
       <View style={[styles.raiz, styles.ok, { paddingTop: insets.top + 64 }]} accessibilityLiveRegion="assertive">
         <StatusBar style="light" />
         <Icone nome="check" tamanho={72} cor={brand.branco} espessura={3} />
-        <Texto variante="display" centro>
+        <Texto variante="display" cor={brand.branco} centro>
           Que bom que você está bem.
         </Texto>
-        <Texto variante="corpo" centro>
+        <Texto variante="corpo" cor={brand.branco} centro>
           Contagem cancelada. Seguimos de olho.
         </Texto>
       </View>
@@ -99,14 +99,14 @@ export default function ContagemDaQueda() {
       <View style={[styles.topo, semToque]}>
         <View style={styles.selo}>
           <Icone nome="alarme" tamanho={16} cor={brand.branco} espessura={2.4} />
-          <Texto variante="rotulo" style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
+          <Texto variante="rotulo" cor={brand.branco} style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
             Alarme tocando
           </Texto>
         </View>
-        <Texto variante="hero" centro>
+        <Texto variante="hero" cor={brand.branco} centro>
           Você caiu?
         </Texto>
-        <Texto variante="corpo" centro style={{ maxWidth: 300 }}>
+        <Texto variante="corpo" cor={brand.branco} centro style={{ maxWidth: 300 }}>
           Se não responder, avisamos seu contato e registramos o SOS.
         </Texto>
       </View>
@@ -132,7 +132,7 @@ export default function ContagemDaQueda() {
           />
         </Svg>
         <Texto style={styles.numero}>{restante}</Texto>
-        <Texto variante="rotulo" style={{ fontSize: 17 }}>
+        <Texto variante="rotulo" cor={brand.branco} style={{ fontSize: 17 }}>
           segundos
         </Texto>
       </View>
@@ -147,12 +147,12 @@ export default function ContagemDaQueda() {
           <Icone nome="check" tamanho={32} cor={alerta.seguro} espessura={3} />
           <Texto style={styles.estouBemTexto}>Estou bem</Texto>
         </Pressable>
-        <Texto variante="rotulo" centro style={[{ fontSize: 16 }, semToque]}>
+        <Texto variante="rotulo" cor={brand.branco} centro style={[{ fontSize: 16 }, semToque]}>
           Ou toque em qualquer lugar da tela
         </Texto>
         <Botao
           titulo="Preciso de ajuda agora"
-          variante="contorno"
+          variante="contornoClaro"
           tamanho="padrao"
           dica="Manda o SOS sem esperar a contagem"
           onPress={() => void pedirAjudaAgora()}
