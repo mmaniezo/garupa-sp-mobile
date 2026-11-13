@@ -62,7 +62,38 @@ jobs:
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
 
       - name: Nomear o APK
-        run: cp android/app/build/outputs/apk/release/app-release.apk "garupa-sp-${TAG}.apk"
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk "garupa-sp-${TAG}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk app.apk
+
+      # Só publica se o app abrir no emulador e continuar aberto (o 0.1.0 fechava na abertura).
+      - name: Liberar o KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Abrir o app no emulador
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash .github/scripts/abrir-apk.sh
+
+      - name: Guardar o log do emulador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-do-emulador
+          path: |
+            logcat.txt
+            erro.txt
+            instalar.txt
+            tela.png
+          if-no-files-found: ignore
 
       - name: Publicar no release
         uses: softprops/action-gh-release@v2
