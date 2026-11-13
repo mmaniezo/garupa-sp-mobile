@@ -36,7 +36,7 @@ export function SosManual({ onEnviado }: Props) {
           SOS de {rotulo.toLowerCase()} em {pendente.restante} s
         </Texto>
         <Texto variante="legenda" cor="textoSecundario">
-          Seu contato recebe o link com a sua posição.
+          Seus contatos recebem um SMS com a sua localização.
         </Texto>
         <Botao titulo="Desfazer" variante="claro" tamanho="padrao" onPress={desfazer} />
       </View>

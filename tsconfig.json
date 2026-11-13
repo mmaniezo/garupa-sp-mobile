@@ -12,6 +12,9 @@
       ],
       "tela-bloqueio": [
         "./modules/tela-bloqueio/src/index.ts"
+      ],
+      "sms-socorro": [
+        "./modules/sms-socorro/src/index.ts"
       ]
     }
   },

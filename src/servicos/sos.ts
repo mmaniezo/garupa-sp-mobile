@@ -16,6 +16,7 @@ import { obterSessao } from '@/state/sessao';
 
 import { notificarSosAtivo, removerNotificacaoSos } from './notificacoes';
 import { obterPosicao } from './posicao';
+import { avisarCancelamentoPorSms, avisarContatosPorSms } from './sms';
 import { avisarPulseira } from './vestivel';
 
 /**
@@ -108,6 +109,13 @@ export async function dispararSos(opcoes: { tipo: TipoSos; origem: OrigemSos }):
   await notificarSosAtivo(eventoId, false);
   await definirSobreBloqueio(true);
   void avisarPulseira('sos_enviado');
+  // SMS aos contatos com o mapa: não depende da API nem de internet, então sai antes do envio.
+  void avisarContatosPorSms(eventoId, {
+    tipo: opcoes.tipo,
+    ocorridoEm: payload.ocorridoEm,
+    lat: payload.lat,
+    lon: payload.lon,
+  }).catch(() => undefined);
   await tentarEnviar(eventoId);
   return eventoId;
 }
@@ -128,6 +136,7 @@ async function mudarSituacao(eventoId: string, acao: 'cancelar' | 'encerrar') {
   await removerNotificacaoSos();
   await definirSobreBloqueio(false);
   if (acao === 'cancelar') void avisarPulseira('cancelado');
+  void avisarCancelamentoPorSms(eventoId, acao === 'encerrar').catch(() => undefined);
   await recarregar(eventoId);
 }
 

@@ -1,19 +1,24 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Share, StyleSheet, View } from 'react-native';
+import { Linking, Share, StyleSheet, View } from 'react-native';
 
+import { api, mock } from '@/api';
+import { MapaPosicao } from '@/components/mapa/mapa-pontos';
 import { Aviso, Botao, Icone, Tela, Texto } from '@/components/ui';
 import { lerSos, type RegistroSos } from '@/dados-locais/repositorios';
 import { lerContatos } from '@/dados-locais/seguro';
+import { linkGoogleMaps } from '@/domain/sms';
+import { useEstilos } from '@/lib/tema';
 import { reiniciarDetector } from '@/servicos/queda';
+import { abrirSmsDoSos, carregarEstadoSms, useEstadosSms, type EstadoSms } from '@/servicos/sms';
 import { cancelarSos, encerrarSos, useSos } from '@/servicos/sos';
 import { useSessao } from '@/state/sessao';
-import { alerta, brand, raio, tons } from '@/theme';
-import { api } from '@/api';
+import { alerta, brand, raio, type Paleta } from '@/theme';
 
 const ROTULO_TIPO = { queda: 'queda detectada', mal_estar: 'mal-estar', agressao_assalto: 'agressão ou assalto' } as const;
 
 function Passo({ feito, texto }: { feito: boolean; texto: string }) {
+  const styles = useEstilos(criarEstilos);
   return (
     <View style={styles.passo} accessible accessibilityLabel={`${texto}: ${feito ? 'feito' : 'aguardando'}`}>
       {feito ? (
@@ -30,25 +35,47 @@ function Passo({ feito, texto }: { feito: boolean; texto: string }) {
   );
 }
 
+/** O que a tela diz sobre o SMS: só "recebeu" quando o app mandou de verdade. */
+function textoDoSms(estado: EstadoSms | null | undefined, contato: string | null): { feito: boolean; texto: string } {
+  const quem = contato ?? 'seu contato';
+  switch (estado?.situacao) {
+    case 'enviado':
+      return { feito: true, texto: `SMS com a sua localização enviado para ${estado.nomes.join(', ') || quem}` };
+    case 'aberto':
+      return { feito: false, texto: `SMS aberto no app de mensagens: confira se foi enviado para ${quem}` };
+    case 'sem_contato':
+      return { feito: false, texto: 'Nenhum contato de emergência com telefone válido para o SMS' };
+    case 'pendente':
+      return { feito: false, texto: `Falta avisar ${quem} por SMS` };
+    default:
+      return { feito: false, texto: `Preparando o SMS para ${quem}` };
+  }
+}
+
 /**
  * Tela 16 · SOS enviado (RF20, RF21, RF23, RF24).
- * Mostra o que já aconteceu, o que o contato vê no navegador (sem a ficha médica) e as ações:
- * "Estou bem" (cancelar), "Já fui atendido" (encerrar) e a tela para quem ajudar.
+ * Mostra o que já aconteceu, o SMS que o contato recebe (com a localização no Google Maps)
+ * e as ações: "Estou bem" (cancelar), "Já fui atendido" (encerrar) e a tela para quem ajudar.
  */
 export default function SosEnviado() {
   const { eventoId } = useLocalSearchParams<{ eventoId: string }>();
   const atual = useSos();
   const sessao = useSessao();
+  const estadosSms = useEstadosSms();
+  const styles = useEstilos(criarEstilos);
   const [registro, setRegistro] = useState<RegistroSos | null>(null);
   const [contato, setContato] = useState<string | null>(null);
-  const [agindo, setAgindo] = useState<'cancelar' | 'encerrar' | null>(null);
+  const [agindo, setAgindo] = useState<'cancelar' | 'encerrar' | 'sms' | null>(null);
 
   const sos = atual?.eventoId === eventoId ? atual : registro;
-  const link = sos?.token ? api.urlAcompanhamento(sos.token) : null;
+  // No mock o link de acompanhamento não abre; com a API real, ele vai junto do mapa.
+  const link = sos?.token && !mock ? api.urlAcompanhamento(sos.token) : null;
+  const estadoSms = estadosSms[eventoId];
 
   useEffect(() => {
     if (atual?.eventoId !== eventoId) void lerSos(eventoId).then(setRegistro);
     void lerContatos().then((c) => setContato(c[0]?.nome ?? null));
+    void carregarEstadoSms(eventoId);
   }, [eventoId, atual?.eventoId]);
 
   if (!sos) {
@@ -68,15 +95,32 @@ export default function SosEnviado() {
     : sos.enviado
       ? 'SOS enviado'
       : 'SOS guardado';
-  const estadoLink = sos.situacao === 'ativo' ? 'ativo' : sos.situacao;
+  const { lat, lon } = sos.payload;
+  const mapa = lat !== null && lon !== null ? linkGoogleMaps(lat, lon) : null;
+  const sms = textoDoSms(estadoSms, contato);
+  const podeMandarSms = ativo && estadoSms?.situacao !== 'enviado' && estadoSms?.situacao !== 'sem_contato';
 
   const idDoSos = sos.eventoId;
+  const dadosDoSos = { tipo: sos.tipo, ocorridoEm: sos.payload.ocorridoEm, lat, lon };
 
   async function agir(acao: 'cancelar' | 'encerrar') {
     setAgindo(acao);
     await (acao === 'cancelar' ? cancelarSos(idDoSos) : encerrarSos(idDoSos));
     reiniciarDetector();
     setAgindo(null);
+  }
+
+  async function mandarSms() {
+    setAgindo('sms');
+    await abrirSmsDoSos(idDoSos, dadosDoSos).catch(() => undefined);
+    setAgindo(null);
+  }
+
+  function compartilhar() {
+    const partes = [`Pedi socorro pelo Garupa SP às ${hora}.`];
+    if (mapa) partes.push(`Onde estou: ${mapa}`);
+    if (link) partes.push(`Acompanhe: ${link}`);
+    void Share.share({ message: partes.join(' ') });
   }
 
   return (
@@ -105,7 +149,7 @@ export default function SosEnviado() {
               onPress={() => router.push('/testemunha')}
             />
             <Texto variante="legenda" cor="textoSecundario" centro style={{ fontSize: 14 }}>
-              Sem internet, o SOS fica guardado e sai quando a conexão voltar.
+              O SMS sai mesmo sem internet. O registro na API sai quando a conexão voltar.
             </Texto>
           </>
         ) : (
@@ -113,7 +157,7 @@ export default function SosEnviado() {
         )
       }>
       <View
-        style={[styles.cabecalho, { backgroundColor: ativo ? alerta.emergencia : brand.viseira }]}
+        style={[styles.cabecalho, { backgroundColor: ativo ? alerta.emergencia : styles.cores.cabecalhoInativo }]}
         accessibilityRole="header"
         accessibilityLiveRegion="polite">
         <View style={styles.selo}>
@@ -122,10 +166,13 @@ export default function SosEnviado() {
           </Texto>
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Texto variante="alerta" style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 24, lineHeight: 26 }}>
+          <Texto
+            variante="alerta"
+            cor={ativo ? brand.branco : 'texto'}
+            style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 24, lineHeight: 26 }}>
             {titulo}
           </Texto>
-          <Texto variante="legenda">
+          <Texto variante="legenda" cor={ativo ? brand.branco : 'texto'}>
             Às {hora} · {ROTULO_TIPO[sos.tipo]}
             {sos.origem === 'vestivel' ? ' pela pulseira' : ''}
           </Texto>
@@ -136,53 +183,64 @@ export default function SosEnviado() {
         <Aviso
           tom="sucesso"
           texto={
-            !sos.enviado
-              ? 'O SOS não chegou a sair do celular: nada foi enviado ao seu contato.'
-              : sos.situacao === 'cancelado'
-                ? 'O link do seu contato agora mostra "cancelado". Que bom que você está bem.'
-                : 'O link do seu contato agora mostra "encerrado".'
+            sos.situacao === 'cancelado'
+              ? 'Que bom que você está bem. Quem recebeu o SMS automático recebe outro avisando que foi cancelado.'
+              : 'SOS encerrado. Quem recebeu o SMS automático recebe outro avisando que você já foi atendido.'
           }
         />
       ) : null}
 
       <View style={{ gap: 12 }} accessibilityRole="list">
-        <Passo feito={sos.payload.lat !== null} texto={sos.payload.lat !== null ? 'Posição e horário registrados' : 'Buscando a sua posição'} />
+        <Passo feito={lat !== null} texto={lat !== null ? 'Posição e horário registrados' : 'Buscando a sua posição'} />
+        <Passo feito={sms.feito} texto={sms.texto} />
         <Passo
           feito={sos.enviado}
-          texto={sos.enviado ? `${contato ?? 'Seu contato'} recebeu o link` : 'O aviso ao contato sai quando a internet voltar'}
+          texto={sos.enviado ? 'SOS registrado na API' : 'O registro na API sai quando a internet voltar'}
         />
-        <Passo feito={sos.enviado && ativo} texto="Acompanhamento ao vivo ativo" />
       </View>
+
+      {podeMandarSms ? (
+        <Botao
+          titulo={`Enviar SMS para ${contato ?? 'meu contato'}`}
+          variante="perigo"
+          tamanho="padrao"
+          icone="telefone"
+          carregando={agindo === 'sms'}
+          dica="Abre o app de mensagens com a sua localização pronta para enviar"
+          onPress={() => void mandarSms()}
+        />
+      ) : null}
 
       <View style={{ gap: 8 }}>
         <Texto variante="overline" cor="textoSecundario">
-          O que {contato ?? 'seu contato'} vê no navegador
+          O que {contato ?? 'seu contato'} recebe
         </Texto>
-        <View style={styles.navegador}>
-          <View style={styles.barraUrl}>
-            <Texto variante="legenda" cor={tons.textoSecundarioClaro} style={{ fontSize: 13 }} numberOfLines={1}>
-              {link ? link.replace(/\/acompanhar\/.*/, '/acompanhar/•••••') : 'link de acompanhamento'}
-            </Texto>
-          </View>
-          <View style={{ padding: 14, gap: 10 }}>
-            <View style={styles.mapinha}>
-              <View style={styles.pino} />
-            </View>
-            <Texto variante="rotulo" cor={brand.asfalto} style={{ fontFamily: 'BricolageGrotesque_700Bold', fontSize: 17 }}>
-              {sessao.nome?.split(' ')[0] ?? 'O motociclista'} pediu socorro às {hora}
-            </Texto>
-            <Texto variante="legenda" cor={tons.textoSecundarioClaro} style={{ fontSize: 14 }}>
-              Estado: {estadoLink} · a ficha médica não aparece aqui
-            </Texto>
-          </View>
+        <View style={styles.balao}>
+          <Texto variante="legenda" style={{ fontSize: 15 }}>
+            SOS Garupa SP: {sessao.nome?.split(' ')[0] ?? 'você'} pediu socorro às {hora} ({ROTULO_TIPO[sos.tipo]}).
+            {mapa ? ' Toque no link para ver no Google Maps.' : ' A localização entra quando o GPS responder.'}
+          </Texto>
         </View>
-        {link && ativo ? (
+        {lat !== null && lon !== null ? (
+          <MapaPosicao lat={lat} lon={lon} altura={140} rotulo="Mapa com a posição registrada no SOS" />
+        ) : null}
+        {mapa ? (
           <Botao
-            titulo="Compartilhar o link"
+            titulo="Abrir no Google Maps"
+            variante="contorno"
+            tamanho="padrao"
+            icone="mapa"
+            dica="Mostra no Google Maps a posição enviada aos seus contatos"
+            onPress={() => void Linking.openURL(mapa)}
+          />
+        ) : null}
+        {ativo ? (
+          <Botao
+            titulo="Compartilhar localização"
             variante="link"
             tamanho="compacto"
-            dica="Envia o link de acompanhamento para quem você escolher"
-            onPress={() => void Share.share({ message: `Pedi socorro pelo Garupa SP. Acompanhe: ${link}` })}
+            dica="Envia a sua localização para quem você escolher"
+            onPress={compartilhar}
           />
         ) : null}
       </View>
@@ -190,15 +248,15 @@ export default function SosEnviado() {
   );
 }
 
-const styles = StyleSheet.create({
-  cabecalho: { borderRadius: raio.cartao, padding: 18, flexDirection: 'row', gap: 14, alignItems: 'center' },
-  selo: { width: 52, height: 52, borderRadius: 26, backgroundColor: brand.branco, alignItems: 'center', justifyContent: 'center' },
-  seloTexto: { fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 17 },
-  passo: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 32 },
-  marca: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  marcaVazia: { borderWidth: 3, borderColor: brand.teal },
-  navegador: { backgroundColor: brand.neblina, borderRadius: raio.xxl, overflow: 'hidden' },
-  barraUrl: { minHeight: 30, backgroundColor: tons.divisorClaro, justifyContent: 'center', paddingHorizontal: 12 },
-  mapinha: { height: 96, borderRadius: raio.md, backgroundColor: tons.cinzaMapaClaro, alignItems: 'center', justifyContent: 'center' },
-  pino: { width: 20, height: 20, borderRadius: 10, backgroundColor: alerta.emergencia, borderWidth: 3, borderColor: brand.branco },
+const criarEstilos = (c: Paleta) => ({
+  cores: { cabecalhoInativo: c.superficieElevada },
+  ...StyleSheet.create({
+    cabecalho: { borderRadius: raio.cartao, padding: 18, flexDirection: 'row', gap: 14, alignItems: 'center' },
+    selo: { width: 52, height: 52, borderRadius: 26, backgroundColor: brand.branco, alignItems: 'center', justifyContent: 'center' },
+    seloTexto: { fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 17 },
+    passo: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 32 },
+    marca: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    marcaVazia: { borderWidth: 3, borderColor: brand.teal },
+    balao: { backgroundColor: c.superficie, borderRadius: raio.xl, borderTopLeftRadius: 6, padding: 14 },
+  }),
 });

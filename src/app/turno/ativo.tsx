@@ -171,7 +171,7 @@ export default function TurnoAtivo() {
               Precisa de ajuda?
             </Texto>
             <Texto variante="corpoMenor" cor="textoSecundario">
-              Escolha o que aconteceu. Seu contato recebe o link na hora.
+              Escolha o que aconteceu. Seus contatos recebem um SMS com a sua localização.
             </Texto>
             <SosManual
               onEnviado={(id) => {

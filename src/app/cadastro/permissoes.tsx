@@ -18,6 +18,7 @@ import {
   type StatusPermissoes,
 } from '@/servicos/permissoes';
 import { carregarPlano } from '@/servicos/plano';
+import { pedirPermissaoSms, smsAutomaticoSuportado, temPermissaoSms } from '@/servicos/sms';
 import { atualizarSessao, useSessao } from '@/state/sessao';
 
 /**
@@ -30,6 +31,7 @@ export default function CadastroPermissoes() {
   const prefs = usePreferencias();
   const editar = useEdicao();
   const [status, setStatus] = useState<StatusPermissoes | null>(null);
+  const [permissaoSms, setPermissaoSms] = useState(false);
   const [ficha, setFicha] = useState(prefs.consentimentos.fichaMedica || !editar);
   const [locais, setLocais] = useState(prefs.consentimentos.historicoDeLocais || !editar);
   const temPerfil = prefs.perfil.tiposDeUso.length > 0 || prefs.perfil.distritos.length > 0;
@@ -39,7 +41,14 @@ export default function CadastroPermissoes() {
 
   const atualizar = useCallback(() => {
     void lerStatusPermissoes().then(setStatus);
+    void temPermissaoSms().then(setPermissaoSms);
   }, []);
+
+  async function pedirSms() {
+    const ok = await pedirPermissaoSms();
+    setPermissaoSms(ok);
+    await atualizarPreferencias({ smsAutomatico: ok });
+  }
 
   useEffect(() => {
     atualizar();
@@ -65,6 +74,7 @@ export default function CadastroPermissoes() {
       if (!s.localizacaoSempre) await pedirLocalizacaoSempre();
       if (!s.notificacoes) await pedirNotificacoes();
       if (!s.movimento) await pedirMovimento();
+      if (smsAutomaticoSuportado && !(await temPermissaoSms())) await pedirSms();
       if (Platform.OS === 'android' && !prefs.bateriaOrientada) await abrirAjusteDeBateria();
       s = await lerStatusPermissoes();
       setStatus(s);
@@ -159,6 +169,16 @@ export default function CadastroPermissoes() {
             atualizar();
           }}
         />
+        {smsAutomaticoSuportado ? (
+          <ItemMarcavel
+            aparencia="cartao"
+            caixaA="direita"
+            titulo="SMS de socorro"
+            descricao="Numa queda sem resposta, avisa seus contatos com a sua localização, mesmo sem internet."
+            marcado={permissaoSms}
+            onPress={() => void pedirSms()}
+          />
+        ) : null}
         {Platform.OS === 'android' ? (
           <ItemMarcavel
             aparencia="cartao"

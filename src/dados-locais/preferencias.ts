@@ -28,6 +28,8 @@ export type Preferencias = {
   bateriaOrientada: boolean;
   /** Aparência: igual ao sistema do celular (padrão), ou sempre clara ou escura. */
   tema: PreferenciaTema;
+  /** SMS de socorro automático aos contatos (Android, com a permissão de SMS). */
+  smsAutomatico: boolean;
 };
 
 export const PERFIL_VAZIO: PerfilLocal = { tiposDeUso: [], periodos: [], dias: [], distritos: [] };
@@ -50,6 +52,7 @@ const INICIAIS: Omit<Preferencias, 'carregadas'> = {
   pulseira: null,
   bateriaOrientada: false,
   tema: 'sistema',
+  smsAutomatico: true,
 };
 
 const store = criarStore<Preferencias>({ carregadas: false, ...INICIAIS });

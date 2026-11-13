@@ -1,0 +1,7 @@
+{
+  "name": "sms-socorro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Módulo nativo local do Garupa SP: manda o SMS de socorro aos contatos sem abrir o app de mensagens (Android, com a permissão de SMS).",
+  "main": "src/index.ts"
+}
