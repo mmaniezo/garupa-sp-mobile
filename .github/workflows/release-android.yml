@@ -1,4 +1,5 @@
-# Gera o APK de Android e publica no release do GitHub a cada tag de versão (v0.1.0, v0.2.0...).
+# Gera o APK de Android, abre num emulador e, numa tag de versão (v0.1.0, v0.2.0...), publica
+# no release do GitHub. A cada push na main, só compila e testa (o APK fica nos artefatos do run).
 # Também dá para rodar à mão em Actions → "Release Android (APK)" → Run workflow, informando a tag.
 #
 # O APK usa a API simulada (os dados do modelo de ML, sem servidor). Para o Google Maps,
@@ -9,6 +10,8 @@ name: Release Android (APK)
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
   workflow_dispatch:
     inputs:
       tag:
@@ -96,7 +99,15 @@ jobs:
             tela.png
           if-no-files-found: ignore
 
+      - name: Guardar o APK (push na main)
+        if: github.ref_type != 'tag' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-garupa-sp
+          path: garupa-sp-${{ env.TAG }}.apk
+
       - name: Publicar no release
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
