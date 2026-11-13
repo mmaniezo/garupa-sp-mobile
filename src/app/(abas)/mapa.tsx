@@ -11,9 +11,10 @@ import { Aviso, Botao, Icone, Segmentado, Texto } from '@/components/ui';
 import { FAIXAS, rotuloFaixa } from '@/domain/contexto';
 import { acaoDoPonto, AVISO_HISTORICO, localDoPonto, motivoDoPonto, nivelDeRisco } from '@/domain/risco';
 import { mensagemDeErro } from '@/lib/navegacao';
+import { useEstilos, useTema } from '@/lib/tema';
 import { usePlano, type PontoDoPlano } from '@/servicos/plano';
 import { usePosicao } from '@/servicos/posicao';
-import { alerta, brand, raio, tons } from '@/theme';
+import { alerta, brand, raio, type Paleta } from '@/theme';
 
 /** Altura da pílula e do seletor por cima do mapa, e da legenda com a borda da folha embaixo. */
 const FOLGA_TOPO = 72;
@@ -35,6 +36,8 @@ export default function MapaPontos() {
   const [selecionadoId, setSelecionadoId] = useState<string | null>(celula ?? null);
   const [celulaAnterior, setCelulaAnterior] = useState(celula);
   const [resposta, setResposta] = useState<{ id: string; detalhe?: DetalheCelula; erro?: string } | null>(null);
+  const styles = useEstilos(criarEstilos);
+  const { c: paleta } = useTema();
 
   // Veio do plano com outro ponto escolhido: esse passa a ser o selecionado.
   if (celula !== celulaAnterior) {
@@ -118,13 +121,13 @@ export default function MapaPontos() {
               <View
                 style={[
                   styles.barra,
-                  { width: `${Math.round(b.largura * 100)}%`, backgroundColor: atual ? alerta.atencao : tons.neutroBarra },
+                  { width: `${Math.round(b.largura * 100)}%`, backgroundColor: atual ? alerta.atencao : paleta.neutroBarra },
                 ]}
               />
             </View>
             <Texto
               variante="legenda"
-              cor={atual ? alerta.atencao : tons.textoSecundario}
+              cor={atual ? paleta.atencaoTexto : paleta.textoSecundario}
               style={[styles.barraNivel, atual && styles.forte]}>
               {nivel}
             </Texto>
@@ -245,8 +248,9 @@ export default function MapaPontos() {
   );
 }
 
-const styles = StyleSheet.create({
-  raiz: { flex: 1, backgroundColor: tons.mapaFundo },
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+  raiz: { flex: 1, backgroundColor: c.mapaFundo },
   cabecalho: { gap: 12 },
   sobreposicao: {
     position: 'absolute',
@@ -261,7 +265,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 48,
     borderRadius: raio.pilula,
-    backgroundColor: brand.viseira,
+    backgroundColor: c.superficieElevada,
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
@@ -270,7 +274,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: brand.asfalto,
+    backgroundColor: c.fundo,
     borderRadius: raio.pilula,
     paddingHorizontal: 12,
     minHeight: 34,
@@ -279,12 +283,12 @@ const styles = StyleSheet.create({
   folha: {
     flex: 1,
     marginTop: -24,
-    backgroundColor: brand.asfalto,
+    backgroundColor: c.fundo,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
   },
-  alca: { width: 44, height: 5, borderRadius: 3, backgroundColor: tons.borda, alignSelf: 'center', marginVertical: 12 },
+  alca: { width: 44, height: 5, borderRadius: 3, backgroundColor: c.borda, alignSelf: 'center', marginVertical: 12 },
   folhaConteudo: { gap: 12 },
   folhaTopo: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   iconeAlerta: {
@@ -298,7 +302,7 @@ const styles = StyleSheet.create({
   via: { fontFamily: 'BricolageGrotesque_700Bold', fontSize: 20, lineHeight: 24 },
   barraLinha: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 28 },
   barraRotulo: { width: 78 },
-  barraTrilho: { flex: 1, height: 12, borderRadius: 6, backgroundColor: brand.viseira, overflow: 'hidden' },
+  barraTrilho: { flex: 1, height: 12, borderRadius: 6, backgroundColor: c.divisor, overflow: 'hidden' },
   barra: { height: 12, borderRadius: 6 },
   barraNivel: { width: 84 },
   forte: { fontFamily: 'BricolageGrotesque_700Bold' },

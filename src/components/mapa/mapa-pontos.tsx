@@ -5,9 +5,10 @@ import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 
 import { nivelDeRisco } from '@/domain/risco';
-import { brand, tons } from '@/theme';
+import { useTema } from '@/lib/tema';
+import { alerta, brand } from '@/theme';
 
-import { ESTILO_MAPA_ESCURO } from './estilo-google';
+import { ESTILO_MAPA_CLARO, ESTILO_MAPA_ESCURO } from './estilo-google';
 import { MapaEsquematico, MarcadorNumero } from './mapa-esquematico';
 import type { PropsMapaPontos, TipoDeMapa } from './tipos';
 
@@ -45,6 +46,7 @@ function regiaoQueCobre(coordenadas: { latitude: number; longitude: number }[]):
 function MapaReal({ pontos, focoId, destaqueId, posicao, onSelecionar, largura, altura, folgaTopo, folgaBaixo }: PropsMapaPontos) {
   const mapa = useRef<MapView>(null);
   const [pronto, setPronto] = useState(false);
+  const { nome: tema, c } = useTema();
 
   const coordenadas = useMemo(() => {
     const lista = pontos.map((p) => ({ latitude: p.centroLat, longitude: p.centroLon }));
@@ -91,8 +93,8 @@ function MapaReal({ pontos, focoId, destaqueId, posicao, onSelecionar, largura, 
       ref={mapa}
       style={{ width: largura, height: altura }}
       provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-      customMapStyle={ESTILO_MAPA_ESCURO}
-      userInterfaceStyle="dark"
+      customMapStyle={tema === 'claro' ? ESTILO_MAPA_CLARO : ESTILO_MAPA_ESCURO}
+      userInterfaceStyle={tema === 'claro' ? 'light' : 'dark'}
       initialRegion={regiaoInicial}
       // A pílula, o seletor e a folha ficam por cima: o padding mantém o logo do Google e o
       // enquadramento dentro da parte visível.
@@ -107,7 +109,7 @@ function MapaReal({ pontos, focoId, destaqueId, posicao, onSelecionar, largura, 
       rotateEnabled={false}
       pitchEnabled={false}
       loadingEnabled
-      loadingBackgroundColor={tons.mapaFundo}
+      loadingBackgroundColor={c.mapaFundo}
       loadingIndicatorColor={brand.teal}
       accessibilityLabel="Mapa com os pontos críticos e a sua posição. A mesma informação está em Lista.">
       {pontos.map((p) => {
@@ -165,4 +167,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   voce: { width: 18, height: 18, borderRadius: 9, backgroundColor: brand.teal, borderWidth: 3, borderColor: brand.branco },
+  posicaoFallback: { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  pino: { width: 20, height: 20, borderRadius: 10, backgroundColor: alerta.emergencia, borderWidth: 3, borderColor: brand.branco },
 });
+
+type PropsMapaPosicao = { lat: number; lon: number; altura: number; rotulo: string };
+
+/**
+ * Mapa pequeno com um ponto (a posição do SOS), sem gestos: no Android usa o modo "lite" do
+ * Google Maps, uma imagem estática barata. Sem Google Maps, um quadro com o pino.
+ */
+export function MapaPosicao({ lat, lon, altura, rotulo }: PropsMapaPosicao) {
+  const { nome: tema, c } = useTema();
+  if (tipoDoMapa === 'esquematico') {
+    return (
+      <View style={[styles.posicaoFallback, { height: altura, backgroundColor: c.mapaFundo }]} accessibilityLabel={rotulo}>
+        <View style={styles.pino} />
+      </View>
+    );
+  }
+  return (
+    <MapView
+      style={{ height: altura, borderRadius: 14 }}
+      provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+      liteMode
+      customMapStyle={tema === 'claro' ? ESTILO_MAPA_CLARO : ESTILO_MAPA_ESCURO}
+      userInterfaceStyle={tema === 'claro' ? 'light' : 'dark'}
+      initialRegion={{ latitude: lat, longitude: lon, latitudeDelta: 0.008, longitudeDelta: 0.008 }}
+      scrollEnabled={false}
+      zoomEnabled={false}
+      rotateEnabled={false}
+      pitchEnabled={false}
+      toolbarEnabled={false}
+      showsPointsOfInterests={false}
+      accessibilityLabel={rotulo}>
+      <Marker coordinate={{ latitude: lat, longitude: lon }} pinColor={alerta.emergencia} />
+    </MapView>
+  );
+}

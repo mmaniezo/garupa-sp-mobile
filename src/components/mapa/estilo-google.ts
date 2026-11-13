@@ -27,3 +27,25 @@ export const ESTILO_MAPA_ESCURO: MapStyleElement[] = [
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0B1F26' }] },
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4E6A73' }] },
 ];
+
+/** Tema claro: fundo no tom Neblina, ruas brancas, rótulos em cinza do manual, sem pontos de interesse. */
+export const ESTILO_MAPA_CLARO: MapStyleElement[] = [
+  { elementType: 'geometry', stylers: [{ color: '#EEF1F2' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#5B666D' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#F4F6F7' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#C9D1D5' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#3D474D' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ visibility: 'on' }, { color: '#DCEBDD' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#DDE2E4' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#5B666D' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#C9D1D5' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#3D474D' }] },
+  { featureType: 'road.local', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#C7DEE5' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4E6A73' }] },
+];

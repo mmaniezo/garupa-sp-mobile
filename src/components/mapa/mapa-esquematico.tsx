@@ -5,6 +5,7 @@ import Svg, { Circle, Line } from 'react-native-svg';
 import { Texto } from '@/components/ui';
 import { projetar } from '@/domain/geo';
 import { nivelDeRisco } from '@/domain/risco';
+import { useTema } from '@/lib/tema';
 import { alerta, brand } from '@/theme';
 
 import type { PropsMapaPontos } from './tipos';
@@ -14,6 +15,7 @@ import type { PropsMapaPontos } from './tipos';
  * Usado na web e no build sem a chave do Google Maps.
  */
 export function MapaEsquematico({ pontos, destaqueId, posicao, onSelecionar, largura, altura, folgaTopo }: PropsMapaPontos) {
+  const { c } = useTema();
   const geo = useMemo(() => {
     const todos = pontos.map((p) => ({ lat: p.centroLat, lon: p.centroLon }));
     if (posicao) todos.push({ lat: posicao.lat, lon: posicao.lon });
@@ -25,13 +27,15 @@ export function MapaEsquematico({ pontos, destaqueId, posicao, onSelecionar, lar
   const y = (p: { lat: number; lon: number }) => geo.y(p) + deslocamento;
 
   return (
-    <View style={{ width: largura, height: altura }} accessibilityLabel="Mapa esquemático com os pontos críticos e a sua posição">
+    <View
+      style={{ width: largura, height: altura, backgroundColor: c.mapaFundo }}
+      accessibilityLabel="Mapa esquemático com os pontos críticos e a sua posição">
       <Svg width={largura} height={altura} style={StyleSheet.absoluteFill}>
         {Array.from({ length: 9 }, (_, i) => (
-          <Line key={`v${i}`} x1={(largura / 8) * i} y1={0} x2={(largura / 8) * i + 30} y2={altura} stroke="#161C20" strokeWidth={6} />
+          <Line key={`v${i}`} x1={(largura / 8) * i} y1={0} x2={(largura / 8) * i + 30} y2={altura} stroke={c.mapaRuaFina} strokeWidth={6} />
         ))}
         {Array.from({ length: 7 }, (_, i) => (
-          <Line key={`h${i}`} x1={0} y1={(altura / 6) * i} x2={largura} y2={(altura / 6) * i - 24} stroke="#1E262B" strokeWidth={8} />
+          <Line key={`h${i}`} x1={0} y1={(altura / 6) * i} x2={largura} y2={(altura / 6) * i - 24} stroke={c.mapaRuaLarga} strokeWidth={8} />
         ))}
         {pontos.map((p) => {
           const ponto = { lat: p.centroLat, lon: p.centroLon };
