@@ -4,13 +4,15 @@ import { StyleSheet, View } from 'react-native';
 
 import { Aviso, Botao, CabecalhoPasso, Tela, Texto } from '@/components/ui';
 import { voltarOu } from '@/lib/navegacao';
+import { useEstilos } from '@/lib/tema';
 import { simularQueda } from '@/servicos/queda';
 import { useTurno } from '@/servicos/turno';
-import { raio, tons } from '@/theme';
+import { raio, type Paleta } from '@/theme';
 
 const DEZ_MIN = 10 * 60_000;
 
 function Numero({ rotulo, valor }: { rotulo: string; valor: string }) {
+  const styles = useEstilos(criarEstilos);
   return (
     <View style={styles.numero} accessible accessibilityLabel={`${rotulo}: ${valor}`}>
       <Texto variante="legenda" cor="textoSecundario" style={{ fontSize: 14 }}>
@@ -30,6 +32,7 @@ function Numero({ rotulo, valor }: { rotulo: string; valor: string }) {
  */
 export default function Diagnostico() {
   const turno = useTurno();
+  const styles = useEstilos(criarEstilos);
   const [agora, setAgora] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setAgora(Date.now()), 1000);
@@ -95,8 +98,9 @@ export default function Diagnostico() {
   );
 }
 
-const styles = StyleSheet.create({
-  passos: { backgroundColor: tons.superficie, borderRadius: raio.xl, padding: 16, gap: 6 },
-  grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  numero: { width: '48%', flexGrow: 1, backgroundColor: tons.superficie, borderRadius: raio.lg, padding: 12, gap: 4 },
-});
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    passos: { backgroundColor: c.superficie, borderRadius: raio.xl, padding: 16, gap: 6 },
+    grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    numero: { width: '48%', flexGrow: 1, backgroundColor: c.superficie, borderRadius: raio.lg, padding: 12, gap: 4 },
+  });

@@ -9,8 +9,9 @@ import { gravarContatos, lerContatos, type ContatoLocal } from '@/dados-locais/s
 import { gravarValor, lerValor } from '@/db';
 import { mascararTelefone, validarTelefone } from '@/domain/telefone';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
+import { useEstilos, useTema } from '@/lib/tema';
 import { atualizarSessao, useSessao } from '@/state/sessao';
-import { brand, raio, tons } from '@/theme';
+import { brand, raio, type Paleta } from '@/theme';
 
 type ContatoForm = { contatoId: string | null; nome: string; telefone: string };
 type Erros = Record<string, string | undefined>;
@@ -22,6 +23,8 @@ type Erros = Record<string, string | undefined>;
 export default function CadastroBasico() {
   const sessao = useSessao();
   const editar = useEdicao();
+  const corLink = useTema().c.link;
+  const styles = useEstilos(criarEstilos);
   const [nome, setNome] = useState(sessao.nome ?? '');
   const [telefone, setTelefone] = useState('');
   const [contatos, setContatos] = useState<ContatoForm[]>([{ contatoId: null, nome: '', telefone: '' }]);
@@ -211,7 +214,7 @@ export default function CadastroBasico() {
       {contatos.map((c, i) => (
         <View key={i} style={styles.contato}>
           <View style={styles.contatoTopo}>
-            <Icone nome="coracao" tamanho={20} cor={brand.teal} />
+            <Icone nome="coracao" tamanho={20} cor={corLink} />
             <Texto variante="rotulo" style={{ fontFamily: 'BricolageGrotesque_700Bold', fontSize: 16 }}>
               {i === 0 ? 'Contato de emergência' : `Contato ${i + 1} (opcional)`}
             </Texto>
@@ -258,15 +261,16 @@ export default function CadastroBasico() {
   );
 }
 
-const styles = StyleSheet.create({
-  titulo: { gap: 8 },
-  contato: {
-    backgroundColor: tons.superficie,
-    borderWidth: 2,
-    borderColor: brand.teal,
-    borderRadius: raio.xxl,
-    padding: 16,
-    gap: 12,
-  },
-  contatoTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-});
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    titulo: { gap: 8 },
+    contato: {
+      backgroundColor: c.superficie,
+      borderWidth: 2,
+      borderColor: brand.teal,
+      borderRadius: raio.xxl,
+      padding: 16,
+      gap: 12,
+    },
+    contatoTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  });

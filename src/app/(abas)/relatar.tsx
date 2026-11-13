@@ -5,9 +5,10 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import type { TipoRelato } from '@/api/types';
 import { SEGUNDOS_PARA_DESFAZER_SOS, SosManual } from '@/components/sos/sos-manual';
 import { Aviso, Botao, Icone, Tela, Texto } from '@/components/ui';
+import { useEstilos, useTema } from '@/lib/tema';
 import { useDesfazer } from '@/lib/use-desfazer';
 import { relatarPerigo, TIPOS_RELATO, type ResultadoRelato } from '@/servicos/relatos';
-import { alerta, brand, raio } from '@/theme';
+import { raio, type Paleta } from '@/theme';
 
 const MENSAGEM: Record<ResultadoRelato['situacao'], string> = {
   enviado: 'Relato enviado. Obrigado: ele volta para a cidade como um ponto observado.',
@@ -21,6 +22,8 @@ const MENSAGEM: Record<ResultadoRelato['situacao'], string> = {
  * Relato em dois toques (a aba e o tipo), no local atual, com 5 s para desfazer.
  */
 export default function Relatar() {
+  const { c } = useTema();
+  const styles = useEstilos(criarEstilos);
   const [resultado, setResultado] = useState<{ tom: 'sucesso' | 'neutro' | 'erro'; texto: string } | null>(null);
   const { pendente, iniciar, desfazer } = useDesfazer<TipoRelato>(5, (tipo) => {
     void relatarPerigo(tipo).then((r) =>
@@ -66,7 +69,7 @@ export default function Relatar() {
               accessibilityLabel={`Relatar ${t.rotulo}`}
               accessibilityHint="Envia em 5 segundos, com opção de desfazer"
               style={({ pressed }) => [styles.tipo, pressed && { opacity: 0.85 }]}>
-              <Icone nome={t.icone} tamanho={28} cor={alerta.atencao} />
+              <Icone nome={t.icone} tamanho={28} cor={c.atencaoTexto} />
               <Texto variante="corpo" style={styles.tipoTexto}>
                 {t.rotulo}
               </Texto>
@@ -94,18 +97,19 @@ export default function Relatar() {
   );
 }
 
-const styles = StyleSheet.create({
-  grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tipo: {
-    flexBasis: '45%',
-    flexGrow: 1,
-    minHeight: 104,
-    borderRadius: raio.xxl,
-    backgroundColor: brand.viseira,
-    padding: 14,
-    justifyContent: 'space-between',
-  },
-  tipoTexto: { fontFamily: 'BricolageGrotesque_700Bold', fontSize: 18 },
-  pendente: { gap: 10, padding: 16, borderRadius: raio.xl, backgroundColor: brand.viseira },
-  divisor: { height: 1, backgroundColor: brand.viseira, marginVertical: 4 },
-});
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    tipo: {
+      flexBasis: '45%',
+      flexGrow: 1,
+      minHeight: 104,
+      borderRadius: raio.xxl,
+      backgroundColor: c.superficieElevada,
+      padding: 14,
+      justifyContent: 'space-between',
+    },
+    tipoTexto: { fontFamily: 'BricolageGrotesque_700Bold', fontSize: 18 },
+    pendente: { gap: 10, padding: 16, borderRadius: raio.xl, backgroundColor: c.superficieElevada },
+    divisor: { height: 1, backgroundColor: c.divisor, marginVertical: 4 },
+  });

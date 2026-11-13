@@ -10,10 +10,10 @@ import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferenc
 import { dispensarMensagem, registrarMensagemExibida } from '@/dados-locais/repositorios';
 import { rotuloFaixa, rotuloTipoDia, saudacao } from '@/domain/contexto';
 import { AVISO_HISTORICO, localDoPonto } from '@/domain/risco';
+import { useTema } from '@/lib/tema';
 import { carregarPlano, contextoAgora, esconderMensagem, usePlano, type ContextoPlano, type PontoDoPlano } from '@/servicos/plano';
 import { useTurno } from '@/servicos/turno';
 import { useSessao } from '@/state/sessao';
-import { brand } from '@/theme';
 
 function linhaDoPonto(p: PontoDoPlano, c: ContextoPlano): string {
   const porque = c.chuva ? 'sinistros graves com chuva' : `sinistros graves das ${rotuloFaixa(c.faixa)}`;
@@ -32,6 +32,8 @@ export default function PlanoDoTurno() {
   const prefs = usePreferencias();
   const plano = usePlano();
   const turno = useTurno();
+  // "paleta" (e não "c") porque "c" já é o contexto do plano no efeito de foco abaixo.
+  const { c: paleta } = useTema();
   const dados = plano.dados;
   const contexto = dados?.contexto ?? contextoAgora(prefs.chuva);
   const mensagem = dados?.mensagens[0];
@@ -72,7 +74,7 @@ export default function PlanoDoTurno() {
       atualizando={plano.carregando && !!dados}
       rodape={<Botao titulo={botaoTurno.titulo} icone="play" tamanho="destaque" onPress={botaoTurno.ir} />}>
       <View style={styles.topo}>
-        <Logo variante="horizontal-branca" altura={40} />
+        <Logo variante="horizontal" altura={40} />
         {/* O risco do mock é o do modelo de ML; o que é simulado é o servidor (e o cadastro some ao fechar). */}
         {mock ? <Etiqueta texto="API simulada" /> : null}
       </View>
@@ -90,8 +92,8 @@ export default function PlanoDoTurno() {
       <View style={styles.contexto}>
         <Etiqueta
           aparencia="cheia"
-          fundo={brand.viseira}
-          cor={brand.branco}
+          fundo={paleta.superficieElevada}
+          cor={paleta.texto}
           texto={`${rotuloTipoDia(contexto.tipoDia, true)} · ${rotuloFaixa(contexto.faixa)}`}
         />
         <Segmentado

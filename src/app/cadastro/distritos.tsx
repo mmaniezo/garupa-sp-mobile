@@ -10,9 +10,10 @@ import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferenc
 import { gravarValor, lerValor } from '@/db';
 import { horariosHabituais } from '@/domain/periodos';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
+import { useEstilos } from '@/lib/tema';
 import { salvarPerfilNaApi } from '@/servicos/cadastro';
 import { atualizarSessao, useSessao } from '@/state/sessao';
-import { brand, raio, tons } from '@/theme';
+import { brand, raio, type Paleta } from '@/theme';
 
 const semAcento = (t: string) =>
   t
@@ -28,6 +29,7 @@ export default function CadastroDistritos() {
   const sessao = useSessao();
   const prefs = usePreferencias();
   const editar = useEdicao();
+  const styles = useEstilos(criarEstilos);
   const [todos, setTodos] = useState<Distrito[] | null>(null);
   const [escolhidos, setEscolhidos] = useState<Distrito[]>(prefs.perfil.distritos);
   const [busca, setBusca] = useState('');
@@ -124,7 +126,7 @@ export default function CadastroDistritos() {
         <Texto variante="rotulo" style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
           Escolhidos
         </Texto>
-        <Texto variante="rotulo" cor={brand.teal} style={{ fontFamily: 'BricolageGrotesque_700Bold' }} accessibilityLiveRegion="polite">
+        <Texto variante="rotulo" cor="link" style={{ fontFamily: 'BricolageGrotesque_700Bold' }} accessibilityLiveRegion="polite">
           {escolhidos.length} de {regras.maxDistritos}
         </Texto>
       </View>
@@ -168,10 +170,11 @@ export default function CadastroDistritos() {
   );
 }
 
-const styles = StyleSheet.create({
-  contagem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  escolhidos: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  lista: { backgroundColor: tons.superficie, borderRadius: raio.xl, overflow: 'hidden' },
-  item: { paddingHorizontal: 16, minHeight: 52, justifyContent: 'center' },
-  divisor: { borderTopWidth: 1, borderTopColor: brand.viseira },
-});
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    contagem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+    escolhidos: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    lista: { backgroundColor: c.superficie, borderRadius: raio.xl, overflow: 'hidden' },
+    item: { paddingHorizontal: 16, minHeight: 52, justifyContent: 'center' },
+    divisor: { borderTopWidth: 1, borderTopColor: c.divisor },
+  });

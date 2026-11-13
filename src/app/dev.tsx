@@ -24,8 +24,9 @@ import { apagarDadosSeguros, gravarContatos, gravarFicha } from '@/dados-locais/
 import { versaoDoEsquema } from '@/db';
 import { horariosHabituais } from '@/domain/periodos';
 import { carregarPlano, limparPlano } from '@/servicos/plano';
+import { useEstilos } from '@/lib/tema';
 import { atualizarSessao, encerrarSessaoNoAparelho, useSessao } from '@/state/sessao';
-import { brand, raio, tons } from '@/theme';
+import { brand, raio, tons, type Paleta } from '@/theme';
 
 /**
  * Catálogo de desenvolvimento: todas as telas do design e os componentes-base.
@@ -55,6 +56,7 @@ const TELAS: [string, Href][] = [
 
 export default function CatalogoDev() {
   const sessao = useSessao();
+  const styles = useEstilos(criarEstilos);
   const [saude, setSaude] = useState<string | null>(null);
   const [chip, setChip] = useState(true);
   const [opcao, setOpcao] = useState(true);
@@ -159,7 +161,7 @@ export default function CatalogoDev() {
       </View>
 
       <Texto variante="tituloSecao">Componentes</Texto>
-      <View style={[styles.caixa, { alignItems: 'flex-start' }]}>
+      <View style={[styles.caixa, styles.amostraEscura]}>
         <Logo variante="horizontal-branca" altura={40} />
         <View style={styles.claro}>
           <Logo variante="horizontal-preta" altura={40} />
@@ -205,9 +207,12 @@ export default function CatalogoDev() {
   );
 }
 
-const styles = StyleSheet.create({
-  caixa: { backgroundColor: tons.superficie, borderRadius: raio.xl, padding: 16, gap: 8 },
-  linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
-  lista: { gap: 8 },
-  claro: { backgroundColor: brand.neblina, borderRadius: raio.md, padding: 8 },
-});
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    caixa: { backgroundColor: c.superficie, borderRadius: raio.xl, padding: 16, gap: 8 },
+    // Amostras fixas das logos: a branca sobre fundo escuro, a preta sobre Neblina, em qualquer tema.
+    amostraEscura: { alignItems: 'flex-start', backgroundColor: tons.superficie },
+    linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+    lista: { gap: 8 },
+    claro: { backgroundColor: brand.neblina, borderRadius: raio.md, padding: 8 },
+  });
