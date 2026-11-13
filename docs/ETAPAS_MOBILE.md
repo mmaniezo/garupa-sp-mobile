@@ -81,5 +81,7 @@ Limiares em `src/domain/queda/detector.ts` (`LIMIARES_PADRAO`). Rode os cenário
 | Trocar ou remover contato: a API já tem `PUT` e `DELETE /usuarios/{id}/contatos/{contatoId}`; o app ainda só adiciona | Mobile | `src/app/cadastro/basico.tsx` |
 | "Já tenho conta": o contrato não tem login | Equipe e API | `src/app/boas-vindas.tsx` |
 | Endereço público da API (`EXPO_PUBLIC_API_URL`) | OS | `.env.local` |
+| Chave do Google Maps (*Maps SDK for Android*) para o APK: segredo `GOOGLE_MAPS_API_KEY` no GitHub (README, "Google Maps") | Equipe | `.github/workflows/release-android.yml`, `app.config.js` |
+| SMS de socorro automático: o documento previa só o aviso simulado ("o Expo não envia SMS automático"). O app agora manda pelo módulo nativo `modules/sms-socorro`, com a permissão de SMS; sem ela, abre o SMS pronto. Validar no aparelho | Mobile | `src/servicos/sms.ts` |
 
 Resolvidos na integração: o nome do distrito vem de `GET /distritos` (a API manda só o id IBGE); o tipo do relato é texto livre de até 40 caracteres; os eventos da pulseira têm `eventoId` numérico, `tipo` e `ocorridoEm`; a API exige posição no SOS (o app já espera o GPS); o catálogo de mensagens da API tem fonte em link (DNIT e Prefeitura de Vitória) e o mock usa o mesmo.

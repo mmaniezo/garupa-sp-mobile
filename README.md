@@ -141,12 +141,31 @@ A prévia web usa só a API simulada: a API não libera CORS. HTTP sem TLS funci
 
 ### Google Maps
 
-O mapa (tela 08) usa o Google Maps no Android e o Apple Maps no iOS (`react-native-maps`). **No Expo Go não precisa de chave.** No build de desenvolvimento ou no APK, crie uma chave no Google Cloud (ative o *Maps SDK for Android* e restrinja a chave ao pacote `br.com.garupasp.app` com o SHA-1 que aparece em expo.dev → Credentials) e informe:
+O mapa de pontos críticos (tela 08) e o mapa da posição no SOS usam o Google Maps no Android e o Apple Maps no iOS (`react-native-maps`), com o mapa base no tema do app (claro ou escuro). O SMS de socorro leva um link do Google Maps (Maps URLs, que não precisa de chave).
 
-- local: `GOOGLE_MAPS_API_KEY=...` no `.env.local` (o `app.config.js` lê);
-- EAS Build: `npx eas-cli@latest env:create --name GOOGLE_MAPS_API_KEY --value <chave> --environment development`.
+**No Expo Go não precisa de chave.** No APK, o Google exige uma chave do *Maps SDK for Android*:
 
-Gere o build de novo depois de pôr a chave. Sem ela, o build mostra o mapa esquemático no lugar do Google Maps.
+1. No [Google Cloud](https://console.cloud.google.com/), crie um projeto, ative o **Maps SDK for Android** e crie uma chave de API (o Google pede uma conta de faturamento; o mapa no app é gratuito).
+2. Restrinja a chave a apps Android: pacote `br.com.garupasp.app` e SHA-1 do certificado que assina o APK. O APK dos Releases é assinado com a chave de depuração padrão: `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`. Num build do EAS, o SHA-1 aparece em expo.dev → Credentials.
+3. Informe a chave:
+   - Releases do GitHub: em Settings → Secrets and variables → Actions, crie o segredo `GOOGLE_MAPS_API_KEY`. O próximo release já sai com o Google Maps.
+   - local: `GOOGLE_MAPS_API_KEY=...` no `.env.local` (o `app.config.js` lê);
+   - EAS Build: `npx eas-cli@latest env:create --name GOOGLE_MAPS_API_KEY --value <chave> --environment development`.
+
+Sem a chave, o APK mostra o mapa esquemático no lugar do Google Maps (sem ela, o SDK do Google fecharia o app).
+
+### Tema claro e escuro
+
+O app segue o modo claro ou escuro do celular. Em Perfil → Aparência dá para fixar Claro ou Escuro. As cores dos dois temas vêm do manual da marca (`src/theme/colors.ts`): no claro, fundo Neblina, cartões brancos, logo preta e teal profundo nos textos. A contagem da queda e a tela da testemunha mantêm as cores fixas de emergência nos dois temas.
+
+### SMS de socorro
+
+Quando o SOS dispara (queda sem resposta, pulseira ou SOS manual), o app avisa os contatos de emergência por SMS com a localização no Google Maps. SMS não depende de internet.
+
+- **Android com a permissão de SMS** (pedida nas permissões do cadastro ou em Perfil → Socorro): o SMS sai sozinho, pelo módulo nativo `modules/sms-socorro`. Se a pessoa cancelar ("Estou bem"), sai outro SMS avisando.
+- **Sem a permissão, no iOS ou no Expo Go**: o app abre o SMS pronto e a pessoa toca em enviar. A tela do SOS mostra o estado real ("SMS enviado" ou "Falta avisar") e um botão para enviar.
+
+O SMS leva só nome, o que aconteceu, a hora e o mapa: nunca ficha médica nem telefone.
 
 ### Demonstração
 
@@ -164,8 +183,9 @@ Com o mock ligado (ou em desenvolvimento) aparecem atalhos para gravar o vídeo:
 - **Mapa** (`src/components/mapa`): cada ponto crítico é a célula do modelo (cerca de 500 m), desenhada como círculo âmbar com o número do ponto no plano; tocar mostra o motivo e o gráfico de risco por horário (`GET /risco/celulas/{id}`). Mapa base escuro no tom Asfalto do manual. Na web e no build sem chave, mapa esquemático.
 - **Cliente da API** (`src/api/http.ts`): converte o formato da API para o do app (ids numéricos ↔ texto, nome do distrito por `GET /distritos`, ficha sem `null`). Regras da API que o app segue: o usuário nasce com o primeiro contato, ficha e perfil só depois do consentimento, perfil só com ao menos um tipo de uso (`src/servicos/cadastro.ts`).
 - **Detector de queda** (`src/domain/queda/detector.ts`): função pura com a máquina de estados do contrato. Os cenários de QA (queda, buraco, semáforo, celular derrubado, mochila, pessoa que levanta) são testes automatizados.
-- **SOS** (`src/servicos/sos.ts`): gravado primeiro no SQLite com `eventoId` gerado no aparelho; sem internet, fica na fila e sai quando a conexão volta, sem duplicar.
-- **Tela de bloqueio** (`modules/tela-bloqueio`): módulo nativo Android pequeno, escrito para este app, que deixa a tela da testemunha abrir por cima do bloqueio **só enquanto há SOS ativo**. Ainda não foi compilado num aparelho; se o build falhar por causa dele, apague a pasta `modules/tela-bloqueio` e o app segue sem esse recurso.
+- **SOS** (`src/servicos/sos.ts`): gravado primeiro no SQLite com `eventoId` gerado no aparelho; sem internet, fica na fila e sai quando a conexão volta, sem duplicar. O SMS aos contatos (`src/servicos/sms.ts`) sai na hora, sem esperar a API.
+- **Tema** (`src/lib/tema.ts`): `useTema()` dá a paleta do tema atual (sistema ou a escolha do Perfil) e `useEstilos()` monta os estilos de cada tema uma vez.
+- **Tela de bloqueio** (`modules/tela-bloqueio`): módulo nativo Android pequeno, escrito para este app, que deixa a tela da testemunha abrir por cima do bloqueio **só enquanto há SOS ativo**. Compila no APK e carrega no emulador; falta ver a tela de bloqueio num aparelho.
 - **Banco** (`src/db`): SQLite com migrações versionadas (v2): cache do plano e do risco, fila de SOS e de relatos, turnos, alertas do turno, mensagens exibidas e dispensadas, visitas por célula.
 
 ## Estrutura
