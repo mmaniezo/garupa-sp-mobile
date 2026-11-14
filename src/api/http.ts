@@ -1,5 +1,6 @@
 import type { GarupaApi } from './contrato';
 import { ErroApi, ErroDeRede } from './erros';
+import { tokenAtual } from './token';
 import type {
   CelulaCritica,
   DetalheCelula,
@@ -46,6 +47,7 @@ type UsuarioApi = {
   contatos: { contatoId: number; nome: string; telefone: string }[];
 };
 type EventoApi = { eventoId: number; tipo: TipoEventoVestivel; ocorridoEm: string };
+type LoginApi = { usuarioId: number; nome: string; token: string };
 
 /**
  * Os ids do app são texto; na API, usuário, contato, SOS e relato são números.
@@ -82,6 +84,7 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
         headers: {
           Accept: 'application/json',
           ...(opcoes.corpo !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...(tokenAtual() ? { Authorization: `Bearer ${tokenAtual()}` } : {}),
         },
         body: opcoes.corpo !== undefined ? JSON.stringify(opcoes.corpo) : undefined,
         signal: controle.signal,
@@ -152,8 +155,12 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
     },
 
     criarUsuario: async (dados) => {
-      const r = await chamar<{ usuarioId: number }>('POST', '/usuarios', { corpo: dados });
-      return { usuarioId: String(r.usuarioId) };
+      const r = await chamar<{ usuarioId: number; token?: string }>('POST', '/usuarios', { corpo: dados });
+      return { usuarioId: String(r.usuarioId), ...(r.token ? { token: r.token } : {}) };
+    },
+    entrar: async (credenciais) => {
+      const r = await chamar<LoginApi>('POST', '/auth/login', { corpo: credenciais });
+      return { usuarioId: String(r.usuarioId), nome: r.nome, token: r.token };
     },
     obterUsuario: async (u) => {
       const r = await chamar<UsuarioApi>('GET', `/usuarios/${idDaApi(u)}`);

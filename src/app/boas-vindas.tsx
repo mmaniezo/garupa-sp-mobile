@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Logo } from '@/components/brand/logo';
 import { Botao, Tela, Texto } from '@/components/ui';
@@ -13,17 +13,7 @@ export default function BoasVindas() {
       rodape={
         <>
           <Botao titulo="Começar" onPress={() => router.push('/cadastro/basico')} />
-          <Botao
-            titulo="Já tenho conta"
-            variante="fantasma"
-            tamanho="padrao"
-            onPress={() =>
-              Alert.alert(
-                'Cadastro neste aparelho',
-                'No protótipo, o cadastro fica guardado neste celular. Se trocou de aparelho, faça o cadastro de novo: leva 2 minutos.',
-              )
-            }
-          />
+          <Botao titulo="Já tenho conta: entrar" variante="fantasma" tamanho="padrao" onPress={() => router.push('/entrar')} />
         </>
       }>
       <View style={styles.topo}>

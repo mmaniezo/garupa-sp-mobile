@@ -15,6 +15,11 @@ export type Sessao = {
   nome: string | null;
   /** Em qual API o cadastro existe ('mock' ou o endereço da API real). */
   apiDoCadastro?: string | null;
+  /**
+   * Se a conta tem senha (cadastro ou login desta versão em diante). Cadastros antigos não
+   * têm: ao sair, não dá para entrar de novo, e o Perfil avisa antes.
+   */
+  temSenha?: boolean;
   passos: {
     basico: SituacaoPasso;
     ficha: SituacaoPasso;
@@ -58,7 +63,7 @@ export async function atualizarSessao(mudanca: Partial<Omit<Sessao, 'carregada' 
   await gravarValor(CHAVE, paraGravar);
 }
 
-/** Sai do aparelho: apaga sessão, cache, filas e histórico local. */
+/** Sai do aparelho: apaga sessão, cache, filas e histórico local (a conta continua na API). */
 export async function encerrarSessaoNoAparelho(): Promise<void> {
   await apagarTudoDoAparelho();
   store.definir({ ...VAZIA, carregada: true });

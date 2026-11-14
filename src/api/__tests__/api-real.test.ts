@@ -77,6 +77,7 @@ descrever('API real: o app fala com todos os endpoints que usa', () => {
     const criado = await api.criarUsuario({
       nome: 'Pessoa fictícia',
       telefone: '+5511900000000',
+      senha: 'garupa123',
       contato: { nome: 'Contato fictício', telefone: '(11) 90000-0001' },
     });
     usuarioId = criado.usuarioId;
@@ -109,7 +110,12 @@ descrever('API real: o app fala com todos os endpoints que usa', () => {
 
     // O mock (mesmos dados do ML) devolve os mesmos pontos, na mesma ordem.
     const mock = criarApiMock({ latenciaMs: 0 });
-    const m = await mock.criarUsuario({ nome: 'Léo', telefone: '(11) 90000-0000', contato: { nome: 'Ana', telefone: '(11) 90000-0001' } });
+    const m = await mock.criarUsuario({
+      nome: 'Léo',
+      telefone: '(11) 90000-0000',
+      senha: 'garupa123',
+      contato: { nome: 'Ana', telefone: '(11) 90000-0001' },
+    });
     await mock.salvarConsentimentos(m.usuarioId, todos);
     await mock.salvarPerfil(m.usuarioId, { tiposDeUso: ['entregador_app'], horariosHabituais: [], distritosFrequentes: [itaim] });
     const planoMock = await mock.obterPlanoDoTurno({ usuarioId: m.usuarioId, ...consulta });

@@ -15,6 +15,7 @@ import { apagarDadosSeguros, lerFicha } from '@/dados-locais/seguro';
 import { horariosHabituais } from '@/domain/periodos';
 import { atualizarSessao, encerrarSessaoNoAparelho, obterSessao } from '@/state/sessao';
 
+import { carregarToken } from './conta';
 import { configurarNotificacoes } from './notificacoes';
 import { processarFilaRelatos } from './relatos';
 import { tratarRespostaDeNotificacao } from './respostas';
@@ -107,6 +108,7 @@ export async function iniciarServicos(): Promise<void> {
   iniciado = true;
 
   await carregarPreferencias();
+  await carregarToken();
   await conferirApiDoCadastro();
   await migrarDistritosAntigos();
   await reidratarMock();

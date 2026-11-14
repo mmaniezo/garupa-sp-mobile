@@ -100,9 +100,17 @@ export type Distrito = { distritoId: number; nome: string };
 export type NovoContato = { nome: string; telefone: string };
 export type ContatoCriado = { contatoId: string };
 
-/** A API grava o usuário e o primeiro contato juntos, na mesma transação. */
-export type NovoUsuario = { nome: string; telefone: string; contato: NovoContato };
-export type UsuarioCriado = { usuarioId: string };
+/**
+ * A API grava o usuário e o primeiro contato juntos, na mesma transação. A senha vai em texto
+ * só dentro do HTTPS: a API guarda apenas o hash (nunca devolve a senha).
+ */
+export type NovoUsuario = { nome: string; telefone: string; senha: string; contato: NovoContato };
+/** O token, quando vem, já deixa a pessoa logada (sem pedir a senha de novo). */
+export type UsuarioCriado = { usuarioId: string; token?: string };
+
+/** Login: o telefone (E.164, +5511…) identifica a conta; a senha confirma. */
+export type Credenciais = { telefone: string; senha: string };
+export type Login = { usuarioId: string; nome: string; token: string };
 
 /** GET /usuarios/{id}: sem a ficha médica, que nunca volta pela API. */
 export type Usuario = {

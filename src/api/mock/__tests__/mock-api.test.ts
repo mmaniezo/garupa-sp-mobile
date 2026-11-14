@@ -23,8 +23,19 @@ const sosBase = {
   lon: -46.693,
 };
 
+/** No jest o expo-crypto é simulado (o hash sairia sempre igual): os testes de login usam este. */
+async function hashDeTeste(texto: string): Promise<string> {
+  let h = 2166136261;
+  for (const ch of texto) h = Math.imul(h ^ ch.codePointAt(0)!, 16777619) >>> 0;
+  return h.toString(16);
+}
+
+// Um telefone por conta: cada usuário de teste ganha um número.
+let proximoTelefone = 1000;
+
 async function novoUsuario(api = criarApiMock({ latenciaMs: 0 }), consentir = true) {
-  const { usuarioId } = await api.criarUsuario({ nome: 'Léo', telefone: '(11) 90000-0000', contato });
+  const telefone = `(11) 9${proximoTelefone++}-0000`;
+  const { usuarioId } = await api.criarUsuario({ nome: 'Léo', telefone, senha: 'garupa123', contato });
   if (consentir) await api.salvarConsentimentos(usuarioId, todosConsentimentos);
   return { api, usuarioId };
 }
@@ -43,15 +54,71 @@ describe('API mock: mesmo contrato e mesmas regras da API C#', () => {
     await expect(api.criarUsuario({ nome: 'Léo', telefone: '(11) 90000-0000' } as never)).rejects.toMatchObject({
       status: 400,
     });
-    const { usuarioId } = await api.criarUsuario({ nome: 'Léo', telefone: '(11) 90000-0000', contato });
+    const { usuarioId } = await api.criarUsuario({ nome: 'Léo', telefone: '(11) 90000-0000', senha: 'garupa123', contato });
     const u = await api.obterUsuario(usuarioId);
     expect(u.contatos).toHaveLength(1);
     expect(u.contatos[0]).toMatchObject({ nome: 'Ana (irmã)' });
   });
 
+  it('login: telefone e senha conferem; errado é 401 sem dizer qual dos dois', async () => {
+    const api = criarApiMock({ latenciaMs: 0, hash: hashDeTeste });
+    const criado = await api.criarUsuario({ nome: 'Léo', telefone: '(11) 90000-0000', senha: 'garupa123', contato });
+    expect(criado.token).toBeTruthy();
+
+    const login = await api.entrar({ telefone: '+5511900000000', senha: 'garupa123' });
+    expect(login).toMatchObject({ usuarioId: criado.usuarioId, nome: 'Léo' });
+    expect(login.token).toBeTruthy();
+
+    await expect(api.entrar({ telefone: '(11) 90000-0000', senha: 'garupa124' })).rejects.toMatchObject({
+      status: 401,
+      problema: { title: 'Telefone ou senha incorretos.' },
+    });
+    await expect(api.entrar({ telefone: '(11) 98888-7777', senha: 'garupa123' })).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('um telefone, uma conta (409); senha fraca é 400 no campo senha', async () => {
+    const api = criarApiMock({ latenciaMs: 0 });
+    await api.criarUsuario({ nome: 'Léo', telefone: '(11) 90000-0000', senha: 'garupa123', contato });
+    await expect(
+      api.criarUsuario({ nome: 'Outro', telefone: '+55 11 90000-0000', senha: 'outra1234', contato }),
+    ).rejects.toMatchObject({ status: 409 });
+    try {
+      await api.criarUsuario({ nome: 'Bia', telefone: '(11) 97777-6666', senha: 'curta1', contato });
+      throw new Error('deveria recusar');
+    } catch (e) {
+      expect((e as ErroApi).status).toBe(400);
+      expect((e as ErroApi).erroDoCampo('senha')).toMatch(/8 caracteres/);
+    }
+  });
+
+  it('a conta sobrevive ao app reabrir (sem a senha em texto) e some ao excluir', async () => {
+    let guardadas: unknown[] = [];
+    const armazem = {
+      ler: async () => guardadas as never,
+      gravar: async (c: unknown[]) => {
+        guardadas = JSON.parse(JSON.stringify(c));
+      },
+    };
+    const antes = criarApiMock({ latenciaMs: 0, contas: armazem, hash: hashDeTeste });
+    const { usuarioId } = await antes.criarUsuario({ nome: 'Léo', telefone: '(11) 90000-0000', senha: 'garupa123', contato });
+    await antes.adicionarContato(usuarioId, { nome: 'Bia', telefone: '(11) 90000-0002' });
+    expect(JSON.stringify(guardadas)).not.toContain('garupa123');
+
+    // "Reabrir o app": outro mock, mesmo armazém.
+    const depois = criarApiMock({ latenciaMs: 0, contas: armazem, hash: hashDeTeste });
+    const login = await depois.entrar({ telefone: '(11) 90000-0000', senha: 'garupa123' });
+    expect(login.usuarioId).toBe(usuarioId);
+    const u = await depois.obterUsuario(usuarioId);
+    expect(u.contatos.map((c) => c.nome)).toEqual(['Ana (irmã)', 'Bia']);
+
+    await depois.excluirUsuario(usuarioId);
+    expect(guardadas).toHaveLength(0);
+    await expect(depois.entrar({ telefone: '(11) 90000-0000', senha: 'garupa123' })).rejects.toMatchObject({ status: 401 });
+  });
+
   it('recusa telefone fora do padrão com 400 e o campo do erro (RF01)', async () => {
     const api = criarApiMock({ latenciaMs: 0 });
-    const errado = { nome: 'Léo', telefone: '123', contato };
+    const errado = { nome: 'Léo', telefone: '123', senha: 'garupa123', contato };
     await expect(api.criarUsuario(errado)).rejects.toMatchObject({ status: 400 });
     try {
       await api.criarUsuario(errado);

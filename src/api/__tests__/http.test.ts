@@ -3,6 +3,7 @@
  */
 import { ErroApi } from '../erros';
 import { criarApiHttp } from '../http';
+import { definirToken } from '../token';
 
 /**
  * Cliente HTTP contra respostas no formato do Swagger da API C# (garupa-sp-api):
@@ -43,6 +44,37 @@ const ponto = {
 };
 
 describe('cliente HTTP da API C#', () => {
+  it('login: POST /auth/login e, com o token, Authorization em toda chamada', async () => {
+    const { api, chamadas } = apiFalsa({ 'POST /auth/login': { usuarioId: 7, nome: 'Léo', token: 'jwt.abc' } });
+    const cabecalhos: Record<string, string>[] = [];
+    const fetchBase = globalThis.fetch;
+    globalThis.fetch = jest.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      cabecalhos.push({ ...(init?.headers as Record<string, string>) });
+      return fetchBase(url, init);
+    }) as typeof fetch;
+
+    const login = await api.entrar({ telefone: '+5511900000000', senha: 'garupa123' });
+    expect(login).toEqual({ usuarioId: '7', nome: 'Léo', token: 'jwt.abc' });
+    expect(chamadas[0]).toMatchObject({ metodo: 'POST', corpo: { telefone: '+5511900000000', senha: 'garupa123' } });
+    expect(cabecalhos[0].Authorization).toBeUndefined();
+
+    definirToken(login.token);
+    await api.obterUsuario('7').catch(() => undefined);
+    expect(cabecalhos[1].Authorization).toBe('Bearer jwt.abc');
+    definirToken(null);
+  });
+
+  it('login errado: 401 vira ErroApi com a mensagem da API', async () => {
+    globalThis.fetch = jest.fn(
+      async () => new Response(JSON.stringify({ title: 'Telefone ou senha incorretos.', status: 401 }), { status: 401 }),
+    ) as typeof fetch;
+    const api = criarApiHttp('http://api.teste', 5_000);
+    await expect(api.entrar({ telefone: '+5511900000000', senha: 'x' })).rejects.toMatchObject({
+      status: 401,
+      problema: { title: 'Telefone ou senha incorretos.' },
+    });
+  });
+
   it('converte os ids numéricos da API em texto e manda número no corpo', async () => {
     const { api, chamadas } = apiFalsa({
       'POST /usuarios': { usuarioId: 7 },
@@ -53,6 +85,7 @@ describe('cliente HTTP da API C#', () => {
     const { usuarioId } = await api.criarUsuario({
       nome: 'Léo',
       telefone: '+5511900000000',
+      senha: 'garupa123',
       contato: { nome: 'Ana', telefone: '+5511900000001' },
     });
     expect(usuarioId).toBe('7');

@@ -5,7 +5,8 @@ import type { FichaMedica } from '@/api/types';
 import { apagarValor, gravarValor, lerValor } from '@/db';
 
 /**
- * Dados sensíveis no aparelho: ficha médica (saúde) e contatos de emergência (telefone).
+ * Dados sensíveis no aparelho: ficha médica (saúde), contatos de emergência (telefone) e o
+ * token da conta.
  * Ficam no armazenamento seguro do sistema (Keystore no Android, Keychain no iOS),
  * criptografados, e não no SQLite. Na prévia web, que não tem esse armazenamento,
  * caem no banco comum só para a tela funcionar.
@@ -15,6 +16,7 @@ export type ContatoLocal = { contatoId: string | null; nome: string; telefone: s
 
 const CHAVE_FICHA = 'garupa.ficha';
 const CHAVE_CONTATOS = 'garupa.contatos';
+const CHAVE_TOKEN = 'garupa.token';
 const web = Platform.OS === 'web';
 
 async function ler<T>(chave: string): Promise<T | null> {
@@ -41,10 +43,13 @@ export async function lerContatos(): Promise<ContatoLocal[]> {
 }
 export const gravarContatos = (contatos: ContatoLocal[]) => gravar(CHAVE_CONTATOS, contatos);
 
+export const lerToken = () => ler<string>(CHAVE_TOKEN);
+export const gravarToken = (token: string) => gravar(CHAVE_TOKEN, token);
+
 export function fichaTemDados(f: FichaMedica | null): boolean {
   return !!f && [f.tipoSanguineo, f.alergias, f.condicoes, f.medicamentos].some((v) => !!v?.trim());
 }
 
 export async function apagarDadosSeguros(): Promise<void> {
-  await Promise.all([apagar(CHAVE_FICHA), apagar(CHAVE_CONTATOS)]);
+  await Promise.all([apagar(CHAVE_FICHA), apagar(CHAVE_CONTATOS), apagar(CHAVE_TOKEN)]);
 }

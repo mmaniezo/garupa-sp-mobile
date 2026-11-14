@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { api, ehErroApi, origemApi } from '@/api';
-import { Aviso, Botao, CabecalhoPasso, Campo, Icone, Tela, Texto } from '@/components/ui';
+import { Aviso, Botao, CabecalhoPasso, Campo, CampoSenha, Icone, Tela, Texto } from '@/components/ui';
 import { regras } from '@/config';
 import { gravarContatos, lerContatos, type ContatoLocal } from '@/dados-locais/seguro';
 import { gravarValor, lerValor } from '@/db';
+import { problemaDaSenha } from '@/domain/senha';
 import { mascararTelefone, validarTelefone } from '@/domain/telefone';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
+import { guardarToken } from '@/servicos/conta';
 import { atualizarSessao, useSessao } from '@/state/sessao';
 import { brand, raio, type Paleta } from '@/theme';
 
@@ -17,7 +19,8 @@ type ContatoForm = { contatoId: string | null; nome: string; telefone: string };
 type Erros = Record<string, string | undefined>;
 
 /**
- * Tela 02 · Cadastro 1/4, obrigatório (RF01): nome ou apelido, telefone e um contato.
+ * Tela 02 · Cadastro 1/4, obrigatório (RF01): nome ou apelido, telefone, senha e um contato.
+ * O telefone e a senha são o login (para entrar de novo ou em outro celular).
  * Até 3 contatos. Pelo Perfil (?editar=1), serve para adicionar contatos.
  */
 export default function CadastroBasico() {
@@ -27,6 +30,8 @@ export default function CadastroBasico() {
   const styles = useEstilos(criarEstilos);
   const [nome, setNome] = useState(sessao.nome ?? '');
   const [telefone, setTelefone] = useState('');
+  const [senha, setSenha] = useState('');
+  const [telefoneTemConta, setTelefoneTemConta] = useState(false);
   const [contatos, setContatos] = useState<ContatoForm[]>([{ contatoId: null, nome: '', telefone: '' }]);
   const [erros, setErros] = useState<Erros>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
@@ -57,6 +62,8 @@ export default function CadastroBasico() {
     if (!jaTemUsuario) {
       if (!nome.trim()) e.nome = 'Informe seu nome ou apelido.';
       if (!validarTelefone(telefone).valido) e.telefone = 'Telefone com DDD, como (11) 90000-0000.';
+      const problema = problemaDaSenha(senha);
+      if (problema) e.senha = problema;
     }
     const preenchidos = contatos.filter((c) => c.contatoId || c.nome.trim() || c.telefone.trim());
     if (preenchidos.length === 0) e['contato-0-nome'] = 'Informe ao menos um contato de emergência.';
@@ -85,11 +92,13 @@ export default function CadastroBasico() {
         const criado = await api.criarUsuario({
           nome: nome.trim(),
           telefone: t.valido ? t.e164 : telefone,
+          senha,
           contato: { nome: primeiro.nome.trim(), telefone: tc.valido ? tc.e164 : primeiro.telefone },
         });
         usuarioId = criado.usuarioId;
+        await guardarToken(criado.token);
         // Guarda já: se outro contato falhar, tentar de novo não cria outro usuário.
-        await atualizarSessao({ usuarioId, nome: nome.trim(), apiDoCadastro: origemApi });
+        await atualizarSessao({ usuarioId, nome: nome.trim(), apiDoCadastro: origemApi, temSenha: true });
         // O id do contato não volta no POST; vem na consulta do cadastro.
         const contatoId = await api
           .obterUsuario(usuarioId)
@@ -136,8 +145,19 @@ export default function CadastroBasico() {
       await atualizarSessao({ passos: { basico: 'feito' } });
       router.push('/cadastro/ficha');
     } catch (e) {
+      if (ehErroApi(e, 409)) {
+        // Telefone já cadastrado: é a mesma pessoa voltando; o caminho é entrar com a senha.
+        setTelefoneTemConta(true);
+        setErros((atual) => ({ ...atual, telefone: 'Este telefone já tem conta.' }));
+        return;
+      }
       if (ehErroApi(e, 400)) {
-        setErros((atual) => ({ ...atual, nome: e.erroDoCampo('nome') ?? atual.nome, telefone: e.erroDoCampo('telefone') ?? atual.telefone }));
+        setErros((atual) => ({
+          ...atual,
+          nome: e.erroDoCampo('nome') ?? atual.nome,
+          telefone: e.erroDoCampo('telefone') ?? atual.telefone,
+          senha: e.erroDoCampo('senha') ?? atual.senha,
+        }));
       }
       setErroGeral(mensagemDeErro(e, 'Confira os dados e tente de novo.'));
     } finally {
@@ -198,6 +218,7 @@ export default function CadastroBasico() {
             value={telefone}
             onChangeText={(v) => {
               limparErro('telefone');
+              setTelefoneTemConta(false);
               setTelefone(mascararTelefone(v));
             }}
             keyboardType="phone-pad"
@@ -205,6 +226,26 @@ export default function CadastroBasico() {
             textContentType="telephoneNumber"
             placeholder="(11) 90000-0000"
             erro={erros.telefone}
+          />
+          {telefoneTemConta ? (
+            <Botao
+              titulo="Entrar com este telefone"
+              variante="link"
+              tamanho="compacto"
+              onPress={() => router.replace({ pathname: '/entrar', params: { telefone } })}
+            />
+          ) : null}
+          <CampoSenha
+            rotulo="Crie uma senha"
+            value={senha}
+            onChangeText={(v) => {
+              limparErro('senha');
+              setSenha(v);
+            }}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            dica="Pelo menos 8 caracteres, com letras e números. Com o telefone, é o seu login."
+            erro={erros.senha}
           />
         </>
       ) : !editar ? (

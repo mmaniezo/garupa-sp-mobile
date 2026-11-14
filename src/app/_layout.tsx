@@ -87,6 +87,7 @@ export default function RaizLayout() {
         }}>
         <Stack.Screen name="index" options={{ animation: 'none' }} />
         <Stack.Screen name="boas-vindas" options={{ animation: 'fade' }} />
+        <Stack.Screen name="entrar" />
         <Stack.Screen name="cadastro" />
         <Stack.Screen name="dev" />
         <Stack.Screen name="diagnostico" />

@@ -184,13 +184,20 @@ export async function comBanco<T>(fn: (db: SQLite.SQLiteDatabase) => Promise<T>,
   }
 }
 
-/** Exclusão da conta (RF06): apaga tudo o que o app guardou no aparelho. */
+/**
+ * Contas da API simulada (o "servidor" do protótipo sem API). Não são dados do app neste
+ * aparelho: sair da conta não as apaga (excluir a conta apaga pela própria API).
+ */
+export const CHAVE_CONTAS_MOCK = 'mock.contas';
+
+/** Sair ou excluir a conta (RF06): apaga tudo o que o app guardou no aparelho. */
 export async function apagarTudoDoAparelho(): Promise<void> {
-  reserva.clear();
+  for (const chave of [...reserva.keys()]) if (chave !== CHAVE_CONTAS_MOCK) reserva.delete(chave);
   try {
     const db = await obterBanco();
+    await db.runAsync('DELETE FROM kv WHERE chave <> ?', CHAVE_CONTAS_MOCK);
     await db.execAsync(`
-      DELETE FROM kv; DELETE FROM cache_plano; DELETE FROM cache_risco; DELETE FROM fila_sos;
+      DELETE FROM cache_plano; DELETE FROM cache_risco; DELETE FROM fila_sos;
       DELETE FROM fila_relatos; DELETE FROM visitas_celula; DELETE FROM turnos;
       DELETE FROM alertas_turno; DELETE FROM mensagens_exibidas; DELETE FROM mensagens_dispensadas;
     `);

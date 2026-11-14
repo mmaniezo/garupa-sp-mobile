@@ -2,7 +2,7 @@ import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { api, mock, origemApi } from '@/api';
+import { api, ehErroApi, mock, origemApi } from '@/api';
 import { Logo } from '@/components/brand/logo';
 import {
   BannerAlerta,
@@ -23,6 +23,7 @@ import { atualizarPreferencias, limparPreferencias } from '@/dados-locais/prefer
 import { apagarDadosSeguros, gravarContatos, gravarFicha } from '@/dados-locais/seguro';
 import { versaoDoEsquema } from '@/db';
 import { horariosHabituais } from '@/domain/periodos';
+import { guardarToken } from '@/servicos/conta';
 import { carregarPlano, limparPlano } from '@/servicos/plano';
 import { useEstilos } from '@/lib/tema';
 import { atualizarSessao, encerrarSessaoNoAparelho, useSessao } from '@/state/sessao';
@@ -63,10 +64,21 @@ export default function CatalogoDev() {
   const [marcado, setMarcado] = useState(true);
   const [mensagemVisivel, setMensagemVisivel] = useState(true);
 
-  /** Cadastro completo com dados fictícios, para ver o plano e o turno sem digitar tudo. */
+  /**
+   * Cadastro completo com dados fictícios, para ver o plano e o turno sem digitar tudo.
+   * Conta de demonstração: telefone (11) 90000-0000 e senha garupa123 (fictícios). Se ela já
+   * existe, entra nela.
+   */
   async function simularCadastro() {
     const contato = { nome: 'Ana (irmã)', telefone: '(11) 90000-0001' };
-    const { usuarioId } = await api.criarUsuario({ nome: 'Léo Motoca', telefone: '(11) 90000-0000', contato });
+    const telefone = '(11) 90000-0000';
+    const senha = 'garupa123';
+    const criado = await api.criarUsuario({ nome: 'Léo Motoca', telefone, senha, contato }).catch((e: unknown) => {
+      if (!ehErroApi(e, 409)) throw e;
+      return api.entrar({ telefone, senha });
+    });
+    const { usuarioId } = criado;
+    await guardarToken(criado.token);
     const { contatos } = await api.obterUsuario(usuarioId);
     await gravarContatos([{ ...contato, contatoId: contatos[0]?.contatoId ?? 'inicial' }]);
     // A API só guarda ficha e perfil depois dos consentimentos.
@@ -99,6 +111,7 @@ export default function CatalogoDev() {
       usuarioId,
       nome: 'Léo Motoca',
       apiDoCadastro: origemApi,
+      temSenha: true,
       passos: { basico: 'feito', ficha: 'feito', uso: 'feito', distritos: 'feito', permissoes: 'feito' },
     });
     void carregarPlano();

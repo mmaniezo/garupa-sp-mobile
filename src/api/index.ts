@@ -1,18 +1,28 @@
 import { config } from '@/config';
+import { CHAVE_CONTAS_MOCK, gravarValor, lerValor } from '@/db';
 
 import type { GarupaApi } from './contrato';
 import { criarApiHttp } from './http';
-import { criarApiMock, type ApiMock } from './mock/mock-api';
+import { criarApiMock, type ApiMock, type ArmazemDeContas, type ContaMock } from './mock/mock-api';
+
+/**
+ * As contas do mock (telefone, nome, hash da senha, contatos) ficam no banco do aparelho,
+ * numa chave que "Sair da conta" não apaga: é o "servidor" do protótipo sem API.
+ */
+const contasNoAparelho: ArmazemDeContas = {
+  ler: async () => (await lerValor<ContaMock[]>(CHAVE_CONTAS_MOCK)) ?? [],
+  gravar: (contas) => gravarValor(CHAVE_CONTAS_MOCK, contas),
+};
 
 function criar(): GarupaApi {
   if (config.modoApi === 'http') {
     if (!config.urlApi) {
       console.warn('[api] EXPO_PUBLIC_API_MODE=http sem EXPO_PUBLIC_API_URL; usando o mock.');
-      return criarApiMock();
+      return criarApiMock({ contas: contasNoAparelho });
     }
     return criarApiHttp(config.urlApi, config.timeoutMs);
   }
-  return criarApiMock();
+  return criarApiMock({ contas: contasNoAparelho });
 }
 
 /** Cliente único da API usado pelo app inteiro (HTTP ou mock, conforme o .env). */

@@ -5,10 +5,12 @@ import type {
   ConsultaPlano,
   ConsultaRisco,
   ContatoCriado,
+  Credenciais,
   DetalheCelula,
   Distrito,
   EventoVestivel,
   FichaMedica,
+  Login,
   Mensagem,
   NovoAlertaVestivel,
   NovoContato,
@@ -35,8 +37,10 @@ export interface GarupaApi {
   /** GET /risco/celulas/{id} */
   obterCelula(celulaId: string): Promise<DetalheCelula>;
 
-  /** POST /usuarios (com o primeiro contato de emergência) */
+  /** POST /usuarios (com a senha e o primeiro contato de emergência; 409 se o telefone já tem conta) */
   criarUsuario(dados: NovoUsuario): Promise<UsuarioCriado>;
+  /** POST /auth/login: telefone e senha. 401 quando não confere (sem dizer qual dos dois). */
+  entrar(credenciais: Credenciais): Promise<Login>;
   /** GET /usuarios/{id}: nome, telefone e contatos (sem a ficha). */
   obterUsuario(usuarioId: string): Promise<Usuario>;
   /** PUT /usuarios/{id}/ficha-medica (409 sem o consentimento fichaMedica) */

@@ -5,17 +5,18 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { api, mock } from '@/api';
 import type { Consentimentos } from '@/api/types';
 import { Aviso, Botao, Icone, ItemMarcavel, Segmentado, Tela, Texto } from '@/components/ui';
-import { atualizarPreferencias, limparPreferencias, usePreferencias } from '@/dados-locais/preferencias';
+import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { apagarHistoricoDeLocais, contarCelulasVisitadas, registrarVisita } from '@/dados-locais/repositorios';
-import { apagarDadosSeguros, fichaTemDados, lerContatos, lerFicha } from '@/dados-locais/seguro';
+import { fichaTemDados, lerContatos, lerFicha } from '@/dados-locais/seguro';
 import { celulaLocal } from '@/domain/geo';
 import { rotuloUso } from '@/domain/periodos';
 import { mensagemDeErro } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
-import { carregarPlano, limparPlano, usePlano } from '@/servicos/plano';
+import { sairDaConta } from '@/servicos/conta';
+import { carregarPlano, usePlano } from '@/servicos/plano';
 import { pedirPermissaoSms, smsAutomaticoSuportado, temPermissaoSms } from '@/servicos/sms';
 import { finalizarTurno, useTurno } from '@/servicos/turno';
-import { encerrarSessaoNoAparelho, useSessao } from '@/state/sessao';
+import { useSessao } from '@/state/sessao';
 import { brand, raio, type Paleta, type PreferenciaTema } from '@/theme';
 
 function Linha({ titulo, valor, href, corValor }: { titulo: string; valor: string; href: Href; corValor?: string }) {
@@ -125,11 +126,27 @@ export default function Perfil() {
               setAviso({ tom: 'erro', texto: `A conta não foi excluída. ${mensagemDeErro(e)}` });
               return;
             }
-            await finalizarTurno();
-            await apagarDadosSeguros();
-            await encerrarSessaoNoAparelho();
-            await limparPreferencias();
-            limparPlano();
+            await sairDaConta();
+            router.replace('/boas-vindas');
+          },
+        },
+      ],
+    );
+  }
+
+  function sair() {
+    Alert.alert(
+      'Sair da conta?',
+      sessao.temSenha
+        ? 'Sua conta continua salva: para voltar, entre com o telefone e a senha. Saem deste celular a ficha médica, os contatos e o histórico de locais.'
+        : 'Esta conta é de antes do login com senha: depois de sair, não dá para entrar nela de novo, só fazer um cadastro novo.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sair',
+          style: 'destructive',
+          onPress: async () => {
+            await sairDaConta();
             router.replace('/boas-vindas');
           },
         },
@@ -272,6 +289,7 @@ export default function Perfil() {
       </View>
 
       <Botao titulo="Apagar histórico de locais" variante="contorno" tamanho="padrao" style={{ borderColor: c.borda }} onPress={apagarHistorico} />
+      <Botao titulo="Sair da conta" variante="contorno" tamanho="padrao" style={{ borderColor: c.borda }} onPress={sair} />
       <Botao titulo="Excluir minha conta e todos os dados" variante="perigoTexto" tamanho="padrao" onPress={excluirConta} />
 
       {__DEV__ || mock ? (

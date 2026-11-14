@@ -1,4 +1,7 @@
+import { CryptoDigestAlgorithm, digestStringAsync, randomUUID } from 'expo-crypto';
+
 import { regras } from '@/config';
+import { problemaDaSenha } from '@/domain/senha';
 import { validarTelefone } from '@/domain/telefone';
 
 import type { GarupaApi } from '../contrato';
@@ -28,6 +31,8 @@ import { CELULAS, DIAS, DISTRITOS, MENSAGENS, riscoDaCelula, VERSAO_MODELO, type
  * risco do modelo de ML, só percentil ≥ 95, consentimento antes da ficha e do perfil,
  * usuário criado junto com o primeiro contato, SOS e relato idempotentes pelo eventoId (GUID).
  * Guarda tudo em memória: fechar o app zera o mock (o que é do aparelho fica no SQLite).
+ * A exceção são as contas (telefone, nome, hash da senha e contatos), que ficam no armazém
+ * recebido: assim dá para sair e entrar de novo com telefone e senha, como na API.
  */
 
 type UsuarioMock = {
@@ -41,6 +46,24 @@ type UsuarioMock = {
 };
 
 type SosMock = SosCriado & { estado: EstadoSos; usuarioId: string; dados: string };
+
+/** Conta para o login. A senha nunca é guardada: só o hash SHA-256 de sal + senha. */
+export type ContaMock = {
+  usuarioId: string;
+  telefone: string;
+  nome: string;
+  sal: string;
+  senhaHash: string;
+  contatos: { contatoId: string; nome: string; telefone: string }[];
+};
+
+/** Onde o mock guarda as contas (no app, o SQLite do aparelho; nos testes, a memória). */
+export type ArmazemDeContas = {
+  ler(): Promise<ContaMock[]>;
+  gravar(contas: ContaMock[]): Promise<void>;
+};
+
+const hashPadrao = (texto: string) => digestStringAsync(CryptoDigestAlgorithm.SHA256, texto);
 
 /** Controles extras do mock, para testes e para o demo sem API. */
 export interface ControlesMock {
@@ -101,8 +124,15 @@ const motivoDaApi = (chuva: boolean) =>
 /** O que a API compara para saber se um reenvio é o mesmo SOS. */
 const dadosDoSos = (s: NovoSos) => JSON.stringify([s.usuarioId, s.tipo, s.origem, s.ocorridoEm, s.lat, s.lon]);
 
-export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
+function erro401(): ErroApi {
+  return new ErroApi(401, { title: 'Telefone ou senha incorretos.', status: 401 });
+}
+
+export function criarApiMock(
+  opcoes: { latenciaMs?: number; contas?: ArmazemDeContas; hash?: (texto: string) => Promise<string> } = {},
+): ApiMock {
   const latencia = opcoes.latenciaMs ?? 250;
+  const hash = opcoes.hash ?? hashPadrao;
   let semConexao = false;
   let sequencia = 0;
   const novoId = (prefixo: string) => `${prefixo}-${++sequencia}-${Date.now().toString(36)}`;
@@ -114,7 +144,19 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
   const eventosVestivel = new Map<string, EventoVestivel[]>();
   const alertasVestivel: (NovoAlertaVestivel & { dispositivoId: string; recebidoEm: number })[] = [];
 
-  async function responder<T>(fn: () => T): Promise<T> {
+  // Contas por telefone (E.164). Carregadas uma vez; toda chamada espera a leitura terminar.
+  const contas = new Map<string, ContaMock>();
+  const contasCarregadas = (opcoes.contas?.ler() ?? Promise.resolve([]))
+    .then((lista) => lista.forEach((c) => contas.set(c.telefone, c)))
+    .catch(() => undefined);
+  const contaDoUsuario = (usuarioId: string) => [...contas.values()].find((c) => c.usuarioId === usuarioId);
+  async function salvarContas() {
+    await opcoes.contas?.gravar([...contas.values()]).catch(() => undefined);
+  }
+  const novoToken = () => `mock.${randomUUID()}`;
+
+  async function responder<T>(fn: () => T | Promise<T>): Promise<T> {
+    await contasCarregadas;
     if (latencia > 0) await new Promise((r) => setTimeout(r, latencia));
     if (semConexao) throw new ErroDeRede('sem_conexao');
     return fn();
@@ -130,7 +172,9 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
   function usuario(usuarioId: string): UsuarioMock {
     let u = usuarios.get(usuarioId);
     if (!u && usuarioId.startsWith('usr-') && !excluidos.has(usuarioId)) {
-      u = { nome: '', telefone: '', contatos: [] };
+      // Com conta guardada, volta com nome, telefone e contatos.
+      const conta = contaDoUsuario(usuarioId);
+      u = { nome: conta?.nome ?? '', telefone: conta?.telefone ?? '', contatos: conta?.contatos.map((c) => ({ ...c })) ?? [] };
       usuarios.set(usuarioId, u);
     }
     if (!u) throw erro404('Usuário não encontrado');
@@ -199,17 +243,35 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
       }),
 
     criarUsuario: (dados) =>
-      responder(() => {
+      responder(async () => {
         const nome = dados.nome?.trim() ?? '';
         if (!nome) throw erro400('nome', 'Informe seu nome ou apelido.');
         if (nome.length > 60) throw erro400('nome', 'Use até 60 caracteres.');
         const tel = validarTelefone(dados.telefone ?? '');
         if (!tel.valido) throw erro400('telefone', 'Telefone fora do padrão brasileiro.');
+        const problema = problemaDaSenha(dados.senha ?? '');
+        if (problema) throw erro400('senha', problema);
         // Como na API: o usuário só nasce com um contato de emergência.
         const contato = validarContato(dados.contato);
+        // Um telefone, uma conta: é ele que identifica a pessoa no login.
+        if (contas.has(tel.e164)) throw erro409('Este telefone já tem conta. Entre com a sua senha.');
         const usuarioId = novoId('usr');
-        usuarios.set(usuarioId, { nome, telefone: tel.e164, contatos: [{ contatoId: novoId('ctt'), ...contato }] });
-        return { usuarioId };
+        const contatos = [{ contatoId: novoId('ctt'), ...contato }];
+        usuarios.set(usuarioId, { nome, telefone: tel.e164, contatos: contatos.map((c) => ({ ...c })) });
+        const sal = randomUUID();
+        contas.set(tel.e164, { usuarioId, telefone: tel.e164, nome, sal, senhaHash: await hash(sal + dados.senha), contatos });
+        await salvarContas();
+        return { usuarioId, token: novoToken() };
+      }),
+
+    entrar: (credenciais) =>
+      responder(async () => {
+        const tel = validarTelefone(credenciais.telefone ?? '');
+        const conta = tel.valido ? contas.get(tel.e164) : undefined;
+        if (!conta || excluidos.has(conta.usuarioId)) throw erro401();
+        if ((await hash(conta.sal + (credenciais.senha ?? ''))) !== conta.senhaHash) throw erro401();
+        usuario(conta.usuarioId);
+        return { usuarioId: conta.usuarioId, nome: conta.nome, token: novoToken() };
       }),
 
     obterUsuario: (usuarioId) =>
@@ -226,7 +288,7 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
       }),
 
     adicionarContato: (usuarioId, contato) =>
-      responder(() => {
+      responder(async () => {
         const u = usuario(usuarioId);
         const valido = validarContato(contato);
         if (u.contatos.length >= regras.maxContatos) {
@@ -234,6 +296,11 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
         }
         const contatoId = novoId('ctt');
         u.contatos.push({ contatoId, ...valido });
+        const conta = contaDoUsuario(usuarioId);
+        if (conta) {
+          conta.contatos = u.contatos.map((c) => ({ ...c }));
+          await salvarContas();
+        }
         return { contatoId };
       }),
 
@@ -267,11 +334,16 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): ApiMock {
       }),
 
     excluirUsuario: (usuarioId) =>
-      responder(() => {
+      responder(async () => {
         usuario(usuarioId);
         usuarios.delete(usuarioId);
         excluidos.add(usuarioId);
         eventosVestivel.delete(usuarioId);
+        const conta = contaDoUsuario(usuarioId);
+        if (conta) {
+          contas.delete(conta.telefone);
+          await salvarContas();
+        }
       }),
 
     listarDistritos: () => responder(() => DISTRITOS.map((d) => ({ ...d }))),
