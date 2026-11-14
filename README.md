@@ -152,7 +152,7 @@ O mapa de pontos críticos (tela 08) e o mapa da posição no SOS usam o Google 
    - local: `GOOGLE_MAPS_API_KEY=...` no `.env.local` (o `app.config.js` lê);
    - EAS Build: `npx eas-cli@latest env:create --name GOOGLE_MAPS_API_KEY --value <chave> --environment development`.
 
-Sem a chave, o APK mostra o mapa esquemático no lugar do Google Maps (sem ela, o SDK do Google fecharia o app).
+Sem a chave, o APK não mostra mapa simulado: as telas avisam que o mapa do Google não está ativado e oferecem abrir o ponto no app do Google Maps (sem a chave, o SDK do Google fecharia o app). O workflow confere dentro do APK se o Google Maps entrou e não publica o release se a chave existir e o mapa não.
 
 ### Tema claro e escuro
 
@@ -180,7 +180,7 @@ Com o mock ligado (ou em desenvolvimento) aparecem atalhos para gravar o vídeo:
 ## Como funciona por dentro
 
 - **Turno em segundo plano** (`src/servicos/turno.ts`): serviço em primeiro plano do `expo-location` (GPS a cada 1 s) e acelerômetro a 20 Hz. Cada leitura do GPS também é o relógio do turno com a tela bloqueada: vence a contagem da queda, consulta a pulseira a cada 2 s e reenvia a fila.
-- **Mapa** (`src/components/mapa`): cada ponto crítico é a célula do modelo (cerca de 500 m), desenhada como círculo âmbar com o número do ponto no plano; tocar mostra o motivo e o gráfico de risco por horário (`GET /risco/celulas/{id}`). Mapa base escuro no tom Asfalto do manual. Na web e no build sem chave, mapa esquemático.
+- **Mapa** (`src/components/mapa`): cada ponto crítico é a célula do modelo (cerca de 500 m), desenhada como círculo âmbar com o número do ponto no plano; tocar abre o balão do Google com o motivo e, na folha, o gráfico de risco por horário (`GET /risco/celulas/{id}`). Os perigos relatados nas últimas 24 h aparecem com o ícone de alerta. O mapa do SOS é o Google Maps com a posição registrada. Estilo do mapa no tom Asfalto do manual (claro ou escuro, conforme o tema). Na web, o Google Maps incorporado (gratuito, sem chave).
 - **Cliente da API** (`src/api/http.ts`): converte o formato da API para o do app (ids numéricos ↔ texto, nome do distrito por `GET /distritos`, ficha sem `null`). Regras da API que o app segue: o usuário nasce com o primeiro contato, ficha e perfil só depois do consentimento, perfil só com ao menos um tipo de uso (`src/servicos/cadastro.ts`).
 - **Detector de queda** (`src/domain/queda/detector.ts`): função pura com a máquina de estados do contrato. Os cenários de QA (queda, buraco, semáforo, celular derrubado, mochila, pessoa que levanta) são testes automatizados.
 - **SOS** (`src/servicos/sos.ts`): gravado primeiro no SQLite com `eventoId` gerado no aparelho; sem internet, fica na fila e sai quando a conexão volta, sem duplicar. O SMS aos contatos (`src/servicos/sms.ts`) sai na hora, sem esperar a API.

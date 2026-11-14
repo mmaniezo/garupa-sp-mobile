@@ -33,7 +33,7 @@ O código das 11 etapas está escrito e verificado com typecheck, lint, 56 teste
 | 3. Detecção de queda | `src/domain/queda/detector.ts` (máquina de estados do contrato) + `src/servicos/queda.ts` |
 | 4. Banco no app | `src/db` (migrações v1 e v2) + `src/dados-locais/repositorios.ts` |
 | 5. Consumo da API | `src/api/http.ts` (API C#, conferido com o Swagger e com a API rodando) e `src/api/mock` (mesmo contrato, mesmas regras e o risco do modelo de ML); todos os endpoints do app |
-| Mapa | `src/components/mapa`: Google Maps no Android (Apple Maps no iOS) com as células do modelo; mapa esquemático na web e no build sem chave |
+| Mapa | `src/components/mapa`: Google Maps no Android (Apple Maps no iOS) com as células do modelo e os perigos relatados; na web, o Google Maps incorporado (gratuito, sem chave); no build sem chave, aviso com link para o Google Maps |
 | 6. Acessibilidade | Botões de 48 a 96 dp, rótulos e papéis para leitor de tela, nenhum estado só por cor, fonte do sistema respeitada |
 | 7. Segundo plano e notificações | `src/servicos/turno.ts`, `tarefas.ts`, `notificacoes.ts` (canais de baixa e alta prioridade, ações) |
 | 8. Teste do primeiro dia | `/diagnostico`: mede leituras do sensor e do GPS com o app em segundo plano |
