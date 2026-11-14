@@ -4,6 +4,7 @@ export { Botao, type TamanhoBotao, type VarianteBotao } from './botao';
 export { BotaoIcone } from './botao-icone';
 export { CabecalhoPasso } from './cabecalho-passo';
 export { Campo } from './campo';
+export { CampoSenha } from './campo-senha';
 export { CartaoMensagem } from './cartao-mensagem';
 export { CartaoOpcao } from './cartao-opcao';
 export { Chip } from './chip';

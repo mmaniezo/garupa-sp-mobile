@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useEstilos } from '@/lib/tema';
@@ -6,16 +6,18 @@ import { alerta, altura, brand, familias, raio, type Paleta } from '@/theme';
 
 import { Texto } from './texto';
 
-type Props = Omit<TextInputProps, 'style'> & {
+export type PropsCampo = Omit<TextInputProps, 'style'> & {
   rotulo: string;
   erro?: string | null;
   dica?: string;
   /** 'escuro' é o campo padrão sobre o fundo da tela; 'interno' fica dentro de um cartão Superfície. */
   aparencia?: 'escuro' | 'interno';
+  /** Botão dentro do campo, à direita (por exemplo, mostrar a senha). */
+  direita?: ReactNode;
 };
 
 /** Campo de texto com rótulo sempre visível (nunca só placeholder) e erro anunciado. */
-export function Campo({ rotulo, erro, dica, aparencia = 'escuro', onFocus, onBlur, ...input }: Props) {
+export function Campo({ rotulo, erro, dica, aparencia = 'escuro', direita, onFocus, onBlur, ...input }: PropsCampo) {
   const [focado, setFocado] = useState(false);
   const styles = useEstilos(criarEstilos);
   const interno = aparencia === 'interno';
@@ -26,6 +28,7 @@ export function Campo({ rotulo, erro, dica, aparencia = 'escuro', onFocus, onBlu
       <Texto variante="rotulo" cor={interno ? 'textoSecundario' : 'texto'} nativeID={`rotulo-${rotulo}`}>
         {rotulo}
       </Texto>
+      <View style={styles.linha}>
       <TextInput
         accessibilityLabel={rotulo}
         accessibilityHint={dica}
@@ -42,9 +45,16 @@ export function Campo({ rotulo, erro, dica, aparencia = 'escuro', onFocus, onBlu
           setFocado(false);
           onBlur?.(e);
         }}
-        style={[styles.input, interno ? styles.inputInterno : styles.inputEscuro, { borderColor: corBorda }]}
+        style={[
+          styles.input,
+          interno ? styles.inputInterno : styles.inputEscuro,
+          { borderColor: corBorda },
+          direita ? styles.comDireita : null,
+        ]}
         {...input}
       />
+        {direita ? <View style={styles.direita}>{direita}</View> : null}
+      </View>
       {erro ? (
         <Texto variante="legenda" cor="emergenciaTexto" accessibilityLiveRegion="polite" role="alert">
           {erro}
@@ -62,6 +72,9 @@ const criarEstilos = (c: Paleta) => ({
   cores: { borda: c.borda, placeholder: c.neutroBarra },
   ...StyleSheet.create({
     grupo: { gap: 8 },
+    linha: { justifyContent: 'center' },
+    direita: { position: 'absolute', right: 4, top: 0, bottom: 0, justifyContent: 'center' },
+    comDireita: { paddingRight: 56 },
     input: {
       borderWidth: 2,
       color: c.texto,
