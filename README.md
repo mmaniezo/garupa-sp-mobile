@@ -24,6 +24,7 @@ O app informa e avisa mais rápido; não promete salvar vidas. O mapa mostra his
 | Tela | Rota | Requisitos |
 | --- | --- | --- |
 | 01 Boas-vindas | `/boas-vindas` | — |
+| Entrar (telefone e senha) | `/entrar` | login da conta |
 | 02 a 05 Cadastro em camadas | `/cadastro/basico`, `ficha`, `uso`, `distritos` | RF01 a RF04, RB07, RB16 |
 | 06 Permissões e consentimentos | `/cadastro/permissoes` | RF05, RF36, RB08 |
 | 07 Plano do turno | `/plano` | RF07, RF10, RF11, RF15, RB06, RNF10 |
@@ -167,6 +168,19 @@ Quando o SOS dispara (queda sem resposta, pulseira ou SOS manual), o app avisa o
 
 O SMS leva só nome, o que aconteceu, a hora e o mapa: nunca ficha médica nem telefone.
 
+### Login (telefone e senha)
+
+O telefone identifica a conta e a senha confirma. A senha é criada no passo 1 do cadastro (pelo menos 8 caracteres, com letras e números, `src/domain/senha.ts`). Em "Já tenho conta: entrar", a pessoa entra com telefone e senha. Os contatos de emergência voltam da API, e o app pede de novo as permissões deste celular. A ficha médica nunca volta pela API: ela é preenchida de novo, se a pessoa quiser. Em Perfil, "Sair da conta" apaga o que está neste celular, e a conta continua existindo para entrar de novo.
+
+Na API simulada, as contas (telefone, nome, hash SHA-256 da senha com sal e contatos) ficam no banco do aparelho, numa chave que sair da conta não apaga. Na API C#, o login ainda não existe. O app já fala com ela por este contrato, para quem for implementar:
+
+| Endpoint | Corpo | Resposta |
+| --- | --- | --- |
+| `POST /api/v1/usuarios` | o de hoje e mais `senha` | `201 { usuarioId, token? }`. `400` no campo `senha` se ela for fraca. `409` se o telefone já tem conta |
+| `POST /api/v1/auth/login` | `{ telefone: "+5511…", senha }` | `200 { usuarioId, nome, token }`. `401 { title: "Telefone ou senha incorretos." }` quando não confere, sem dizer qual dos dois |
+
+A API guarda só o hash da senha (BCrypt ou PBKDF2) e nunca a devolve. O app manda o token em toda chamada (`Authorization: Bearer <token>`) e o guarda no armazenamento seguro (`src/servicos/conta.ts`). Ainda não há troca de senha nem recuperação por SMS.
+
 ### Demonstração
 
 Com o mock ligado (ou em desenvolvimento) aparecem atalhos para gravar o vídeo:
@@ -175,7 +189,7 @@ Com o mock ligado (ou em desenvolvimento) aparecem atalhos para gravar o vídeo:
 - **Pulseira → Impacto, SOS, Cancelar**: simula os eventos da pulseira sem o Wokwi. Com a pulseira real, use o mesmo `dispositivoId` do firmware.
 - **Pulseira → tocar numa luz**: manda aquele alerta para a pulseira acender.
 - **Perfil → Simular histórico de locais**: os pontos "visitados" sobem no plano (P1).
-- **Catálogo (dev)**: toque longo na logo das boas-vindas. Tem "Simular cadastro" com dados fictícios.
+- **Catálogo (dev)**: toque longo na logo das boas-vindas. Tem "Simular cadastro" com dados fictícios: a conta de demonstração tem o telefone (11) 90000-0000 e a senha `garupa123`. Se ela já existe, o atalho entra nela.
 
 ## Como funciona por dentro
 
@@ -211,7 +225,8 @@ src/
 ## Privacidade
 
 - Usuários, contatos e fichas do demo são fictícios.
-- Ficha médica e contatos ficam no armazenamento seguro do sistema (criptografado), não no SQLite.
+- Ficha médica, contatos e o token da conta ficam no armazenamento seguro do sistema (criptografado), não no SQLite.
+- A senha não fica no aparelho: a API (e a simulada) guardam só o hash.
 - Nenhum log, notificação ou mensagem de erro leva coordenada, telefone ou ficha.
 - O histórico de locais frequentes fica só no aparelho, como contagem de visitas por célula, sem trajetos, e nunca vai para a API.
 - Cada tipo de dado tem consentimento próprio e revogável; excluir a conta apaga os dados na API e no aparelho.

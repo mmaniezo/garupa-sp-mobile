@@ -79,7 +79,7 @@ Limiares em `src/domain/queda/detector.ts` (`LIMIARES_PADRAO`). Rode os cenário
 | `dispositivoId` da pulseira no firmware (padrão do app: `pulseira-demo-01`) | Physical | tela Pulseira |
 | Avaliação de mensagem (RF17, P2): o contrato não tem endpoint; o app guarda só a contagem no aparelho | API | `src/app/turno/alerta/[celulaId].tsx` |
 | Trocar ou remover contato: a API já tem `PUT` e `DELETE /usuarios/{id}/contatos/{contatoId}`; o app ainda só adiciona | Mobile | `src/app/cadastro/basico.tsx` |
-| "Já tenho conta": o contrato não tem login | Equipe e API | `src/app/boas-vindas.tsx` |
+| Login com telefone e senha: o app já manda `senha` no `POST /usuarios` e entra por `POST /auth/login` (contrato no README, "Login"). Falta a API guardar o hash da senha, devolver o token e responder 409 para telefone repetido | API | `src/api/http.ts`, `src/servicos/conta.ts` |
 | Endereço público da API (`EXPO_PUBLIC_API_URL`) | OS | `.env.local` |
 | Chave do Google Maps (*Maps SDK for Android*) para o APK: segredo `GOOGLE_MAPS_API_KEY` no GitHub (README, "Google Maps") | Equipe | `.github/workflows/release-android.yml`, `app.config.js` |
 | SMS de socorro automático: o documento previa só o aviso simulado ("o Expo não envia SMS automático"). O app agora manda pelo módulo nativo `modules/sms-socorro`, com a permissão de SMS; sem ela, abre o SMS pronto. Validar no aparelho | Mobile | `src/servicos/sms.ts` |
