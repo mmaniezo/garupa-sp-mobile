@@ -4,7 +4,7 @@
 #
 # O APK usa a API simulada (os dados do modelo de ML, sem servidor). Para o Google Maps,
 # cadastre o segredo GOOGLE_MAPS_API_KEY em Settings → Secrets and variables → Actions;
-# sem ele, o mapa aparece esquemático.
+# sem ele, as telas avisam que o mapa do Google não está ativado (não há mapa simulado).
 name: Release Android (APK)
 
 on:
@@ -31,6 +31,9 @@ jobs:
     timeout-minutes: 75
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
+      # Em todos os passos: o prebuild põe a chave no Android e o Gradle lê o app.config.js de
+      # novo para o JavaScript (expo-constants). Só no prebuild, o app achava que não havia chave.
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
     steps:
       - name: Baixar o código
         uses: actions/checkout@v4
@@ -61,11 +64,9 @@ jobs:
           if [ -n "$GOOGLE_MAPS_API_KEY" ]; then
             echo "::notice title=Google Maps::Chave configurada: o APK usa o Google Maps."
           else
-            echo "::warning title=Google Maps::Sem o segredo GOOGLE_MAPS_API_KEY: o APK usa o mapa esquemático."
+            echo "::warning title=Google Maps::Sem o segredo GOOGLE_MAPS_API_KEY: o APK sai sem o mapa do Google."
           fi
           npx expo prebuild --platform android --no-install
-        env:
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
 
       # arm64-v8a e armeabi-v7a: celulares. x86_64: emuladores (o teste abaixo e os de PC).
       - name: Compilar o APK
@@ -76,6 +77,19 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk "garupa-sp-${TAG}.apk"
           cp android/app/build/outputs/apk/release/app-release.apk app.apk
+
+      # Confere dentro do APK que o app vai abrir o Google Maps (a 0.2.1 saiu com a chave no
+      # Android, mas o JavaScript não sabia dela). Com chave e sem o mapa, o release não sai.
+      - name: Conferir o Google Maps no APK
+        run: |
+          if unzip -p app.apk assets/app.config | grep -q '"mapaGoogle":true'; then
+            echo "::notice title=Google Maps no APK::O app abre o Google Maps."
+          elif [ -n "$GOOGLE_MAPS_API_KEY" ]; then
+            echo "::error title=Google Maps no APK::Há chave, mas o APK saiu sem o Google Maps."
+            exit 1
+          else
+            echo "::warning title=Google Maps no APK::Sem chave: as telas avisam que o mapa do Google não está ativado."
+          fi
 
       # Só publica se o app abrir no emulador e continuar aberto (o 0.1.0 fechava na abertura).
       - name: Liberar o KVM
