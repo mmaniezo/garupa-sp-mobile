@@ -6,11 +6,20 @@ import { api, mock } from '@/api';
 import { MapaPosicao } from '@/components/mapa/mapa-pontos';
 import { Aviso, Botao, Icone, Tela, Texto } from '@/components/ui';
 import { lerSos, type RegistroSos } from '@/dados-locais/repositorios';
+import { atualizarPreferencias } from '@/dados-locais/preferencias';
 import { lerContatos } from '@/dados-locais/seguro';
 import { linkGoogleMaps } from '@/domain/sms';
 import { useEstilos } from '@/lib/tema';
 import { reiniciarDetector } from '@/servicos/queda';
-import { abrirSmsDoSos, carregarEstadoSms, useEstadosSms, type EstadoSms } from '@/servicos/sms';
+import {
+  abrirSmsDoSos,
+  carregarEstadoSms,
+  pedirPermissaoSms,
+  smsAutomaticoSuportado,
+  temPermissaoSms,
+  useEstadosSms,
+  type EstadoSms,
+} from '@/servicos/sms';
 import { cancelarSos, encerrarSos, useSos } from '@/servicos/sos';
 import { useSessao } from '@/state/sessao';
 import { alerta, brand, raio, type Paleta } from '@/theme';
@@ -66,6 +75,7 @@ export default function SosEnviado() {
   const [registro, setRegistro] = useState<RegistroSos | null>(null);
   const [contato, setContato] = useState<string | null>(null);
   const [agindo, setAgindo] = useState<'cancelar' | 'encerrar' | 'sms' | null>(null);
+  const [permissaoSms, setPermissaoSms] = useState(true);
 
   const sos = atual?.eventoId === eventoId ? atual : registro;
   // No mock o link de acompanhamento não abre; com a API real, ele vai junto do mapa.
@@ -76,6 +86,7 @@ export default function SosEnviado() {
     if (atual?.eventoId !== eventoId) void lerSos(eventoId).then(setRegistro);
     void lerContatos().then((c) => setContato(c[0]?.nome ?? null));
     void carregarEstadoSms(eventoId);
+    void temPermissaoSms().then(setPermissaoSms);
   }, [eventoId, atual?.eventoId]);
 
   if (!sos) {
@@ -114,6 +125,12 @@ export default function SosEnviado() {
     setAgindo('sms');
     await abrirSmsDoSos(idDoSos, dadosDoSos).catch(() => undefined);
     setAgindo(null);
+  }
+
+  async function ativarSmsAutomatico() {
+    const ok = await pedirPermissaoSms();
+    setPermissaoSms(ok);
+    if (ok) await atualizarPreferencias({ smsAutomatico: true });
   }
 
   function compartilhar() {
@@ -210,6 +227,15 @@ export default function SosEnviado() {
           onPress={() => void mandarSms()}
         />
       ) : null}
+      {smsAutomaticoSuportado && !permissaoSms ? (
+        <Botao
+          titulo="Ativar o SMS automático para a próxima vez"
+          variante="link"
+          tamanho="compacto"
+          dica="Pede a permissão de SMS: num próximo SOS, o aviso sai sozinho, mesmo sem você tocar em nada"
+          onPress={() => void ativarSmsAutomatico()}
+        />
+      ) : null}
 
       <View style={{ gap: 8 }}>
         <Texto variante="overline" cor="textoSecundario">
@@ -222,7 +248,14 @@ export default function SosEnviado() {
           </Texto>
         </View>
         {lat !== null && lon !== null ? (
-          <MapaPosicao lat={lat} lon={lon} altura={140} rotulo="Mapa com a posição registrada no SOS" />
+          <MapaPosicao
+            lat={lat}
+            lon={lon}
+            altura={160}
+            rotulo="Google Maps com a posição registrada no SOS"
+            titulo="Posição do SOS"
+            detalhe={`Registrada às ${hora}`}
+          />
         ) : null}
         {mapa ? (
           <Botao
