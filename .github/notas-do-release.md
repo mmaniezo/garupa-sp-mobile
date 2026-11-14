@@ -6,7 +6,11 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios) e permita localização, notificações, movimento e **SMS**.
 
-## Novidades da 0.2.0
+## Novidades da 0.2.1
+
+- **Google Maps** na aba Mapa e no mapa da posição do SOS, no tema do app (claro ou escuro).
+
+## Da 0.2.0
 
 - **Tema claro e escuro**: segue o modo do celular; em Perfil → Aparência dá para fixar Claro ou Escuro.
 - **SMS de socorro**: quando o SOS dispara, os contatos de emergência recebem um SMS com a localização no Google Maps, mesmo sem internet. Com a permissão de SMS, ele sai sozinho; sem ela, o app abre a mensagem pronta. "Estou bem" manda outro SMS avisando que foi cancelado.
@@ -21,7 +25,6 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 ## Limitações conhecidas
 
 - Os pontos críticos do modelo atual aparecem em dias úteis sem chuva (no fim de semana e na chuva nenhum ponto chega ao percentil 95).
-- Sem a chave do Google Maps (segredo `GOOGLE_MAPS_API_KEY` do repositório), o mapa aparece esquemático. O link do Google Maps no SMS funciona sem chave.
 - O SMS automático usa o chip e o plano do celular (pode ter custo da operadora).
 - APK de demonstração, assinado com a chave de depuração: não é a versão da loja.
 - Para gravar o vídeo, use os atalhos de demonstração: Turno ativo → Simular queda, e Pulseira → Impacto, SOS e Cancelar.
