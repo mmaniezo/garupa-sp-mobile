@@ -198,6 +198,18 @@ export async function relatosPendentes(): Promise<NovoRelato[]> {
   }, []);
 }
 
+/** Perigos relatados neste aparelho nas últimas horas (os recusados pela API já foram apagados). */
+export async function relatosRecentes(horas = 24): Promise<(NovoRelato & { criadoEm: string })[]> {
+  const desde = new Date(Date.now() - horas * 3_600_000).toISOString();
+  return comBanco(async (db) => {
+    const linhas = await db.getAllAsync<{ payload: string; criado_em: string }>(
+      'SELECT payload, criado_em FROM fila_relatos WHERE criado_em >= ? ORDER BY criado_em DESC',
+      desde,
+    );
+    return linhas.map((l) => ({ ...(JSON.parse(l.payload) as NovoRelato), criadoEm: l.criado_em }));
+  }, []);
+}
+
 export async function marcarRelato(eventoId: string, resultado: 'enviado' | 'tentativa' | 'descartado') {
   await comBanco(
     (db) =>

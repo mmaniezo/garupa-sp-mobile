@@ -28,29 +28,3 @@ export function celulaLocal(p: Ponto, tamanhoGraus = 0.0045): string {
   const j = Math.floor(p.lon / tamanhoGraus);
   return `g${i}_${j}`;
 }
-
-/** Projeta pontos numa área de desenho (mapa esquemático), mantendo a proporção. */
-export function projetar(
-  pontos: Ponto[],
-  largura: number,
-  altura: number,
-  margem = 40,
-): { x: (p: Ponto) => number; y: (p: Ponto) => number } {
-  if (pontos.length === 0) return { x: () => largura / 2, y: () => altura / 2 };
-  const lats = pontos.map((p) => p.lat);
-  const lons = pontos.map((p) => p.lon);
-  const latMin = Math.min(...lats);
-  const latMax = Math.max(...lats);
-  const lonMin = Math.min(...lons);
-  const lonMax = Math.max(...lons);
-  const cosLat = Math.cos(rad((latMin + latMax) / 2));
-  const larguraGeo = Math.max((lonMax - lonMin) * cosLat, 0.004);
-  const alturaGeo = Math.max(latMax - latMin, 0.004);
-  const escala = Math.min((largura - 2 * margem) / larguraGeo, (altura - 2 * margem) / alturaGeo);
-  const cx = (lonMin + lonMax) / 2;
-  const cy = (latMin + latMax) / 2;
-  return {
-    x: (p) => largura / 2 + (p.lon - cx) * cosLat * escala,
-    y: (p) => altura / 2 - (p.lat - cy) * escala,
-  };
-}

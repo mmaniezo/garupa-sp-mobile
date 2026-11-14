@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +14,7 @@ import { mensagemDeErro } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { usePlano, type PontoDoPlano } from '@/servicos/plano';
 import { usePosicao } from '@/servicos/posicao';
+import { listarRelatosRecentes, type RelatoRecente } from '@/servicos/relatos';
 import { alerta, brand, raio, type Paleta } from '@/theme';
 
 /** Altura da pílula e do seletor por cima do mapa, e da legenda com a borda da folha embaixo. */
@@ -22,9 +23,10 @@ const FOLGA_BAIXO = 84;
 
 /**
  * Tela 08 · Mapa de pontos críticos (RF08, RF09).
- * Google Maps no Android (Apple Maps no iOS) com os pontos do modelo de ML: cada círculo é a
- * célula de risco (~500 m) e o número é a posição no plano. A mesma informação está em lista,
- * que é a forma acessível. Tocar num ponto mostra o motivo e o gráfico de risco por horário.
+ * Google Maps de verdade (Apple Maps no iOS) com os pontos do modelo de ML: cada círculo é a
+ * célula de risco (~500 m) e o número é a posição no plano; tocar no ponto abre o balão do
+ * Google com o motivo. Os perigos que a pessoa relatou nas últimas 24 h também aparecem.
+ * A mesma informação está em lista, que é a forma acessível.
  */
 export default function MapaPontos() {
   const { celula } = useLocalSearchParams<{ celula?: string }>();
@@ -36,8 +38,16 @@ export default function MapaPontos() {
   const [selecionadoId, setSelecionadoId] = useState<string | null>(celula ?? null);
   const [celulaAnterior, setCelulaAnterior] = useState(celula);
   const [resposta, setResposta] = useState<{ id: string; detalhe?: DetalheCelula; erro?: string } | null>(null);
+  const [relatos, setRelatos] = useState<RelatoRecente[]>([]);
   const styles = useEstilos(criarEstilos);
   const { c: paleta } = useTema();
+
+  // Perigos relatados: lidos de novo cada vez que a aba abre (pode ter relato novo).
+  useFocusEffect(
+    useCallback(() => {
+      void listarRelatosRecentes().then(setRelatos);
+    }, []),
+  );
 
   // Veio do plano com outro ponto escolhido: esse passa a ser o selecionado.
   if (celula !== celulaAnterior) {
@@ -46,6 +56,11 @@ export default function MapaPontos() {
   }
 
   const pontos = useMemo(() => plano.dados?.pontos ?? [], [plano.dados]);
+  // O balão de cada ponto no Google Maps: onde, por que e o nível de risco.
+  const pontosNoMapa = useMemo(
+    () => pontos.map((p) => ({ ...p, descricao: `${localDoPonto(p)}. Risco ${nivelDeRisco(p.percentil).toLowerCase()}.` })),
+    [pontos],
+  );
   const contexto = plano.dados?.contexto;
   const selecionado = pontos.find((p) => p.celulaId === selecionadoId) ?? pontos[0] ?? null;
   const idSelecionado = selecionado?.celulaId ?? null;
@@ -135,9 +150,11 @@ export default function MapaPontos() {
         );
       })}
       <Texto variante="legenda" cor="textoSecundario" style={{ fontSize: 14 }}>
-        {tipoDoMapa === 'esquematico'
-          ? 'Mapa esquemático, posições aproximadas.'
-          : 'Cada círculo é uma área de cerca de 500 m, não um endereço exato.'}{' '}
+        {tipoDoMapa === 'embed'
+          ? 'Na prévia web, o Google Maps mostra o ponto escolhido.'
+          : tipoDoMapa === 'indisponivel'
+            ? 'O mapa do Google não está ativado neste build.'
+            : 'Cada círculo é uma área de cerca de 500 m, não um endereço exato.'}{' '}
         {AVISO_HISTORICO} Risco calculado pelo modelo do Garupa
         {detalhe?.versaoModelo ? ` (${detalhe.versaoModelo})` : ''} com dados do Infosiga e do INMET.
       </Texto>
@@ -205,7 +222,8 @@ export default function MapaPontos() {
     <View style={styles.raiz}>
       <View style={{ height: alturaMapa }}>
         <Mapa
-          pontos={pontos}
+          pontos={pontosNoMapa}
+          relatos={relatos}
           focoId={selecionadoId}
           destaqueId={idSelecionado}
           posicao={posicao}
@@ -231,6 +249,14 @@ export default function MapaPontos() {
               Ponto crítico
             </Texto>
           </View>
+          {relatos.length > 0 ? (
+            <View style={styles.legendaItem}>
+              <View style={[styles.ponto, { backgroundColor: brand.asfalto, borderWidth: 2, borderColor: alerta.atencao }]} />
+              <Texto variante="legenda" style={{ fontSize: 14 }}>
+                Relatado
+              </Texto>
+            </View>
+          ) : null}
           <View style={styles.legendaItem}>
             <View style={[styles.ponto, { backgroundColor: brand.teal, borderWidth: 2, borderColor: brand.branco }]} />
             <Texto variante="legenda" style={{ fontSize: 14 }}>

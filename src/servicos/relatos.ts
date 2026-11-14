@@ -1,6 +1,6 @@
 import { api, ehErroApi, ehErroDeRede } from '@/api';
 import type { NovoRelato, TipoRelato } from '@/api/types';
-import { inserirRelato, marcarRelato, relatosPendentes } from '@/dados-locais/repositorios';
+import { inserirRelato, marcarRelato, relatosPendentes, relatosRecentes } from '@/dados-locais/repositorios';
 import { novoEventoId } from '@/lib/ids';
 import { obterSessao } from '@/state/sessao';
 
@@ -53,6 +53,20 @@ export async function relatarPerigo(tipo: TipoRelato): Promise<ResultadoRelato> 
   const relato: NovoRelato = { eventoId: novoEventoId(), usuarioId, tipo, lat: pos.lat, lon: pos.lon };
   await inserirRelato(relato);
   return enviar(relato);
+}
+
+export type RelatoRecente = { eventoId: string; tipo: TipoRelato; rotulo: string; lat: number; lon: number; criadoEm: string };
+
+/** Perigos que a pessoa relatou nas últimas 24 h, para marcar no mapa. */
+export async function listarRelatosRecentes(): Promise<RelatoRecente[]> {
+  return (await relatosRecentes(24)).map((r) => ({
+    eventoId: r.eventoId,
+    tipo: r.tipo,
+    rotulo: TIPOS_RELATO.find((t) => t.id === r.tipo)?.rotulo ?? 'Perigo',
+    lat: r.lat,
+    lon: r.lon,
+    criadoEm: r.criadoEm,
+  }));
 }
 
 export async function processarFilaRelatos(): Promise<void> {

@@ -117,10 +117,8 @@ export type Paleta = {
   informacaoFundo: string;
   informacaoTexto: string;
   informacaoIcone: string;
-  /** Fundo e ruas do mapa esquemático. */
+  /** Fundo da área do mapa enquanto o Google Maps carrega. */
   mapaFundo: string;
-  mapaRuaFina: string;
-  mapaRuaLarga: string;
   /** Véu atrás de folhas e modais. */
   veu: string;
   /** Conteúdo da barra de status do sistema. */
@@ -149,8 +147,6 @@ export const paletas: Record<NomeTema, Paleta> = {
     informacaoTexto: tons.informacaoTexto,
     informacaoIcone: tons.informacaoIcone,
     mapaFundo: tons.mapaFundo,
-    mapaRuaFina: '#161C20',
-    mapaRuaLarga: '#1E262B',
     veu: 'rgba(0,0,0,0.6)',
     barraStatus: 'light',
   },
@@ -175,8 +171,6 @@ export const paletas: Record<NomeTema, Paleta> = {
     informacaoTexto: '#173F8A',
     informacaoIcone: alerta.informacao,
     mapaFundo: tons.cinzaMapaClaro,
-    mapaRuaFina: '#E9EDEF',
-    mapaRuaLarga: '#F7F9FA',
     veu: 'rgba(17,20,23,0.45)',
     barraStatus: 'dark',
   },

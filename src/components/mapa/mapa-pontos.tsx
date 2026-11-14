@@ -9,25 +9,31 @@ import { useTema } from '@/lib/tema';
 import { alerta, brand } from '@/theme';
 
 import { ESTILO_MAPA_CLARO, ESTILO_MAPA_ESCURO } from './estilo-google';
-import { MapaEsquematico, MarcadorNumero } from './mapa-esquematico';
+import { MarcadorNumero, MarcadorRelato } from './marcadores';
+import { SemGoogleMaps } from './sem-google-maps';
 import type { PropsMapaPontos, TipoDeMapa } from './tipos';
 
 /**
- * Android: Google Maps. O Expo Go já traz uma chave; no build, ela vem do GOOGLE_MAPS_API_KEY
- * (app.config.js). Sem chave o SDK do Google fecha o app, então aí fica o mapa esquemático.
+ * Android: Google Maps. O Expo Go já traz uma chave; no APK, ela vem do GOOGLE_MAPS_API_KEY
+ * (app.config.js). Sem a chave o SDK do Google fecharia o app: aí a tela avisa, sem mapa falso.
  * iOS: Apple Maps, que não precisa de chave.
  */
 const temChaveGoogle = Constants.expoConfig?.extra?.mapaGoogle === true;
 export const tipoDoMapa: TipoDeMapa =
-  Platform.OS === 'ios' ? 'apple' : isRunningInExpoGo() || temChaveGoogle ? 'google' : 'esquematico';
+  Platform.OS === 'ios' ? 'apple' : isRunningInExpoGo() || temChaveGoogle ? 'google' : 'indisponivel';
 
 /** Célula H3 de resolução 8 do modelo: cerca de 0,74 km². O círculo marca a área, não um ponto exato. */
 const RAIO_CELULA_METROS = 400;
 const SAO_PAULO: Region = { latitude: -23.56, longitude: -46.64, latitudeDelta: 0.3, longitudeDelta: 0.3 };
 const AMBAR = (opacidade: number) => `rgba(245, 165, 36, ${opacidade})`;
+const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 export function MapaPontos(props: PropsMapaPontos) {
-  return tipoDoMapa === 'esquematico' ? <MapaEsquematico {...props} /> : <MapaReal {...props} />;
+  if (tipoDoMapa === 'indisponivel') {
+    const alvo = props.pontos.find((p) => p.celulaId === props.destaqueId) ?? props.pontos[0];
+    return <SemGoogleMaps altura={props.altura} lat={alvo?.centroLat} lon={alvo?.centroLon} />;
+  }
+  return <MapaReal {...props} />;
 }
 
 function regiaoQueCobre(coordenadas: { latitude: number; longitude: number }[]): Region {
@@ -43,7 +49,18 @@ function regiaoQueCobre(coordenadas: { latitude: number; longitude: number }[]):
   };
 }
 
-function MapaReal({ pontos, focoId, destaqueId, posicao, onSelecionar, largura, altura, folgaTopo, folgaBaixo }: PropsMapaPontos) {
+function MapaReal({
+  pontos,
+  relatos = [],
+  focoId,
+  destaqueId,
+  posicao,
+  onSelecionar,
+  largura,
+  altura,
+  folgaTopo,
+  folgaBaixo,
+}: PropsMapaPontos) {
   const mapa = useRef<MapView>(null);
   const [pronto, setPronto] = useState(false);
   const { nome: tema, c } = useTema();
@@ -57,7 +74,7 @@ function MapaReal({ pontos, focoId, destaqueId, posicao, onSelecionar, largura, 
 
   // Marcadores com desenho próprio: o Android redesenha enquanto `tracksViewChanges` está ligado.
   // Liga ao mudar o destaque ou a lista e desliga logo depois, para não gastar bateria.
-  const assinatura = `${destaqueId}|${pontos.map((p) => p.celulaId).join(',')}`;
+  const assinatura = `${destaqueId}|${pontos.map((p) => p.celulaId).join(',')}|${relatos.length}`;
   const [assinaturaDesenhada, setAssinaturaDesenhada] = useState(assinatura);
   const [redesenhar, setRedesenhar] = useState(true);
   if (assinatura !== assinaturaDesenhada) {
@@ -111,7 +128,7 @@ function MapaReal({ pontos, focoId, destaqueId, posicao, onSelecionar, largura, 
       loadingEnabled
       loadingBackgroundColor={c.mapaFundo}
       loadingIndicatorColor={brand.teal}
-      accessibilityLabel="Mapa com os pontos críticos e a sua posição. A mesma informação está em Lista.">
+      accessibilityLabel="Mapa do Google com os pontos críticos, os perigos que você relatou e a sua posição. A mesma informação está em Lista.">
       {pontos.map((p) => {
         const sel = p.celulaId === destaqueId;
         return (
@@ -128,23 +145,41 @@ function MapaReal({ pontos, focoId, destaqueId, posicao, onSelecionar, largura, 
       })}
       {pontos.map((p, i) => {
         const sel = p.celulaId === destaqueId;
+        const nivel = nivelDeRisco(p.percentil);
         return (
           <Marker
             key={p.celulaId}
             coordinate={{ latitude: p.centroLat, longitude: p.centroLon }}
             anchor={{ x: 0.5, y: 0.5 }}
+            // Toque no ponto: o balão do Google diz o que é e por que é perigoso.
+            title={`${i + 1}. ${p.viaReferencia}`}
+            description={p.descricao ?? `Ponto crítico: risco ${nivel.toLowerCase()} de sinistro grave com moto.`}
             tracksViewChanges={redesenhar}
             zIndex={sel ? 20 : 10}
             onPress={() => onSelecionar(p.celulaId)}
-            accessibilityLabel={`Ponto ${i + 1}: ${p.viaReferencia}, risco ${nivelDeRisco(p.percentil)}`}>
+            accessibilityLabel={`Ponto ${i + 1}: ${p.viaReferencia}, risco ${nivel}`}>
             <MarcadorNumero numero={i + 1} selecionado={sel} />
           </Marker>
         );
       })}
+      {relatos.map((r) => (
+        <Marker
+          key={`relato-${r.eventoId}`}
+          coordinate={{ latitude: r.lat, longitude: r.lon }}
+          anchor={{ x: 0.5, y: 0.5 }}
+          title={`Perigo relatado: ${r.rotulo}`}
+          description={`Você relatou às ${hora(r.criadoEm)}. Passe com atenção.`}
+          tracksViewChanges={redesenhar}
+          zIndex={15}
+          accessibilityLabel={`Perigo relatado por você: ${r.rotulo}, às ${hora(r.criadoEm)}`}>
+          <MarcadorRelato />
+        </Marker>
+      ))}
       {posicao ? (
         <Marker
           coordinate={{ latitude: posicao.lat, longitude: posicao.lon }}
           anchor={{ x: 0.5, y: 0.5 }}
+          title="Você está aqui"
           tracksViewChanges={redesenhar}
           zIndex={30}
           accessibilityLabel="Você está aqui">
@@ -153,6 +188,35 @@ function MapaReal({ pontos, focoId, destaqueId, posicao, onSelecionar, largura, 
           </View>
         </Marker>
       ) : null}
+    </MapView>
+  );
+}
+
+type PropsMapaPosicao = { lat: number; lon: number; altura: number; rotulo: string; titulo?: string; detalhe?: string };
+
+/**
+ * Mapa pequeno do Google com um ponto marcado (a posição do SOS), sem gestos: no Android usa o
+ * modo "lite" do Google Maps, uma imagem do mapa real que gasta pouco.
+ */
+export function MapaPosicao({ lat, lon, altura, rotulo, titulo, detalhe }: PropsMapaPosicao) {
+  const { nome: tema } = useTema();
+  if (tipoDoMapa === 'indisponivel') return <SemGoogleMaps altura={altura} lat={lat} lon={lon} compacto />;
+  return (
+    <MapView
+      style={{ height: altura, borderRadius: 14 }}
+      provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+      liteMode
+      customMapStyle={tema === 'claro' ? ESTILO_MAPA_CLARO : ESTILO_MAPA_ESCURO}
+      userInterfaceStyle={tema === 'claro' ? 'light' : 'dark'}
+      initialRegion={{ latitude: lat, longitude: lon, latitudeDelta: 0.006, longitudeDelta: 0.006 }}
+      scrollEnabled={false}
+      zoomEnabled={false}
+      rotateEnabled={false}
+      pitchEnabled={false}
+      toolbarEnabled={false}
+      showsPointsOfInterests={false}
+      accessibilityLabel={rotulo}>
+      <Marker coordinate={{ latitude: lat, longitude: lon }} pinColor={alerta.emergencia} title={titulo} description={detalhe} />
     </MapView>
   );
 }
@@ -167,41 +231,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   voce: { width: 18, height: 18, borderRadius: 9, backgroundColor: brand.teal, borderWidth: 3, borderColor: brand.branco },
-  posicaoFallback: { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  pino: { width: 20, height: 20, borderRadius: 10, backgroundColor: alerta.emergencia, borderWidth: 3, borderColor: brand.branco },
 });
-
-type PropsMapaPosicao = { lat: number; lon: number; altura: number; rotulo: string };
-
-/**
- * Mapa pequeno com um ponto (a posição do SOS), sem gestos: no Android usa o modo "lite" do
- * Google Maps, uma imagem estática barata. Sem Google Maps, um quadro com o pino.
- */
-export function MapaPosicao({ lat, lon, altura, rotulo }: PropsMapaPosicao) {
-  const { nome: tema, c } = useTema();
-  if (tipoDoMapa === 'esquematico') {
-    return (
-      <View style={[styles.posicaoFallback, { height: altura, backgroundColor: c.mapaFundo }]} accessibilityLabel={rotulo}>
-        <View style={styles.pino} />
-      </View>
-    );
-  }
-  return (
-    <MapView
-      style={{ height: altura, borderRadius: 14 }}
-      provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-      liteMode
-      customMapStyle={tema === 'claro' ? ESTILO_MAPA_CLARO : ESTILO_MAPA_ESCURO}
-      userInterfaceStyle={tema === 'claro' ? 'light' : 'dark'}
-      initialRegion={{ latitude: lat, longitude: lon, latitudeDelta: 0.008, longitudeDelta: 0.008 }}
-      scrollEnabled={false}
-      zoomEnabled={false}
-      rotateEnabled={false}
-      pitchEnabled={false}
-      toolbarEnabled={false}
-      showsPointsOfInterests={false}
-      accessibilityLabel={rotulo}>
-      <Marker coordinate={{ latitude: lat, longitude: lon }} pinColor={alerta.emergencia} />
-    </MapView>
-  );
-}

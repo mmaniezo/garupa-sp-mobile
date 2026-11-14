@@ -1,29 +1,48 @@
-import { StyleSheet, View } from 'react-native';
-
-import { useTema } from '@/lib/tema';
-import { alerta, brand } from '@/theme';
-
-import { MapaEsquematico } from './mapa-esquematico';
 import type { PropsMapaPontos, TipoDeMapa } from './tipos';
 
-/** Na web (prévia das telas), o react-native-maps não roda: fica o mapa esquemático. */
-export const tipoDoMapa: TipoDeMapa = 'esquematico';
+/**
+ * Prévia web: o react-native-maps não roda no navegador, então o mapa é o Google Maps em HTML
+ * (o "incorporar mapa" do próprio Google, gratuito e sem chave), com o ponto escolhido marcado.
+ */
+export const tipoDoMapa: TipoDeMapa = 'embed';
 
-export function MapaPontos(props: PropsMapaPontos) {
-  return <MapaEsquematico {...props} />;
+function urlGoogleMaps(lat: number, lon: number, zoom: number): string {
+  return `https://maps.google.com/maps?q=${lat.toFixed(6)},${lon.toFixed(6)}&z=${zoom}&hl=pt-BR&output=embed`;
 }
 
-/** Na web, um quadro com o pino no lugar do mapa pequeno da posição. */
-export function MapaPosicao({ altura, rotulo }: { lat: number; lon: number; altura: number; rotulo: string }) {
-  const { c } = useTema();
+function MapaGoogle({ lat, lon, zoom, largura, altura, titulo }: { lat: number; lon: number; zoom: number; largura: number | string; altura: number; titulo: string }) {
   return (
-    <View style={[styles.quadro, { height: altura, backgroundColor: c.mapaFundo }]} accessibilityLabel={rotulo}>
-      <View style={styles.pino} />
-    </View>
+    <iframe
+      title={titulo}
+      src={urlGoogleMaps(lat, lon, zoom)}
+      style={{ width: largura, height: altura, border: 0, display: 'block' }}
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+    />
   );
 }
 
-const styles = StyleSheet.create({
-  quadro: { borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  pino: { width: 20, height: 20, borderRadius: 10, backgroundColor: alerta.emergencia, borderWidth: 3, borderColor: brand.branco },
-});
+export function MapaPontos({ pontos, destaqueId, posicao, largura, altura }: PropsMapaPontos) {
+  const alvo = pontos.find((p) => p.celulaId === destaqueId) ?? pontos[0];
+  const lat = alvo?.centroLat ?? posicao?.lat ?? -23.56;
+  const lon = alvo?.centroLon ?? posicao?.lon ?? -46.64;
+  return (
+    <MapaGoogle
+      key={`${lat},${lon}`}
+      lat={lat}
+      lon={lon}
+      zoom={15}
+      largura={largura}
+      altura={altura}
+      titulo={alvo ? `Google Maps: ponto crítico em ${alvo.viaReferencia}` : 'Google Maps'}
+    />
+  );
+}
+
+export function MapaPosicao({ lat, lon, altura, rotulo }: { lat: number; lon: number; altura: number; rotulo: string; titulo?: string; detalhe?: string }) {
+  return (
+    <div style={{ borderRadius: 14, overflow: 'hidden' }}>
+      <MapaGoogle lat={lat} lon={lon} zoom={16} largura="100%" altura={altura} titulo={rotulo} />
+    </div>
+  );
+}
