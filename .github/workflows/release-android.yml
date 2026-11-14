@@ -56,7 +56,14 @@ jobs:
           npx jest --ci
 
       - name: Gerar o projeto Android (CNG)
-        run: npx expo prebuild --platform android --no-install
+        run: |
+          # Diz no run se a chave chegou, sem mostrar a chave.
+          if [ -n "$GOOGLE_MAPS_API_KEY" ]; then
+            echo "::notice title=Google Maps::Chave configurada: o APK usa o Google Maps."
+          else
+            echo "::warning title=Google Maps::Sem o segredo GOOGLE_MAPS_API_KEY: o APK usa o mapa esquemático."
+          fi
+          npx expo prebuild --platform android --no-install
         env:
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
 
