@@ -2,7 +2,7 @@
   "expo": {
     "name": "Garupa SP",
     "slug": "garupa-sp",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "garupasp",
@@ -21,7 +21,7 @@
     },
     "android": {
       "package": "br.com.garupasp.app",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#111417",
         "foregroundImage": "./assets/images/android-icon-foreground.png"

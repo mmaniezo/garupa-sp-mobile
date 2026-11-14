@@ -4,9 +4,15 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 
 1. Em **Assets**, baixe o arquivo `.apk` no celular Android.
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
-3. No primeiro uso, faça o cadastro (use dados fictícios) e permita localização, notificações, movimento e **SMS**.
+3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**.
 
-## Novidades da 0.2.2
+## Novidades da 0.2.3
+
+- **Login com telefone e senha**: o cadastro pede uma senha (8 caracteres ou mais, com letras e números). Em "Já tenho conta: entrar", você entra com o telefone e a senha. Os contatos de emergência voltam, e o app pede as permissões do celular de novo.
+- **Sair da conta** em Perfil: apaga o que está neste celular, e a conta continua salva para entrar de novo.
+- **Quem já tinha o app**: o cadastro antigo não tem senha. Para testar o login, vá em Perfil → Sair da conta e faça um cadastro novo.
+
+## Da 0.2.2
 
 - **Google Maps de verdade em todos os mapas**: a 0.2.1 ainda mostrava o mapa simulado (a chave não chegava ao app). Agora o build confere dentro do APK que o Google Maps entrou.
 - **Aba Mapa**: cada ponto crítico fica no lugar exato, com o número do plano. Tocando, o balão do Google mostra a via, o distrito e o nível de risco.
@@ -31,6 +37,8 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 - **API simulada**: o app funciona sem servidor, com o mesmo contrato da [API C#](https://github.com/caio-alex/garupa-sp-api) e o risco calculado pelo [modelo de ML](https://github.com/Viniciuscont2/garupa-sp-ml) (`risco_celula.csv`). O cadastro some ao desinstalar o app.
 
 ## Limitações conhecidas
+
+- O login usa a API simulada: as contas ficam neste celular. Na API C# o login ainda vai ser implementado, e ainda não há recuperação de senha.
 
 - Os pontos críticos do modelo atual aparecem em dias úteis sem chuva (no fim de semana e na chuva nenhum ponto chega ao percentil 95).
 - O SMS automático usa o chip e o plano do celular (pode ter custo da operadora).
