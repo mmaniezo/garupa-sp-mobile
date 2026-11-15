@@ -1,9 +1,10 @@
 import { Redirect, router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { Botao, Icone, Tela, Texto } from '@/components/ui';
+import { Botao, BotaoVoltar, Icone, Tela, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { regras } from '@/config';
+import { voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { finalizarTurno, retomarTurno, useTurno } from '@/servicos/turno';
 import { brand, raio, tons, type NomeTema, type Paleta } from '@/theme';
@@ -11,6 +12,7 @@ import { brand, raio, tons, type NomeTema, type Paleta } from '@/theme';
 /**
  * Tela 13 · Turno pausado (RB18): 30 minutos parado pausa o turno, com aviso 5 minutos antes,
  * e o monitoramento volta sozinho quando a moto andar. A pausa manual espera "Retomar".
+ * O "Voltar" do topo leva ao plano sem mexer na pausa, como no turno ativo.
  */
 export default function TurnoPausado() {
   const turno = useTurno();
@@ -42,6 +44,10 @@ export default function TurnoPausado() {
           />
         </>
       }>
+      <View style={styles.topo}>
+        <BotaoVoltar dica="Volta para o plano. O turno continua pausado." onPress={() => voltarOu('/plano')} />
+      </View>
+
       {automatica ? (
         <View style={{ gap: 8 }}>
           <Texto variante="overline" cor="textoSecundario">
@@ -94,6 +100,7 @@ export default function TurnoPausado() {
 
 const criarEstilos = (c: Paleta, nome: NomeTema) =>
   StyleSheet.create({
+    topo: { flexDirection: 'row' },
     notificacao: {
       backgroundColor: nome === 'claro' ? brand.branco : brand.neblina,
       borderWidth: 1,
