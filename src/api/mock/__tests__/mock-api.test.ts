@@ -116,6 +116,26 @@ describe('API mock: mesmo contrato e mesmas regras da API C#', () => {
     await expect(depois.entrar({ telefone: '(11) 90000-0000', senha: 'garupa123' })).rejects.toMatchObject({ status: 401 });
   });
 
+  it('edita e exclui contato; o último não sai (409, como na API)', async () => {
+    const { api, usuarioId } = await novoUsuario();
+    const { contatoId: bia } = await api.adicionarContato(usuarioId, { nome: 'Bia', telefone: '(11) 90000-0002' });
+    await api.atualizarContato(usuarioId, bia, { nome: 'Bia (prima)', telefone: '(11) 97777-6666' });
+    let u = await api.obterUsuario(usuarioId);
+    expect(u.contatos.find((c) => c.contatoId === bia)).toMatchObject({ nome: 'Bia (prima)', telefone: '+5511977776666' });
+
+    const ana = u.contatos.find((c) => c.contatoId !== bia)!.contatoId;
+    await api.removerContato(usuarioId, ana);
+    u = await api.obterUsuario(usuarioId);
+    expect(u.contatos.map((c) => c.contatoId)).toEqual([bia]);
+
+    await expect(api.removerContato(usuarioId, bia)).rejects.toMatchObject({
+      status: 409,
+      problema: { title: 'Mantenha ao menos um contato de emergência.' },
+    });
+    await expect(api.atualizarContato(usuarioId, 'ctt-nao-existe', { nome: 'X', telefone: '(11) 90000-0003' })).rejects.toMatchObject({ status: 404 });
+    await expect(api.atualizarContato(usuarioId, bia, { nome: 'Bia', telefone: '123' })).rejects.toMatchObject({ status: 400 });
+  });
+
   it('recusa telefone fora do padrão com 400 e o campo do erro (RF01)', async () => {
     const api = criarApiMock({ latenciaMs: 0 });
     const errado = { nome: 'Léo', telefone: '123', senha: 'garupa123', contato };

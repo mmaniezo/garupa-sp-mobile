@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { ehErroApi } from '@/api';
-import { Aviso, Botao, CabecalhoPasso, Campo, CampoSenha, Tela, Texto } from '@/components/ui';
-import { mascararTelefone, validarTelefone } from '@/domain/telefone';
+import { CampoCelular } from '@/components/cadastro/campo-celular';
+import { Aviso, Botao, CabecalhoPasso, CampoSenha, Tela, Texto } from '@/components/ui';
+import { mascararTelefone, validarCelular } from '@/domain/telefone';
 import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
 import { entrarNaConta } from '@/servicos/conta';
 import { obterSessao, proximaTelaDoCadastro } from '@/state/sessao';
@@ -24,7 +25,8 @@ export default function Entrar() {
   async function entrar() {
     setErroGeral(null);
     const e: typeof erros = {};
-    if (!validarTelefone(telefone).valido) e.telefone = 'Telefone com DDD, como (11) 90000-0000.';
+    const celular = validarCelular(telefone);
+    if (!celular.valido) e.telefone = celular.mensagem;
     if (!senha) e.senha = 'Digite a sua senha.';
     setErros(e);
     if (e.telefone || e.senha) return;
@@ -64,23 +66,20 @@ export default function Entrar() {
           Bem-vindo de volta
         </Texto>
         <Texto variante="corpoMenor" cor="textoSecundario">
-          Entre com o telefone e a senha do seu cadastro.
+          Entre com o celular e a senha do seu cadastro.
         </Texto>
       </View>
 
       {erroGeral ? <Aviso tom="erro" texto={erroGeral} anunciar /> : null}
 
-      <Campo
-        rotulo="Seu telefone"
+      <CampoCelular
+        rotulo="Seu celular"
         value={telefone}
         onChangeText={(v) => {
           setErros((x) => ({ ...x, telefone: undefined }));
-          setTelefone(mascararTelefone(v));
+          setTelefone(v);
         }}
-        keyboardType="phone-pad"
-        autoComplete="tel"
-        textContentType="telephoneNumber"
-        placeholder="(11) 90000-0000"
+        placeholder="(11) 91234-5678"
         returnKeyType="next"
         erro={erros.telefone}
       />

@@ -11,8 +11,9 @@ import {
   obterPreferencias,
 } from '@/dados-locais/preferencias';
 import { limparSosAntigos } from '@/dados-locais/repositorios';
-import { apagarDadosSeguros, lerFicha } from '@/dados-locais/seguro';
+import { apagarDadosSeguros, gravarContatos, lerContatos, lerFicha } from '@/dados-locais/seguro';
 import { horariosHabituais } from '@/domain/periodos';
+import { validarTelefone } from '@/domain/telefone';
 import { atualizarSessao, encerrarSessaoNoAparelho, obterSessao } from '@/state/sessao';
 
 import { carregarToken } from './conta';
@@ -97,6 +98,18 @@ async function reidratarMock(): Promise<void> {
     }
     const ficha = await lerFicha();
     if (ficha && consentimentos.fichaMedica) await api.salvarFichaMedica(usuarioId, ficha);
+    // Cadastro de antes das contas guardadas: o mock volta sem contatos. Devolve os do aparelho
+    // (com os ids novos), para editar e excluir contato funcionarem.
+    const contatos = await lerContatos();
+    if (contatos.length > 0 && (await api.obterUsuario(usuarioId)).contatos.length === 0) {
+      const comIdNovo = [];
+      for (const c of contatos) {
+        const t = validarTelefone(c.telefone);
+        const { contatoId } = await api.adicionarContato(usuarioId, { nome: c.nome, telefone: t.valido ? t.e164 : c.telefone });
+        comIdNovo.push({ ...c, contatoId });
+      }
+      await gravarContatos(comIdNovo);
+    }
     if (prefs.pulseira) await api.parearVestivel(usuarioId, prefs.pulseira.dispositivoId);
   } catch {
     // demo: segue sem

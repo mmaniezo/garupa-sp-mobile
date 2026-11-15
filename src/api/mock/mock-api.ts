@@ -154,6 +154,13 @@ export function criarApiMock(
     await opcoes.contas?.gravar([...contas.values()]).catch(() => undefined);
   }
   const novoToken = () => `mock.${randomUUID()}`;
+  /** A conta guardada acompanha os contatos (é o que volta no login). */
+  async function guardarContatosDaConta(usuarioId: string, u: UsuarioMock) {
+    const conta = contaDoUsuario(usuarioId);
+    if (!conta) return;
+    conta.contatos = u.contatos.map((c) => ({ ...c }));
+    await salvarContas();
+  }
 
   async function responder<T>(fn: () => T | Promise<T>): Promise<T> {
     await contasCarregadas;
@@ -296,12 +303,28 @@ export function criarApiMock(
         }
         const contatoId = novoId('ctt');
         u.contatos.push({ contatoId, ...valido });
-        const conta = contaDoUsuario(usuarioId);
-        if (conta) {
-          conta.contatos = u.contatos.map((c) => ({ ...c }));
-          await salvarContas();
-        }
+        await guardarContatosDaConta(usuarioId, u);
         return { contatoId };
+      }),
+
+    atualizarContato: (usuarioId, contatoId, contato) =>
+      responder(async () => {
+        const u = usuario(usuarioId);
+        const atual = u.contatos.find((c) => c.contatoId === contatoId);
+        if (!atual) throw erro404('Contato não encontrado.');
+        Object.assign(atual, validarContato(contato));
+        await guardarContatosDaConta(usuarioId, u);
+      }),
+
+    removerContato: (usuarioId, contatoId) =>
+      responder(async () => {
+        const u = usuario(usuarioId);
+        const i = u.contatos.findIndex((c) => c.contatoId === contatoId);
+        if (i < 0) throw erro404('Contato não encontrado.');
+        // Como na API (Usuario.RemoverContato): o último contato não sai.
+        if (u.contatos.length === 1) throw erro409('Mantenha ao menos um contato de emergência.');
+        u.contatos.splice(i, 1);
+        await guardarContatosDaConta(usuarioId, u);
       }),
 
     salvarPerfil: (usuarioId, perfil) =>

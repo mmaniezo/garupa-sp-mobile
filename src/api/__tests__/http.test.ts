@@ -64,6 +64,20 @@ describe('cliente HTTP da API C#', () => {
     definirToken(null);
   });
 
+  it('editar e excluir contato: PUT e DELETE com os ids numéricos da API', async () => {
+    const { api, chamadas } = apiFalsa({
+      'PUT /usuarios/7/contatos/3': 204,
+      'DELETE /usuarios/7/contatos/3': 204,
+    });
+    await api.atualizarContato('7', '3', { nome: 'Bia', telefone: '+5511977776666' });
+    await api.removerContato('7', '3');
+    expect(chamadas.map((c) => `${c.metodo} ${c.url.replace('http://api.teste/api/v1', '')}`)).toEqual([
+      'PUT /usuarios/7/contatos/3',
+      'DELETE /usuarios/7/contatos/3',
+    ]);
+    expect(chamadas[0].corpo).toEqual({ nome: 'Bia', telefone: '+5511977776666' });
+  });
+
   it('login errado: 401 vira ErroApi com a mensagem da API', async () => {
     globalThis.fetch = jest.fn(
       async () => new Response(JSON.stringify({ title: 'Telefone ou senha incorretos.', status: 401 }), { status: 401 }),

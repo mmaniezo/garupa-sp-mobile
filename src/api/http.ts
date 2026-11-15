@@ -197,6 +197,9 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
     },
     salvarPerfil: async (u, perfil) => chamar('PUT', `/usuarios/${idDaApi(u)}/perfil`, { corpo: perfil }),
     salvarConsentimentos: async (u, c) => chamar('PUT', `/usuarios/${idDaApi(u)}/consentimentos`, { corpo: c }),
+    atualizarContato: async (u, c, contato) =>
+      chamar('PUT', `/usuarios/${idDaApi(u)}/contatos/${idDaApi(c)}`, { corpo: contato }),
+    removerContato: async (u, c) => chamar('DELETE', `/usuarios/${idDaApi(u)}/contatos/${idDaApi(c)}`),
     excluirUsuario: async (u) => chamar('DELETE', `/usuarios/${idDaApi(u)}`),
     listarDistritos: async () => chamar('GET', '/distritos'),
 

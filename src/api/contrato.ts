@@ -47,6 +47,10 @@ export interface GarupaApi {
   salvarFichaMedica(usuarioId: string, ficha: FichaMedica): Promise<void>;
   /** POST /usuarios/{id}/contatos */
   adicionarContato(usuarioId: string, contato: NovoContato): Promise<ContatoCriado>;
+  /** PUT /usuarios/{id}/contatos/{contatoId} (204; 404 se o contato não existe) */
+  atualizarContato(usuarioId: string, contatoId: string, contato: NovoContato): Promise<void>;
+  /** DELETE /usuarios/{id}/contatos/{contatoId} (409 no último: precisa ter ao menos um) */
+  removerContato(usuarioId: string, contatoId: string): Promise<void>;
   /** PUT /usuarios/{id}/perfil (409 sem o consentimento perfilDeUso) */
   salvarPerfil(usuarioId: string, perfil: PerfilUso): Promise<void>;
   /** PUT /usuarios/{id}/consentimentos */

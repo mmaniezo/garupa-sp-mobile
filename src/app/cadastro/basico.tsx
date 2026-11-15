@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { api, ehErroApi, origemApi } from '@/api';
+import { CampoCelular } from '@/components/cadastro/campo-celular';
 import { Aviso, Botao, CabecalhoPasso, Campo, CampoSenha, Icone, Tela, Texto } from '@/components/ui';
 import { regras } from '@/config';
 import { gravarContatos, lerContatos, type ContatoLocal } from '@/dados-locais/seguro';
 import { gravarValor, lerValor } from '@/db';
 import { problemaDaSenha } from '@/domain/senha';
-import { mascararTelefone, validarTelefone } from '@/domain/telefone';
-import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
+import { validarCelular, validarTelefone } from '@/domain/telefone';
+import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { guardarToken } from '@/servicos/conta';
 import { atualizarSessao, useSessao } from '@/state/sessao';
@@ -19,13 +20,13 @@ type ContatoForm = { contatoId: string | null; nome: string; telefone: string };
 type Erros = Record<string, string | undefined>;
 
 /**
- * Tela 02 · Cadastro 1/4, obrigatório (RF01): nome ou apelido, telefone, senha e um contato.
- * O telefone e a senha são o login (para entrar de novo ou em outro celular).
- * Até 3 contatos. Pelo Perfil (?editar=1), serve para adicionar contatos.
+ * Tela 02 · Cadastro 1/4, obrigatório (RF01): nome ou apelido, celular, senha e um contato.
+ * O celular e a senha são o login (para entrar de novo ou em outro celular). Até 3 contatos,
+ * sempre celular com o 9 (é para eles que vai o SMS do socorro). Editar e excluir contato
+ * depois do cadastro fica na tela Contatos de emergência (Perfil).
  */
 export default function CadastroBasico() {
   const sessao = useSessao();
-  const editar = useEdicao();
   const corLink = useTema().c.link;
   const styles = useEstilos(criarEstilos);
   const [nome, setNome] = useState(sessao.nome ?? '');
@@ -45,23 +46,24 @@ export default function CadastroBasico() {
       if (!m) void gravarValor('metrica_cadastro', { inicio: Date.now() });
     });
     void lerContatos().then((salvos) => {
-      if (salvos.length) setContatos(editar && salvos.length < regras.maxContatos ? [...salvos, { contatoId: null, nome: '', telefone: '' }] : salvos);
+      if (salvos.length) setContatos(salvos);
     });
-  }, [editar]);
+  }, []);
 
   /** Ao corrigir um campo, o erro dele some. */
   const limparErro = (chave: string) => setErros((e) => (e[chave] ? { ...e, [chave]: undefined } : e));
 
   function mudarContato(i: number, campo: 'nome' | 'telefone', valor: string) {
     limparErro(`contato-${i}-${campo}`);
-    setContatos((lista) => lista.map((c, j) => (j === i ? { ...c, [campo]: campo === 'telefone' ? mascararTelefone(valor) : valor } : c)));
+    setContatos((lista) => lista.map((c, j) => (j === i ? { ...c, [campo]: valor } : c)));
   }
 
   function validar(): boolean {
     const e: Erros = {};
     if (!jaTemUsuario) {
       if (!nome.trim()) e.nome = 'Informe seu nome ou apelido.';
-      if (!validarTelefone(telefone).valido) e.telefone = 'Telefone com DDD, como (11) 90000-0000.';
+      const celular = validarCelular(telefone);
+      if (!celular.valido) e.telefone = celular.mensagem;
       const problema = problemaDaSenha(senha);
       if (problema) e.senha = problema;
     }
@@ -70,7 +72,8 @@ export default function CadastroBasico() {
     contatos.forEach((c, i) => {
       if (c.contatoId || (!c.nome.trim() && !c.telefone.trim() && i > 0)) return;
       if (!c.nome.trim()) e[`contato-${i}-nome`] = 'Informe o nome do contato.';
-      if (!validarTelefone(c.telefone).valido) e[`contato-${i}-telefone`] = 'Telefone com DDD, como (11) 90000-0001.';
+      const celular = validarCelular(c.telefone);
+      if (!celular.valido) e[`contato-${i}-telefone`] = celular.mensagem;
     });
     setErros(e);
     return Object.keys(e).length === 0;
@@ -136,10 +139,6 @@ export default function CadastroBasico() {
       }
       await gravarContatos(salvos);
 
-      if (editar) {
-        voltarOu('/perfil');
-        return;
-      }
       const metrica = await lerValor<{ inicio: number }>('metrica_cadastro');
       await gravarValor('metrica_cadastro', { ...metrica, minimoConcluido: Date.now() });
       await atualizarSessao({ passos: { basico: 'feito' } });
@@ -172,27 +171,19 @@ export default function CadastroBasico() {
       margem={24}
       rodape={
         <>
-          <Botao titulo={editar ? 'Salvar contatos' : 'Continuar'} onPress={continuar} carregando={enviando} />
-          {!editar ? (
-            <Texto variante="legenda" cor="textoSecundario" centro>
-              Ficha médica (tipo sanguíneo, alergias) você preenche depois, se quiser.
-            </Texto>
-          ) : null}
+          <Botao titulo="Continuar" onPress={continuar} carregando={enviando} />
+          <Texto variante="legenda" cor="textoSecundario" centro>
+            Ficha médica (tipo sanguíneo, alergias) você preenche depois, se quiser.
+          </Texto>
         </>
       }>
-      <CabecalhoPasso
-        rotulo={editar ? 'Contatos de emergência' : 'Passo 1 de 4 · obrigatório'}
-        onVoltar={() => voltarOu(editar ? '/perfil' : '/boas-vindas')}
-        passo={editar ? undefined : 1}
-      />
+      <CabecalhoPasso rotulo="Passo 1 de 4 · obrigatório" onVoltar={() => voltarOu('/boas-vindas')} passo={1} />
       <View style={styles.titulo}>
         <Texto variante="titulo" accessibilityRole="header">
-          {editar ? 'Quem a gente avisa?' : 'Quem é você?'}
+          Quem é você?
         </Texto>
         <Texto variante="corpoMenor" cor="textoSecundario">
-          {editar
-            ? `Até ${regras.maxContatos} contatos. Eles recebem o link de acompanhamento do SOS.`
-            : 'Seus dados e alguém para a gente avisar se você precisar de socorro. O resto é opcional.'}
+          Seus dados e alguém para a gente avisar se você precisar de socorro. O resto é opcional.
         </Texto>
       </View>
 
@@ -213,18 +204,15 @@ export default function CadastroBasico() {
             returnKeyType="next"
             erro={erros.nome}
           />
-          <Campo
-            rotulo="Seu telefone"
+          <CampoCelular
+            rotulo="Seu celular"
             value={telefone}
             onChangeText={(v) => {
               limparErro('telefone');
               setTelefoneTemConta(false);
-              setTelefone(mascararTelefone(v));
+              setTelefone(v);
             }}
-            keyboardType="phone-pad"
-            autoComplete="tel"
-            textContentType="telephoneNumber"
-            placeholder="(11) 90000-0000"
+            placeholder="(11) 91234-5678"
             erro={erros.telefone}
           />
           {telefoneTemConta ? (
@@ -248,9 +236,9 @@ export default function CadastroBasico() {
             erro={erros.senha}
           />
         </>
-      ) : !editar ? (
+      ) : (
         <Aviso tom="neutro" texto={`Cadastro de ${sessao.nome ?? 'você'} criado. Falta confirmar o contato de emergência.`} />
-      ) : null}
+      )}
 
       {contatos.map((c, i) => (
         <View key={i} style={styles.contato}>
@@ -275,13 +263,13 @@ export default function CadastroBasico() {
                 maxLength={60}
                 erro={erros[`contato-${i}-nome`]}
               />
-              <Campo
-                rotulo="Telefone"
+              <CampoCelular
+                rotulo="Celular"
                 aparencia="interno"
                 value={c.telefone}
                 onChangeText={(v) => mudarContato(i, 'telefone', v)}
-                keyboardType="phone-pad"
-                placeholder="(11) 90000-0001"
+                placeholder="(11) 91234-5678"
+                autoComplete="off"
                 erro={erros[`contato-${i}-telefone`]}
               />
             </>
