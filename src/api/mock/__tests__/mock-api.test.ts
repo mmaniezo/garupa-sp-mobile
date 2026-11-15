@@ -197,18 +197,37 @@ describe('API mock: mesmo contrato e mesmas regras da API C#', () => {
     for (const p of plano.pontosCriticos) {
       expect(p.percentil).toBeGreaterThanOrEqual(95);
       expect(p.distritoId).toBe(itaim);
-      expect(p.versaoModelo).toBe('v1-xgb-2025');
+      expect(p.versaoModelo).toBe('v2-xgb-poisson-2024');
     }
     const scores = plano.pontosCriticos.map((p) => p.score);
     expect([...scores].sort((x, y) => y - x)).toEqual(scores);
-    // Primeira linha do risco_celula.csv: Marginal Pinheiros / Av. Santo Amaro, 0,9561.
-    expect(plano.pontosCriticos[0]).toMatchObject({ celulaId: '88a8100ec5fffff', score: 0.9561, percentil: 100 });
+    // No risco_celula.csv (Infosiga), a célula de maior score no Itaim às 20h-24h de dia útil
+    // seco é a da SP 015 (Marginal Pinheiros), com o nome escrito para leitura.
+    expect(plano.pontosCriticos[0]).toMatchObject({
+      celulaId: '88a8100529fffff',
+      viaReferencia: 'SP 015 - Pinheiros',
+      score: 0.321978,
+      percentil: 99,
+    });
     expect(plano.mensagens.length).toBeLessThanOrEqual(2);
+  });
+
+  it('fim de semana e chuva também têm pontos críticos (percentil dentro de cada contexto)', async () => {
+    const { api, usuarioId } = await novoUsuario();
+    const itaim = distrito('Itaim Bibi');
+    await api.salvarPerfil(usuarioId, { tiposDeUso: ['entregador_app'], horariosHabituais: [], distritosFrequentes: [itaim] });
+    for (const contexto of [
+      { faixaHoraria: 4 as const, tipoDia: 'sabado' as const, chuva: false },
+      { faixaHoraria: 2 as const, tipoDia: 'domingo' as const, chuva: true },
+    ]) {
+      const plano = await api.obterPlanoDoTurno({ usuarioId, ...contexto });
+      expect(plano.pontosCriticos.length).toBeGreaterThan(0);
+    }
   });
 
   it('detalhe da célula traz os 36 contextos do modelo (RF09)', async () => {
     const api = criarApiMock({ latenciaMs: 0 });
-    const detalhe = await api.obterCelula('88a8100ec5fffff');
+    const detalhe = await api.obterCelula('88a8100529fffff');
     expect(detalhe.riscoPorFaixa).toHaveLength(36);
     expect(detalhe.distritoNome).toBe('Itaim Bibi');
     await expect(api.obterCelula('nao-existe')).rejects.toMatchObject({ status: 404 });

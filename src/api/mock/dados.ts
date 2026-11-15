@@ -11,6 +11,8 @@
  */
 import type { ContextoMensagem, Distrito, FaixaHoraria, Mensagem, TipoDia, TipoUso } from '../types';
 
+import { nomeDaVia } from '@/domain/via';
+
 import distritos from './distritos.json';
 import modelo from './risco-modelo.json';
 
@@ -37,6 +39,7 @@ const nomes = new Map(DISTRITOS.map((d) => [d.distritoId, d.nome]));
 
 export const CELULAS: CelulaMock[] = modelo.celulas.map((c) => ({
   ...c,
+  viaReferencia: nomeDaVia(c.viaReferencia),
   distritoNome: nomes.get(c.distritoId) ?? '',
   risco: c.risco as [number, number][],
 }));

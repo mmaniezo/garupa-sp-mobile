@@ -1,3 +1,5 @@
+import { nomeDaVia } from '@/domain/via';
+
 import type { GarupaApi } from './contrato';
 import { ErroApi, ErroDeRede } from './erros';
 import { tokenAtual } from './token';
@@ -112,8 +114,11 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
   const id = encodeURIComponent;
 
   // A API devolve só o id do distrito; o nome vem de GET /distritos, buscado uma vez.
+  // Aproveita para escrever o nome da via como se lê (o Infosiga manda em maiúsculas).
   let nomesDistritos: Promise<Map<number, string>> | null = null;
-  async function comNomeDoDistrito<P extends { distritoId?: number }>(itens: P[]): Promise<(P & { distritoNome?: string })[]> {
+  async function comNomeDoDistrito<P extends { distritoId?: number; viaReferencia: string }>(
+    itens: P[],
+  ): Promise<(P & { distritoNome?: string })[]> {
     nomesDistritos ??= chamar<Distrito[]>('GET', '/distritos').then((l) => new Map(l.map((d) => [d.distritoId, d.nome])));
     let nomes: Map<number, string> | undefined;
     try {
@@ -121,7 +126,11 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
     } catch {
       nomesDistritos = null; // tenta de novo na próxima; o ponto aparece sem o nome do distrito
     }
-    return itens.map((p) => ({ ...p, distritoNome: p.distritoId !== undefined ? nomes?.get(p.distritoId) : undefined }));
+    return itens.map((p) => ({
+      ...p,
+      viaReferencia: nomeDaVia(p.viaReferencia),
+      distritoNome: p.distritoId !== undefined ? nomes?.get(p.distritoId) : undefined,
+    }));
   }
 
   return {

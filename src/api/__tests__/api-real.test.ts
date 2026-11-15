@@ -105,7 +105,7 @@ descrever('API real: o app fala com todos os endpoints que usa', () => {
     const consulta = { faixaHoraria: 5 as const, tipoDia: 'util' as const, chuva: false };
     const plano = await api.obterPlanoDoTurno({ usuarioId, ...consulta });
     expect(plano.pontosCriticos.length).toBeGreaterThan(0);
-    expect(plano.pontosCriticos[0]).toMatchObject({ distritoId: itaim, distritoNome: 'Itaim Bibi', versaoModelo: 'v1-xgb-2025' });
+    expect(plano.pontosCriticos[0]).toMatchObject({ distritoId: itaim, distritoNome: 'Itaim Bibi', versaoModelo: 'v2-xgb-poisson-2024' });
     expect(plano.mensagens.length).toBeGreaterThan(0);
 
     // O mock (mesmos dados do ML) devolve os mesmos pontos, na mesma ordem.
@@ -123,15 +123,15 @@ descrever('API real: o app fala com todos os endpoints que usa', () => {
     expect(resumo(planoMock.pontosCriticos)).toEqual(resumo(plano.pontosCriticos));
     expect(planoMock.mensagens).toEqual(plano.mensagens);
 
-    const perto = await api.obterRisco({ lat: -23.58748, lon: -46.684975, raioMetros: 3000, ...consulta });
-    expect(perto.map((p) => p.celulaId)).toContain('88a8100ec5fffff');
-    const pertoMock = await mock.obterRisco({ lat: -23.58748, lon: -46.684975, raioMetros: 3000, ...consulta });
+    const perto = await api.obterRisco({ lat: -23.617554, lon: -46.698107, raioMetros: 3000, ...consulta });
+    expect(perto.map((p) => p.celulaId)).toContain('88a8100529fffff');
+    const pertoMock = await mock.obterRisco({ lat: -23.617554, lon: -46.698107, raioMetros: 3000, ...consulta });
     expect(resumo(pertoMock)).toEqual(resumo(perto));
 
-    const detalhe = await api.obterCelula('88a8100ec5fffff');
+    const detalhe = await api.obterCelula('88a8100529fffff');
     expect(detalhe.riscoPorFaixa).toHaveLength(36);
     expect(detalhe.distritoNome).toBe('Itaim Bibi');
-    const detalheMock = await mock.obterCelula('88a8100ec5fffff');
+    const detalheMock = await mock.obterCelula('88a8100529fffff');
     const chave = (r: (typeof detalhe.riscoPorFaixa)[number]) => `${r.faixaHoraria}${r.tipoDia}${r.chuva}`;
     const porChave = new Map(detalheMock.riscoPorFaixa.map((r) => [chave(r), r]));
     for (const r of detalhe.riscoPorFaixa) expect(porChave.get(chave(r))).toEqual(r);

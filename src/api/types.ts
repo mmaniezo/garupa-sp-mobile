@@ -38,7 +38,7 @@ export type CelulaCritica = {
   distritoId?: number;
   /** Não vem da API: o app completa a partir de GET /distritos. */
   distritoNome?: string;
-  /** Versão do modelo de ML que gerou o score (ex.: v1-xgb-2025). */
+  /** Versão do modelo de ML que gerou o score (ex.: v2-xgb-poisson-2024). */
   versaoModelo?: string;
   /** Frase curta da API sobre o histórico do ponto no contexto consultado. */
   motivo?: string;

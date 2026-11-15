@@ -8,8 +8,12 @@
  * - risco_celula.csv: saída do modelo (garupa-sp-ml/saida/risco_celula.csv).
  * - distritos.json: lista do IBGE usada pela API (garupa-sp-api/Garupa.Infrastructure/Resources/distritos.json).
  *
- * Escreve src/api/mock/distritos.json e src/api/mock/risco-modelo.json. Como a API, troca o
- * distrito_id do CSV (GeoSampa) pelo id IBGE, achando o distrito pelo nome.
+ * Escreve src/api/mock/distritos.json e src/api/mock/risco-modelo.json. Como a API, acha o
+ * distrito pelo nome e usa o id IBGE.
+ *
+ * Só entram as células que chegam ao corte (percentil 95, o mesmo de regras.percentilCorte) em
+ * pelo menos um contexto: as outras nunca aparecem no app, nem no plano nem nos alertas. Com os
+ * dados do Infosiga são 182 de 2.044 células, e o arquivo fica com ~120 KB em vez de 1,3 MB.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -67,6 +71,7 @@ function lerCsv(texto) {
   return resto.map((l) => Object.fromEntries(cabecalho.map((k, i) => [k.trim(), l[i]?.trim() ?? ''])));
 }
 
+const CORTE = 95;
 const DIAS = ['util', 'sabado', 'domingo'];
 const numero = (s) => Number(String(s).replace(',', '.'));
 const indice = (faixa, dia, chuva) => faixa * 6 + DIAS.indexOf(dia) * 2 + chuva;
@@ -103,9 +108,13 @@ for (const c of celulas.values()) {
   if (c.risco.some((x) => !x)) throw new Error(`Célula ${c.celulaId} sem todos os 36 contextos.`);
 }
 
+const criticas = [...celulas.values()].filter((c) => c.risco.some(([, percentil]) => percentil >= CORTE));
+
 writeFileSync(join(destino, 'distritos.json'), JSON.stringify(distritos, null, 1) + '\n');
 writeFileSync(
   join(destino, 'risco-modelo.json'),
-  JSON.stringify({ versaoModelo: versao, geradoDe: 'garupa-sp-ml/saida/risco_celula.csv', celulas: [...celulas.values()] }) + '\n',
+  JSON.stringify({ versaoModelo: versao, geradoDe: 'garupa-sp-ml/saida/risco_celula.csv', celulas: criticas }) + '\n',
 );
-console.log(`${distritos.length} distritos e ${celulas.size} células (${versao}) gravados em src/api/mock.`);
+console.log(
+  `${distritos.length} distritos e ${criticas.length} de ${celulas.size} células (as que chegam ao percentil ${CORTE}; ${versao}) gravados em src/api/mock.`,
+);
