@@ -6,7 +6,13 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**.
 
-## Novidades da 0.2.3
+## Novidades da 0.2.4
+
+- **Pontos críticos com os dados oficiais do Infosiga**: o plano do turno e o mapa usam o modelo novo do ML (sinistros graves e fatais com moto de 2019 a 2025, e a chuva do INMET). Agora há pontos críticos também no fim de semana e na chuva, e o nome das ruas aparece escrito para leitura ("Avenida dos Bandeirantes").
+- **Contatos de emergência**: em Perfil → Contatos de emergência dá para editar, excluir e adicionar (até 3). Precisa ficar ao menos um contato.
+- **O 9 depois do DDD**: o cadastro, os contatos e o login só aceitam celular com o 9. Se faltar, o app avisa e oferece o número corrigido num toque. Sem o 9, o SMS do socorro não chega. Telefone fixo não é aceito.
+
+## Da 0.2.3
 
 - **Login com telefone e senha**: o cadastro pede uma senha (8 caracteres ou mais, com letras e números). Em "Já tenho conta: entrar", você entra com o telefone e a senha. Os contatos de emergência voltam, e o app pede as permissões do celular de novo.
 - **Sair da conta** em Perfil: apaga o que está neste celular, e a conta continua salva para entrar de novo.
@@ -34,13 +40,11 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 ## O que o app faz
 
 - Cadastro em camadas, plano do turno, mapa de pontos críticos, turno em segundo plano, alerta de ponto crítico, detecção de queda com contagem de 30 s, SOS, tela da testemunha, relato de perigo, pulseira simulada e conta e privacidade.
-- **API simulada**: o app funciona sem servidor, com o mesmo contrato da [API C#](https://github.com/caio-alex/garupa-sp-api) e o risco calculado pelo [modelo de ML](https://github.com/Viniciuscont2/garupa-sp-ml) (`risco_celula.csv`). O cadastro some ao desinstalar o app.
+- **API simulada**: o app funciona sem servidor, com o mesmo contrato da [API C#](https://github.com/caio-alex/garupa-sp-api) e o risco calculado pelo modelo de ML com os dados do Infosiga (`risco_celula.csv`). O cadastro some ao desinstalar o app.
 
 ## Limitações conhecidas
 
 - O login usa a API simulada: as contas ficam neste celular. Na API C# o login ainda vai ser implementado, e ainda não há recuperação de senha.
-
-- Os pontos críticos do modelo atual aparecem em dias úteis sem chuva (no fim de semana e na chuva nenhum ponto chega ao percentil 95).
 - O SMS automático usa o chip e o plano do celular (pode ter custo da operadora).
 - APK de demonstração, assinado com a chave de depuração: não é a versão da loja.
 - Para gravar o vídeo, use os atalhos de demonstração: Turno ativo → Simular queda, e Pulseira → Impacto, SOS e Cancelar.
