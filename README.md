@@ -108,7 +108,9 @@ npm test
 
 O app fala com a API C# ([garupa-sp-api](https://github.com/caio-alex/garupa-sp-api)) pelo contrato de `/api/v1` (`src/api/contrato.ts`). O risco vem do modelo de ML ([garupa-sp-ml](https://github.com/Viniciuscont2/garupa-sp-ml)): a API importa o `saida/risco_celula.csv` e responde com os pontos de percentil ≥ 95.
 
-Sem servidor, o app usa a **API simulada** (padrão): o mesmo contrato, as mesmas regras e os mesmos dados do modelo (`src/api/mock/risco-modelo.json`, gerado do CSV). Quando o modelo mudar:
+O modelo atual (`v2-xgb-poisson-2024`) usa os dados oficiais do Infosiga (sinistros graves e fatais com moto, 2019 a 2025) e do INMET (chuva). O percentil é calculado dentro de cada contexto (faixa de 4 h, tipo de dia, chuva): em todo contexto a cidade tem de 112 a 113 células de percentil ≥ 95, inclusive no fim de semana e na chuva.
+
+Sem servidor, o app usa a **API simulada** (padrão): o mesmo contrato, as mesmas regras e os mesmos dados do modelo (`src/api/mock/risco-modelo.json`, gerado do CSV). Ficam só as 182 células que chegam ao percentil 95 em algum contexto (de 2.044), porque as outras nunca aparecem no app. O nome da via vem em maiúsculas do Infosiga e o app escreve para leitura (`src/domain/via.ts`). O repositório do ML é privado: é preciso ter acesso a ele para atualizar. Quando o modelo mudar:
 
 ```bash
 node scripts/gerar-dados-mock.mjs ../garupa-sp-ml/saida/risco_celula.csv "../garupa-sp-api/Garupa.Infrastructure/Resources/distritos.json"
