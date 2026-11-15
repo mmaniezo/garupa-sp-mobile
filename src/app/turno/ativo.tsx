@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, StyleSheet, View } from 'react-native';
 
 import { mock } from '@/api';
-import { Logo } from '@/components/brand/logo';
 import { SosManual } from '@/components/sos/sos-manual';
-import { Aviso, Botao, Icone, Tela, Texto } from '@/components/ui';
+import { Aviso, Botao, BotaoVoltar, Icone, Tela, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
+import { voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { simularQueda } from '@/servicos/queda';
 import { finalizarTurno, pausarTurno, turnoSoComAppAberto, useTurno } from '@/servicos/turno';
@@ -36,7 +36,8 @@ function Indicador({ titulo, ok, texto }: { titulo: string; ok: boolean; texto: 
 
 /**
  * Tela 10 · Turno ativo (RF13). Depois de iniciado, a pessoa abre o app de entregas e o Garupa
- * segue em segundo plano, com a notificação fixa (Pausar e Finalizar).
+ * segue em segundo plano, com a notificação fixa (Pausar e Finalizar). O "Voltar" do topo leva
+ * ao plano sem parar o turno (não depende do botão de voltar do celular).
  */
 export default function TurnoAtivo() {
   const turno = useTurno();
@@ -86,7 +87,7 @@ export default function TurnoAtivo() {
         </View>
       }>
       <View style={styles.topo}>
-        <Logo variante="horizontal" altura={36} />
+        <BotaoVoltar dica="Volta para o plano. O turno continua ativo." onPress={() => voltarOu('/plano')} />
         <Botao
           titulo="SOS"
           variante="contorno"

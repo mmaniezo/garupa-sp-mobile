@@ -2,6 +2,7 @@ export { Aviso } from './aviso';
 export { BannerAlerta } from './banner-alerta';
 export { Botao, type TamanhoBotao, type VarianteBotao } from './botao';
 export { BotaoIcone } from './botao-icone';
+export { BotaoVoltar } from './botao-voltar';
 export { CabecalhoPasso } from './cabecalho-passo';
 export { Campo } from './campo';
 export { CampoSenha } from './campo-senha';
