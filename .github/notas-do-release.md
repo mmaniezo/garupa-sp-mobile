@@ -6,7 +6,11 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**.
 
-## Novidades da 0.2.5
+## Novidades da 0.2.6
+
+- **Voltar no turno pausado**: a tela de turno pausado também tem o botão "Voltar" no topo. Ele leva ao plano e o turno continua pausado.
+
+## Da 0.2.5
 
 - **Enviar agora**: depois de escolher um perigo em "Viu um perigo?" ou um tipo de SOS em "Precisa de ajuda?", a contagem mostra "Desfazer" à esquerda e "Enviar agora" à direita. Quem tem pressa não precisa esperar os 5 s do relato nem os 10 s do SOS.
 - **Voltar no turno ativo**: no topo da tela, no lugar da logo, um botão "Voltar" com seta leva ao plano. O turno continua ativo, e não é preciso usar o botão de voltar do celular.
