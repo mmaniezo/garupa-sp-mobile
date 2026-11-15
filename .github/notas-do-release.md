@@ -6,7 +6,12 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**.
 
-## Novidades da 0.2.4
+## Novidades da 0.2.5
+
+- **Enviar agora**: depois de escolher um perigo em "Viu um perigo?" ou um tipo de SOS em "Precisa de ajuda?", a contagem mostra "Desfazer" à esquerda e "Enviar agora" à direita. Quem tem pressa não precisa esperar os 5 s do relato nem os 10 s do SOS.
+- **Voltar no turno ativo**: no topo da tela, no lugar da logo, um botão "Voltar" com seta leva ao plano. O turno continua ativo, e não é preciso usar o botão de voltar do celular.
+
+## Da 0.2.4
 
 - **Pontos críticos com os dados oficiais do Infosiga**: o plano do turno e o mapa usam o modelo novo do ML (sinistros graves e fatais com moto de 2019 a 2025, e a chuva do INMET). Agora há pontos críticos também no fim de semana e na chuva, e o nome das ruas aparece escrito para leitura ("Avenida dos Bandeirantes").
 - **Contatos de emergência**: em Perfil → Contatos de emergência dá para editar, excluir e adicionar (até 3). Precisa ficar ao menos um contato.
