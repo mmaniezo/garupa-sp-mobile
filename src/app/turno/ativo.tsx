@@ -45,6 +45,7 @@ export default function TurnoAtivo() {
   const styles = useEstilos(criarEstilos);
   const [agora, setAgora] = useState(() => Date.now());
   const [sosAberto, setSosAberto] = useState(false);
+  const [sosContando, setSosContando] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setAgora(Date.now()), 1000);
@@ -174,12 +175,14 @@ export default function TurnoAtivo() {
               Escolha o que aconteceu. Seus contatos recebem um SMS com a sua localização.
             </Texto>
             <SosManual
+              aoMudarContagem={setSosContando}
               onEnviado={(id) => {
                 setSosAberto(false);
                 router.push(`/sos/${id}`);
               }}
             />
-            <Botao titulo="Fechar" variante="fantasma" tamanho="padrao" onPress={() => setSosAberto(false)} />
+            {/* Na contagem, ficam só Desfazer e Enviar agora (o voltar do celular também cancela). */}
+            {!sosContando ? <Botao titulo="Fechar" variante="fantasma" tamanho="padrao" onPress={() => setSosAberto(false)} /> : null}
           </View>
         </View>
       </Modal>

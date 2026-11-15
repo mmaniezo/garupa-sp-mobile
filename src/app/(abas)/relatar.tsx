@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { TipoRelato } from '@/api/types';
 import { SEGUNDOS_PARA_DESFAZER_SOS, SosManual } from '@/components/sos/sos-manual';
-import { Aviso, Botao, Icone, Tela, Texto } from '@/components/ui';
+import { Aviso, ContagemDesfazer, Icone, Tela, Texto } from '@/components/ui';
 import { useEstilos, useTema } from '@/lib/tema';
 import { useDesfazer } from '@/lib/use-desfazer';
 import { relatarPerigo, TIPOS_RELATO, type ResultadoRelato } from '@/servicos/relatos';
@@ -17,15 +17,18 @@ const MENSAGEM: Record<ResultadoRelato['situacao'], string> = {
   sem_local: 'Sem a sua localização não dá para marcar o local. Permita a localização e tente de novo.',
 };
 
+const SEGUNDOS_PARA_DESFAZER_RELATO = 5;
+
 /**
  * Tela 19 · Relatar perigo (RF26) e SOS manual (RF25).
- * Relato em dois toques (a aba e o tipo), no local atual, com 5 s para desfazer.
+ * Relato em dois toques (a aba e o tipo), no local atual, com 5 s para desfazer ou
+ * "Enviar agora" para não esperar.
  */
 export default function Relatar() {
   const { c } = useTema();
   const styles = useEstilos(criarEstilos);
   const [resultado, setResultado] = useState<{ tom: 'sucesso' | 'neutro' | 'erro'; texto: string } | null>(null);
-  const { pendente, iniciar, desfazer } = useDesfazer<TipoRelato>(5, (tipo) => {
+  const { pendente, total, iniciar, desfazer, enviarAgora } = useDesfazer<TipoRelato>(SEGUNDOS_PARA_DESFAZER_RELATO, (tipo) => {
     void relatarPerigo(tipo).then((r) =>
       setResultado({
         tom: r.situacao === 'enviado' ? 'sucesso' : r.situacao === 'na_fila' ? 'neutro' : 'erro',
@@ -53,12 +56,15 @@ export default function Relatar() {
       </View>
 
       {pendente ? (
-        <View style={styles.pendente} accessibilityLiveRegion="assertive">
-          <Texto variante="alerta">
-            {rotuloPendente}: enviando em {pendente.restante} s
-          </Texto>
-          <Botao titulo="Desfazer" variante="claro" tamanho="padrao" onPress={desfazer} />
-        </View>
+        <ContagemDesfazer
+          tom="atencao"
+          titulo={`${rotuloPendente}: enviando em ${pendente.restante} s`}
+          descricao="O local é onde você está agora."
+          restante={pendente.restante}
+          total={total}
+          onDesfazer={desfazer}
+          onEnviarAgora={enviarAgora}
+        />
       ) : (
         <View style={styles.grade}>
           {TIPOS_RELATO.map((t) => (
@@ -67,7 +73,7 @@ export default function Relatar() {
               onPress={() => escolher(t.id)}
               accessibilityRole="button"
               accessibilityLabel={`Relatar ${t.rotulo}`}
-              accessibilityHint="Envia em 5 segundos, com opção de desfazer"
+              accessibilityHint={`Envia em ${SEGUNDOS_PARA_DESFAZER_RELATO} segundos, com opção de desfazer ou enviar na hora`}
               style={({ pressed }) => [styles.tipo, pressed && { opacity: 0.85 }]}>
               <Icone nome={t.icone} tamanho={28} cor={c.atencaoTexto} />
               <Texto variante="corpo" style={styles.tipoTexto}>
@@ -91,7 +97,7 @@ export default function Relatar() {
       </View>
       <SosManual onEnviado={(id) => router.push(`/sos/${id}`)} />
       <Texto variante="legenda" cor="textoSecundario">
-        Depois de escolher, você tem {SEGUNDOS_PARA_DESFAZER_SOS} s para desfazer.
+        Depois de escolher, o SOS sai em {SEGUNDOS_PARA_DESFAZER_SOS} s. Dá para desfazer ou enviar na hora.
       </Texto>
     </Tela>
   );
@@ -110,6 +116,5 @@ const criarEstilos = (c: Paleta) =>
       justifyContent: 'space-between',
     },
     tipoTexto: { fontFamily: 'BricolageGrotesque_700Bold', fontSize: 18 },
-    pendente: { gap: 10, padding: 16, borderRadius: raio.xl, backgroundColor: c.superficieElevada },
     divisor: { height: 1, backgroundColor: c.divisor, marginVertical: 4 },
   });

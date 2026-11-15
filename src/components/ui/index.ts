@@ -8,6 +8,7 @@ export { CampoSenha } from './campo-senha';
 export { CartaoMensagem } from './cartao-mensagem';
 export { CartaoOpcao } from './cartao-opcao';
 export { Chip } from './chip';
+export { ContagemDesfazer } from './contagem-desfazer';
 export { Etiqueta } from './etiqueta';
 export { Icone, type NomeIcone } from './icone';
 export { ItemMarcavel } from './item-marcavel';
