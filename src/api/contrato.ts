@@ -1,4 +1,6 @@
 import type {
+  Acompanhamento,
+  AlertaVestivelPendente,
   CelulaCritica,
   Consentimentos,
   ConsultaMensagens,
@@ -6,6 +8,7 @@ import type {
   ConsultaRisco,
   ContatoCriado,
   Credenciais,
+  DadosDaConta,
   DetalheCelula,
   Distrito,
   EventoVestivel,
@@ -28,8 +31,9 @@ import type {
 } from './types';
 
 /**
- * Tudo o que o app consome da API, um método por endpoint do contrato.
- * Existem duas implementações com a mesma interface: HTTP (API C#) e mock.
+ * Tudo o que o app consome da API, um método por endpoint do contrato (Swagger v1 da API C#,
+ * caminhos em /api/v1). Existem duas implementações com a mesma interface: HTTP (API C#) e mock.
+ * Fora o cadastro, o login, a saúde e o acompanhamento, toda chamada vai com o token (Bearer).
  */
 export interface GarupaApi {
   /** GET /risco */
@@ -39,10 +43,15 @@ export interface GarupaApi {
 
   /** POST /usuarios (com a senha e o primeiro contato de emergência; 409 se o telefone já tem conta) */
   criarUsuario(dados: NovoUsuario): Promise<UsuarioCriado>;
-  /** POST /auth/login: telefone e senha. 401 quando não confere (sem dizer qual dos dois). */
+  /**
+   * POST /autenticacao/login: telefone e senha. 401 quando não confere (sem dizer qual dos
+   * dois); 429 depois de 10 tentativas no mesmo minuto.
+   */
   entrar(credenciais: Credenciais): Promise<Login>;
   /** GET /usuarios/{id}: nome, telefone e contatos (sem a ficha). */
   obterUsuario(usuarioId: string): Promise<Usuario>;
+  /** PUT /usuarios/{id}: troca nome e celular (204; 409 se o celular já é de outra conta). */
+  atualizarUsuario(usuarioId: string, dados: DadosDaConta): Promise<void>;
   /** PUT /usuarios/{id}/ficha-medica (409 sem o consentimento fichaMedica) */
   salvarFichaMedica(usuarioId: string, ficha: FichaMedica): Promise<void>;
   /** POST /usuarios/{id}/contatos */
@@ -73,6 +82,8 @@ export interface GarupaApi {
   encerrarSos(sosId: string): Promise<void>;
   /** Link que o contato abre no navegador: GET /acompanhar/{token}. */
   urlAcompanhamento(token: string): string;
+  /** GET /acompanhar/{token} (sem login): estado, horário e posição do SOS. 404 se o token venceu. */
+  acompanharSos(token: string): Promise<Acompanhamento>;
 
   /** POST /relatos (idempotente pelo eventoId; 400 fora do município de SP) */
   enviarRelato(relato: NovoRelato): Promise<RelatoCriado>;
@@ -87,6 +98,8 @@ export interface GarupaApi {
   enviarAlertaVestivel(usuarioId: string, alerta: NovoAlertaVestivel): Promise<void>;
   /** POST /eventos-vestivel (202): o que a pulseira manda. No app, só para simular no demo. */
   enviarEventoVestivel(evento: NovoEventoVestivel): Promise<void>;
+  /** GET /vestivel/{dispositivoId}/alertas/pendentes: o que a pulseira lê. No app, só no demo. */
+  listarAlertasVestivelPendentes(dispositivoId: string): Promise<AlertaVestivelPendente[]>;
 
   /** GET /saude */
   saude(): Promise<Saude>;

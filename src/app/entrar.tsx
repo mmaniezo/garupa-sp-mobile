@@ -11,11 +11,14 @@ import { entrarNaConta } from '@/servicos/conta';
 import { obterSessao, proximaTelaDoCadastro } from '@/state/sessao';
 
 /**
- * Entrar na conta com telefone e senha (POST /auth/login). Depois do login, os contatos de
- * emergência voltam da API e o app pede as permissões deste celular.
+ * Entrar na conta com telefone e senha (POST /autenticacao/login). Depois do login, os contatos
+ * de emergência voltam da API e o app pede as permissões deste celular.
+ * Com `?renovar=1` (a sessão venceu: o token vale 1 hora), é a mesma conta entrando de novo:
+ * nada do celular é apagado e a pessoa volta para onde estava.
  */
 export default function Entrar() {
-  const params = useLocalSearchParams<{ telefone?: string }>();
+  const params = useLocalSearchParams<{ telefone?: string; renovar?: string }>();
+  const renovar = params.renovar === '1';
   const [telefone, setTelefone] = useState(() => mascararTelefone(params.telefone ?? ''));
   const [senha, setSenha] = useState('');
   const [erros, setErros] = useState<{ telefone?: string; senha?: string }>({});
@@ -33,10 +36,12 @@ export default function Entrar() {
 
     setEnviando(true);
     try {
-      await entrarNaConta(telefone, senha);
-      router.replace(proximaTelaDoCadastro(obterSessao()));
+      const resultado = await entrarNaConta(telefone, senha);
+      if (resultado === 'renovada') voltarOu('/plano');
+      else router.replace(proximaTelaDoCadastro(obterSessao()));
     } catch (erro) {
       if (ehErroApi(erro, 401)) setErroGeral('Telefone ou senha incorretos. Confira e tente de novo.');
+      else if (ehErroApi(erro, 429)) setErroGeral('Muitas tentativas seguidas. Espere um minuto e tente de novo.');
       else if (ehErroApi(erro, 404)) setErroGeral('O login ainda não está disponível nesta API.');
       else setErroGeral(mensagemDeErro(erro, 'Não deu para entrar agora. Tente de novo.'));
     } finally {
@@ -57,16 +62,27 @@ export default function Entrar() {
       rodape={
         <>
           <Botao titulo="Entrar" onPress={() => void entrar()} carregando={enviando} />
-          <Botao titulo="Não tenho conta: criar cadastro" variante="fantasma" tamanho="padrao" onPress={() => router.replace('/cadastro/basico')} />
+          {renovar ? (
+            <Botao titulo="Agora não" variante="fantasma" tamanho="padrao" onPress={() => voltarOu('/plano')} />
+          ) : (
+            <Botao
+              titulo="Não tenho conta: criar cadastro"
+              variante="fantasma"
+              tamanho="padrao"
+              onPress={() => router.replace('/cadastro/basico')}
+            />
+          )}
         </>
       }>
-      <CabecalhoPasso rotulo="Entrar" onVoltar={() => voltarOu('/boas-vindas')} />
+      <CabecalhoPasso rotulo="Entrar" onVoltar={() => voltarOu(renovar ? '/plano' : '/boas-vindas')} />
       <View style={styles.titulo}>
         <Texto variante="titulo" accessibilityRole="header">
-          Bem-vindo de volta
+          {renovar ? 'Entre de novo' : 'Bem-vindo de volta'}
         </Texto>
         <Texto variante="corpoMenor" cor="textoSecundario">
-          Entre com o celular e a senha do seu cadastro.
+          {renovar
+            ? 'Por segurança, a sessão vence depois de um tempo. Entre com o celular e a senha: o que está neste celular continua aqui.'
+            : 'Entre com o celular e a senha do seu cadastro.'}
         </Texto>
       </View>
 

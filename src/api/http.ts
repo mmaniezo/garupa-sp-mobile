@@ -2,8 +2,11 @@ import { nomeDaVia } from '@/domain/via';
 
 import type { GarupaApi } from './contrato';
 import { ErroApi, ErroDeRede } from './erros';
-import { tokenAtual } from './token';
+import { usuarioDoToken } from './jwt';
+import { marcarSessaoExpirada, tokenAtual } from './token';
 import type {
+  Acompanhamento,
+  AlertaVestivelPendente,
   CelulaCritica,
   DetalheCelula,
   Distrito,
@@ -49,7 +52,10 @@ type UsuarioApi = {
   contatos: { contatoId: number; nome: string; telefone: string }[];
 };
 type EventoApi = { eventoId: number; tipo: TipoEventoVestivel; ocorridoEm: string };
-type LoginApi = { usuarioId: number; nome: string; token: string };
+type AlertaApi = { alertaId: number; tipo: AlertaVestivelPendente['tipo']; ocorridoEm: string };
+/** O login devolve só o token e a validade; o usuário vem no `sub` do token. */
+type TokenApi = { token: string; expiraEm?: string };
+type AcompanhamentoApi = { estado: Acompanhamento['estado']; horario: string; posicao?: { lat: number; lon: number } | null };
 
 /**
  * Os ids do app são texto; na API, usuário, contato, SOS e relato são números.
@@ -69,7 +75,8 @@ const mensagem = (m: MensagemApi): Mensagem => ({ id: String(m.id), texto: m.tex
 export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
   const base = `${urlBase}/api/v1`;
 
-  async function chamar<T>(metodo: Metodo, caminho: string, opcoes: { query?: Query; corpo?: unknown } = {}) {
+  /** `publica`: cadastro, login e acompanhamento vão sem token (e um 401 ali não é sessão vencida). */
+  async function chamar<T>(metodo: Metodo, caminho: string, opcoes: { query?: Query; corpo?: unknown; publica?: boolean } = {}) {
     // Query montada à mão: o URL do React Native não implementa searchParams por completo.
     const qs = Object.entries(opcoes.query ?? {})
       .filter(([, v]) => v !== undefined)
@@ -77,6 +84,7 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
       .join('&');
     const url = base + caminho + (qs ? `?${qs}` : '');
 
+    const token = opcoes.publica ? null : tokenAtual();
     const controle = new AbortController();
     const timer = setTimeout(() => controle.abort(), timeoutMs);
     let resposta: Response;
@@ -86,7 +94,7 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
         headers: {
           Accept: 'application/json',
           ...(opcoes.corpo !== undefined ? { 'Content-Type': 'application/json' } : {}),
-          ...(tokenAtual() ? { Authorization: `Bearer ${tokenAtual()}` } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: opcoes.corpo !== undefined ? JSON.stringify(opcoes.corpo) : undefined,
         signal: controle.signal,
@@ -98,6 +106,8 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
     }
 
     if (!resposta.ok) {
+      // O token vale 1 hora: vencido, a API responde 401 e o app pede para entrar de novo.
+      if (resposta.status === 401 && token) marcarSessaoExpirada();
       let problema: ProblemDetails | undefined;
       try {
         problema = (await resposta.json()) as ProblemDetails;
@@ -164,12 +174,21 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
     },
 
     criarUsuario: async (dados) => {
-      const r = await chamar<{ usuarioId: number; token?: string }>('POST', '/usuarios', { corpo: dados });
-      return { usuarioId: String(r.usuarioId), ...(r.token ? { token: r.token } : {}) };
+      const r = await chamar<{ usuarioId: number; token?: string; expiraEm?: string }>('POST', '/usuarios', {
+        corpo: dados,
+        publica: true,
+      });
+      return {
+        usuarioId: String(r.usuarioId),
+        ...(r.token ? { token: r.token } : {}),
+        ...(r.expiraEm ? { expiraEm: r.expiraEm } : {}),
+      };
     },
     entrar: async (credenciais) => {
-      const r = await chamar<LoginApi>('POST', '/auth/login', { corpo: credenciais });
-      return { usuarioId: String(r.usuarioId), nome: r.nome, token: r.token };
+      const r = await chamar<TokenApi>('POST', '/autenticacao/login', { corpo: credenciais, publica: true });
+      const usuarioId = usuarioDoToken(r.token);
+      if (!usuarioId) throw new ErroApi(502, { title: 'A API respondeu ao login sem o usuário.', status: 502 });
+      return { usuarioId, token: r.token, ...(r.expiraEm ? { expiraEm: r.expiraEm } : {}) };
     },
     obterUsuario: async (u) => {
       const r = await chamar<UsuarioApi>('GET', `/usuarios/${idDaApi(u)}`);
@@ -181,6 +200,7 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
       };
       return usuario;
     },
+    atualizarUsuario: async (u, dados) => chamar('PUT', `/usuarios/${idDaApi(u)}`, { corpo: dados }),
     salvarFichaMedica: async (u, ficha) =>
       chamar('PUT', `/usuarios/${idDaApi(u)}/ficha-medica`, {
         // A API quer texto em todos os campos ("" quando vazio; null dá 400) e o sinal ASCII ("A-").
@@ -223,6 +243,10 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
     cancelarSos: async (sosId) => chamar('PATCH', `/sos/${idDaApi(sosId)}/cancelar`),
     encerrarSos: async (sosId) => chamar('PATCH', `/sos/${idDaApi(sosId)}/encerrar`),
     urlAcompanhamento: (token) => `${base}/acompanhar/${id(token)}`,
+    acompanharSos: async (token) => {
+      const r = await chamar<AcompanhamentoApi>('GET', `/acompanhar/${id(token)}`, { publica: true });
+      return { estado: r.estado, horario: r.horario, posicao: r.posicao ?? null };
+    },
 
     enviarRelato: async (relato) => {
       const r = await chamar<{ relatoId: number }>('POST', '/relatos', {
@@ -240,7 +264,11 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
     desparearVestivel: async (u) => chamar('DELETE', `/usuarios/${idDaApi(u)}/vestivel`),
     enviarAlertaVestivel: async (u, alerta) => chamar('POST', `/usuarios/${idDaApi(u)}/alertas-vestivel`, { corpo: alerta }),
     enviarEventoVestivel: async (evento) => chamar('POST', '/eventos-vestivel', { corpo: evento }),
+    listarAlertasVestivelPendentes: async (dispositivoId) => {
+      const r = await chamar<AlertaApi[]>('GET', `/vestivel/${id(dispositivoId)}/alertas/pendentes`);
+      return r.map((a) => ({ alertaId: String(a.alertaId), tipo: a.tipo, ocorridoEm: a.ocorridoEm }));
+    },
 
-    saude: async () => chamar('GET', '/saude'),
+    saude: async () => chamar('GET', '/saude', { publica: true }),
   };
 }

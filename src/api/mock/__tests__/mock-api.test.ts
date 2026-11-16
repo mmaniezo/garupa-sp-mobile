@@ -282,6 +282,54 @@ describe('API mock: mesmo contrato e mesmas regras da API C#', () => {
     expect(await api.listarEventosVestivelPendentes(usuarioId)).toEqual([]);
   });
 
+  it('pulseira: o alerta do app chega uma vez e só nos 30 s de validade', async () => {
+    const { api, usuarioId } = await novoUsuario();
+    await expect(api.listarAlertasVestivelPendentes('pulseira-x')).rejects.toMatchObject({ status: 404 });
+    await api.parearVestivel(usuarioId, 'pulseira-x');
+    await api.enviarAlertaVestivel(usuarioId, { tipo: 'ponto_critico', ocorridoEm: new Date().toISOString() });
+    const alertas = await api.listarAlertasVestivelPendentes('pulseira-x');
+    expect(alertas.map((a) => a.tipo)).toEqual(['ponto_critico']);
+    expect(alertas[0].alertaId).toBeTruthy();
+    expect(await api.listarAlertasVestivelPendentes('pulseira-x')).toEqual([]);
+
+    const agora = Date.now();
+    await api.enviarAlertaVestivel(usuarioId, { tipo: 'mensagem', ocorridoEm: new Date().toISOString() });
+    const relogio = jest.spyOn(Date, 'now').mockReturnValue(agora + 31_000);
+    expect(await api.listarAlertasVestivelPendentes('pulseira-x')).toEqual([]);
+    relogio.mockRestore();
+  });
+
+  it('acompanhar o SOS pelo token: estado, horário e posição; token desconhecido é 404', async () => {
+    const { api, usuarioId } = await novoUsuario();
+    const sos = await api.enviarSos({ ...sosBase, usuarioId, eventoId: guid(77) });
+    expect(await api.acompanharSos(sos.tokenAcompanhamento)).toEqual({
+      estado: 'ativo',
+      horario: sosBase.ocorridoEm,
+      posicao: { lat: sosBase.lat, lon: sosBase.lon },
+    });
+    await api.cancelarSos(sos.sosId);
+    expect(await api.acompanharSos(sos.tokenAcompanhamento)).toMatchObject({ estado: 'cancelado' });
+    await expect(api.acompanharSos('tok-inexistente')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('editar nome e celular: o login passa a ser o celular novo; celular de outra conta é 409', async () => {
+    const api = criarApiMock({ latenciaMs: 0, hash: hashDeTeste });
+    const a = await api.criarUsuario({ nome: 'Léo', telefone: '(11) 95555-0001', senha: 'garupa123', contato });
+    await api.criarUsuario({ nome: 'Bia', telefone: '(11) 95555-0002', senha: 'garupa123', contato });
+
+    await api.atualizarUsuario(a.usuarioId, { nome: 'Léo Motoca', telefone: '(11) 95555-0003' });
+    expect(await api.obterUsuario(a.usuarioId)).toMatchObject({ nome: 'Léo Motoca', telefone: '+5511955550003' });
+    expect(await api.entrar({ telefone: '(11) 95555-0003', senha: 'garupa123' })).toMatchObject({ usuarioId: a.usuarioId });
+    await expect(api.entrar({ telefone: '(11) 95555-0001', senha: 'garupa123' })).rejects.toMatchObject({ status: 401 });
+
+    await expect(
+      api.atualizarUsuario(a.usuarioId, { nome: 'Léo', telefone: '(11) 95555-0002' }),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(api.atualizarUsuario(a.usuarioId, { nome: ' ', telefone: '(11) 95555-0003' })).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+
   it('sem conexão, falha com ErroDeRede (base da fila offline)', async () => {
     const { api, usuarioId } = await novoUsuario();
     api.definirSemConexao(true);

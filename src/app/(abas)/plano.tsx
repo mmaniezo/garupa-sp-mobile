@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { mock } from '@/api';
 import { Logo } from '@/components/brand/logo';
 import { ItemPonto } from '@/components/plano/item-ponto';
+import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
 import { Aviso, Botao, CartaoMensagem, Etiqueta, Segmentado, Tela, Texto } from '@/components/ui';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { dispensarMensagem, registrarMensagemExibida } from '@/dados-locais/repositorios';
@@ -78,6 +79,8 @@ export default function PlanoDoTurno() {
         {/* O risco do mock é o do modelo de ML; o que é simulado é o servidor (e o cadastro some ao fechar). */}
         {mock ? <Etiqueta texto="API simulada" /> : null}
       </View>
+
+      <AvisoSessaoExpirada />
 
       <View style={{ gap: 4 }}>
         <Texto variante="corpoMenor" cor="textoSecundario">

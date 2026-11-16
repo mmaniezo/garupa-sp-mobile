@@ -17,6 +17,8 @@ export function useEdicao(): boolean {
 /** Mensagem curta para a pessoa, sem detalhe técnico e sem dado pessoal. */
 export function mensagemDeErro(e: unknown, padrao = 'Não deu certo agora. Tente de novo.'): string {
   if (ehErroDeRede(e)) return 'Sem conexão com a internet. Tente de novo quando tiver sinal.';
+  if (ehErroApi(e, 401)) return 'Sua sessão venceu. Entre de novo para continuar.';
+  if (ehErroApi(e, 429)) return 'Muitas tentativas seguidas. Espere um minuto e tente de novo.';
   if (ehErroApi(e)) return e.problema?.title ?? padrao;
   return padrao;
 }

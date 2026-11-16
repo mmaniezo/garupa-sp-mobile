@@ -7,6 +7,7 @@ import { validarTelefone } from '@/domain/telefone';
 import type { GarupaApi } from '../contrato';
 import { ErroApi, ErroDeRede } from '../erros';
 import type {
+  AlertaVestivelPendente,
   CelulaCritica,
   Consentimentos,
   ContextoMensagem,
@@ -45,7 +46,16 @@ type UsuarioMock = {
   dispositivoId?: string;
 };
 
-type SosMock = SosCriado & { estado: EstadoSos; usuarioId: string; dados: string };
+type SosMock = SosCriado & {
+  estado: EstadoSos;
+  usuarioId: string;
+  dados: string;
+  horario: string;
+  posicao: { lat: number; lon: number };
+};
+
+/** Como na API: o alerta da pulseira vale 30 s e é entregue uma vez. */
+const VALIDADE_ALERTA_VESTIVEL_MS = 30_000;
 
 /** Conta para o login. A senha nunca é guardada: só o hash SHA-256 de sal + senha. */
 export type ContaMock = {
@@ -142,7 +152,12 @@ export function criarApiMock(
   const sos = new Map<string, SosMock>();
   const relatosPorEvento = new Map<string, string>();
   const eventosVestivel = new Map<string, EventoVestivel[]>();
-  const alertasVestivel: (NovoAlertaVestivel & { dispositivoId: string; recebidoEm: number })[] = [];
+  const alertasVestivel: (NovoAlertaVestivel & {
+    alertaId: string;
+    dispositivoId: string;
+    recebidoEm: number;
+    entregue: boolean;
+  })[] = [];
 
   // Contas por telefone (E.164). Carregadas uma vez; toda chamada espera a leitura terminar.
   const contas = new Map<string, ContaMock>();
@@ -287,6 +302,27 @@ export function criarApiMock(
         return { usuarioId, nome: u.nome, telefone: u.telefone, contatos: u.contatos.map((c) => ({ ...c })) };
       }),
 
+    atualizarUsuario: (usuarioId, dados) =>
+      responder(async () => {
+        const u = usuario(usuarioId);
+        const nome = dados.nome?.trim() ?? '';
+        if (!nome) throw erro400('nome', 'Informe seu nome ou apelido.');
+        if (nome.length > 60) throw erro400('nome', 'Use até 60 caracteres.');
+        const tel = validarTelefone(dados.telefone ?? '');
+        if (!tel.valido) throw erro400('telefone', 'Telefone fora do padrão brasileiro.');
+        // O celular é o login: não pode ser o de outra conta.
+        const dono = contas.get(tel.e164);
+        if (dono && dono.usuarioId !== usuarioId) throw erro409('Este telefone já tem conta.');
+        u.nome = nome;
+        u.telefone = tel.e164;
+        const conta = contaDoUsuario(usuarioId);
+        if (conta) {
+          contas.delete(conta.telefone);
+          contas.set(tel.e164, { ...conta, nome, telefone: tel.e164 });
+          await salvarContas();
+        }
+      }),
+
     salvarFichaMedica: (usuarioId, ficha) =>
       responder(() => {
         const u = usuario(usuarioId);
@@ -423,7 +459,14 @@ export function criarApiMock(
         }
         const criado: SosCriado = { sosId: novoId('sos'), tokenAcompanhamento: novoId('tok') };
         sosPorEvento.set(novo.eventoId, criado);
-        sos.set(criado.sosId, { ...criado, estado: 'ativo', usuarioId: novo.usuarioId, dados });
+        sos.set(criado.sosId, {
+          ...criado,
+          estado: 'ativo',
+          usuarioId: novo.usuarioId,
+          dados,
+          horario: novo.ocorridoEm,
+          posicao: { lat: novo.lat, lon: novo.lon },
+        });
         return { ...criado };
       }),
 
@@ -445,6 +488,13 @@ export function criarApiMock(
       }),
 
     urlAcompanhamento: (token) => `https://api.exemplo.invalid/api/v1/acompanhar/${encodeURIComponent(token)}`,
+
+    acompanharSos: (token) =>
+      responder(() => {
+        const s = [...sos.values()].find((x) => x.tokenAcompanhamento === token);
+        if (!s) throw erro404('Acompanhamento não encontrado.');
+        return { estado: s.estado, horario: s.horario, posicao: { ...s.posicao } };
+      }),
 
     enviarRelato: (relato) =>
       responder(() => {
@@ -493,7 +543,13 @@ export function criarApiMock(
       responder(() => {
         const u = usuario(usuarioId);
         if (!u.dispositivoId) throw erro404('Nenhuma pulseira pareada');
-        alertasVestivel.push({ ...alerta, dispositivoId: u.dispositivoId, recebidoEm: Date.now() });
+        alertasVestivel.push({
+          ...alerta,
+          alertaId: novoId('alv'),
+          dispositivoId: u.dispositivoId,
+          recebidoEm: Date.now(),
+          entregue: false,
+        });
       }),
 
     enviarEventoVestivel: (evento) =>
@@ -504,6 +560,20 @@ export function criarApiMock(
         const lista = eventosVestivel.get(dono[0]) ?? [];
         lista.push({ eventoId: novoId('evv'), tipo: evento.tipo, ocorridoEm: evento.ocorridoEm });
         eventosVestivel.set(dono[0], lista);
+      }),
+
+    listarAlertasVestivelPendentes: (dispositivoId) =>
+      responder(() => {
+        const dono = [...usuarios.values()].some((u) => u.dispositivoId === dispositivoId);
+        if (!dono) throw erro404('Dispositivo não pareado');
+        const agora = Date.now();
+        const pendentes: AlertaVestivelPendente[] = [];
+        for (const a of alertasVestivel) {
+          if (a.dispositivoId !== dispositivoId || a.entregue || agora - a.recebidoEm > VALIDADE_ALERTA_VESTIVEL_MS) continue;
+          a.entregue = true;
+          pendentes.push({ alertaId: a.alertaId, tipo: a.tipo, ocorridoEm: a.ocorridoEm });
+        }
+        return pendentes;
       }),
 
     saude: () => responder(() => ({ versao: 'mock', banco: 'memoria' })),

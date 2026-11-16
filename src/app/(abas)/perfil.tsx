@@ -4,6 +4,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { api, mock } from '@/api';
 import type { Consentimentos } from '@/api/types';
+import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
 import { Aviso, Botao, Icone, ItemMarcavel, Segmentado, Tela, Texto } from '@/components/ui';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { apagarHistoricoDeLocais, registrarVisita } from '@/dados-locais/repositorios';
@@ -180,6 +181,7 @@ export default function Perfil() {
         </View>
       </View>
 
+      <AvisoSessaoExpirada />
       {aviso ? <Aviso tom={aviso.tom} texto={aviso.texto} anunciar /> : null}
 
       <View style={styles.grupo}>

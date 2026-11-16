@@ -3,7 +3,17 @@
  */
 import { ErroApi } from '../erros';
 import { criarApiHttp } from '../http';
-import { definirToken } from '../token';
+import { definirToken, sessaoExpirada } from '../token';
+
+/** Token no formato da API (cabeçalho.conteúdo.assinatura, em base64url). A assinatura não importa aqui. */
+function jwtDeTeste(conteudo: object): string {
+  const b64url = (o: object) =>
+    btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o))))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  return `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url(conteudo)}.assinatura`;
+}
 
 /**
  * Cliente HTTP contra respostas no formato do Swagger da API C# (garupa-sp-api):
@@ -44,24 +54,112 @@ const ponto = {
 };
 
 describe('cliente HTTP da API C#', () => {
-  it('login: POST /auth/login e, com o token, Authorization em toda chamada', async () => {
-    const { api, chamadas } = apiFalsa({ 'POST /auth/login': { usuarioId: 7, nome: 'Léo', token: 'jwt.abc' } });
+  /** Guarda os cabeçalhos de cada chamada (por cima do fetch falso de apiFalsa). */
+  function espiarCabecalhos() {
     const cabecalhos: Record<string, string>[] = [];
     const fetchBase = globalThis.fetch;
     globalThis.fetch = jest.fn(async (url: string | URL | Request, init?: RequestInit) => {
       cabecalhos.push({ ...(init?.headers as Record<string, string>) });
       return fetchBase(url, init);
     }) as typeof fetch;
+    return cabecalhos;
+  }
 
+  afterEach(() => definirToken(null));
+
+  it('login: POST /autenticacao/login; o usuário vem do sub do token; depois, Bearer em toda chamada', async () => {
+    const token = jwtDeTeste({ sub: '7', exp: Date.now() / 1000 + 3600 });
+    const { api, chamadas } = apiFalsa({
+      'POST /autenticacao/login': { token, expiraEm: '2026-11-16T13:00:00Z' },
+      'GET /usuarios/7': { usuarioId: 7, nome: 'Léo', telefone: '11900000000', contatos: [] },
+    });
+    const cabecalhos = espiarCabecalhos();
+
+    // Um token velho no aparelho não vai junto no login.
+    definirToken('token-antigo');
     const login = await api.entrar({ telefone: '+5511900000000', senha: 'garupa123' });
-    expect(login).toEqual({ usuarioId: '7', nome: 'Léo', token: 'jwt.abc' });
+    expect(login).toEqual({ usuarioId: '7', token, expiraEm: '2026-11-16T13:00:00Z' });
     expect(chamadas[0]).toMatchObject({ metodo: 'POST', corpo: { telefone: '+5511900000000', senha: 'garupa123' } });
+    expect(chamadas[0].url).toBe('http://api.teste/api/v1/autenticacao/login');
     expect(cabecalhos[0].Authorization).toBeUndefined();
 
     definirToken(login.token);
-    await api.obterUsuario('7').catch(() => undefined);
-    expect(cabecalhos[1].Authorization).toBe('Bearer jwt.abc');
+    await api.obterUsuario('7');
+    expect(cabecalhos[1].Authorization).toBe(`Bearer ${token}`);
+  });
+
+  it('login sem usuário no token: erro, sem entrar', async () => {
+    const { api } = apiFalsa({ 'POST /autenticacao/login': { token: 'sem.formato.jwt' } });
+    await expect(api.entrar({ telefone: '+5511900000000', senha: 'garupa123' })).rejects.toMatchObject({ status: 502 });
+  });
+
+  it('cadastro devolve o token e a validade, e vai sem Authorization', async () => {
+    const { api } = apiFalsa({ 'POST /usuarios': { usuarioId: 9, token: 'jwt.novo', expiraEm: '2026-11-16T13:00:00Z' } });
+    const cabecalhos = espiarCabecalhos();
+    definirToken('token-antigo');
+    const criado = await api.criarUsuario({
+      nome: 'Léo',
+      telefone: '+5511900000000',
+      senha: 'garupa123',
+      contato: { nome: 'Ana', telefone: '+5511900000001' },
+    });
+    expect(criado).toEqual({ usuarioId: '9', token: 'jwt.novo', expiraEm: '2026-11-16T13:00:00Z' });
+    expect(cabecalhos[0].Authorization).toBeUndefined();
+  });
+
+  it('token vencido: 401 numa chamada com token marca a sessão como vencida', async () => {
+    const { api } = apiFalsa({});
+    globalThis.fetch = jest.fn(async () => new Response(null, { status: 401 })) as typeof fetch;
+    definirToken(jwtDeTeste({ sub: '7', exp: Date.now() / 1000 + 3600 }));
+    expect(sessaoExpirada()).toBe(false);
+    await expect(api.obterUsuario('7')).rejects.toMatchObject({ status: 401 });
+    expect(sessaoExpirada()).toBe(true);
+
+    // Entrar de novo zera o aviso; 401 no login (senha errada) não é sessão vencida.
+    definirToken(jwtDeTeste({ sub: '7', exp: Date.now() / 1000 + 3600 }));
+    await expect(api.entrar({ telefone: '+5511900000000', senha: 'errada' })).rejects.toMatchObject({ status: 401 });
+    expect(sessaoExpirada()).toBe(false);
+  });
+
+  it('token salvo que já venceu: a sessão já começa vencida', () => {
+    definirToken(jwtDeTeste({ sub: '7', exp: Date.now() / 1000 - 60 }));
+    expect(sessaoExpirada()).toBe(true);
     definirToken(null);
+    expect(sessaoExpirada()).toBe(false);
+  });
+
+  it('editar nome e celular: PUT /usuarios/{id}', async () => {
+    const { api, chamadas } = apiFalsa({ 'PUT /usuarios/7': 204 });
+    await api.atualizarUsuario('7', { nome: 'Léo Motoca', telefone: '+5511988887777' });
+    expect(chamadas[0]).toMatchObject({
+      metodo: 'PUT',
+      url: 'http://api.teste/api/v1/usuarios/7',
+      corpo: { nome: 'Léo Motoca', telefone: '+5511988887777' },
+    });
+  });
+
+  it('acompanhar o SOS pelo token, sem login: GET /acompanhar/{token}', async () => {
+    const { api, chamadas } = apiFalsa({
+      'GET /acompanhar/tok-1': { estado: 'ativo', horario: '2026-11-16T12:00:00Z', posicao: { lat: -23.58, lon: -46.68 } },
+    });
+    const cabecalhos = espiarCabecalhos();
+    definirToken('jwt.qualquer');
+    expect(await api.acompanharSos('tok-1')).toEqual({
+      estado: 'ativo',
+      horario: '2026-11-16T12:00:00Z',
+      posicao: { lat: -23.58, lon: -46.68 },
+    });
+    expect(chamadas[0].url).toBe('http://api.teste/api/v1/acompanhar/tok-1');
+    expect(cabecalhos[0].Authorization).toBeUndefined();
+  });
+
+  it('alertas que a pulseira lê: GET /vestivel/{dispositivoId}/alertas/pendentes', async () => {
+    const { api } = apiFalsa({
+      'GET /vestivel/pulseira-demo-01/alertas/pendentes': [{ alertaId: 5, tipo: 'ponto_critico', ocorridoEm: '2026-11-16T12:00:00Z' }],
+    });
+    expect(await api.listarAlertasVestivelPendentes('pulseira-demo-01')).toEqual([
+      { alertaId: '5', tipo: 'ponto_critico', ocorridoEm: '2026-11-16T12:00:00Z' },
+    ]);
   });
 
   it('editar e excluir contato: PUT e DELETE com os ids numéricos da API', async () => {

@@ -21,6 +21,8 @@ export const TIPOS_RELATO: { id: TipoRelato; rotulo: string; icone: 'buraco' | '
 export type ResultadoRelato =
   | { situacao: 'enviado' }
   | { situacao: 'na_fila' }
+  /** A sessão venceu: o relato fica guardado e sai quando a pessoa entrar de novo. */
+  | { situacao: 'sessao_vencida' }
   | { situacao: 'recusado'; motivo: string }
   | { situacao: 'sem_local' };
 
@@ -33,6 +35,10 @@ async function enviar(relato: NovoRelato): Promise<ResultadoRelato> {
     if (ehErroDeRede(e)) {
       await marcarRelato(relato.eventoId, 'tentativa');
       return { situacao: 'na_fila' };
+    }
+    if (ehErroApi(e, 401)) {
+      await marcarRelato(relato.eventoId, 'tentativa');
+      return { situacao: 'sessao_vencida' };
     }
     if (ehErroApi(e, 400)) {
       await marcarRelato(relato.eventoId, 'descartado');

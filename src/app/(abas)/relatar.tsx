@@ -13,6 +13,7 @@ import { raio, type Paleta } from '@/theme';
 const MENSAGEM: Record<ResultadoRelato['situacao'], string> = {
   enviado: 'Relato enviado. Obrigado: ele volta para a cidade como um ponto observado.',
   na_fila: 'Sem internet: o relato fica guardado e sai quando a conexão voltar.',
+  sessao_vencida: 'Sua sessão venceu: o relato fica guardado e sai quando você entrar de novo.',
   recusado: '',
   sem_local: 'Sem a sua localização não dá para marcar o local. Permita a localização e tente de novo.',
 };
@@ -31,7 +32,7 @@ export default function Relatar() {
   const { pendente, total, iniciar, desfazer, enviarAgora } = useDesfazer<TipoRelato>(SEGUNDOS_PARA_DESFAZER_RELATO, (tipo) => {
     void relatarPerigo(tipo).then((r) =>
       setResultado({
-        tom: r.situacao === 'enviado' ? 'sucesso' : r.situacao === 'na_fila' ? 'neutro' : 'erro',
+        tom: r.situacao === 'enviado' ? 'sucesso' : r.situacao === 'na_fila' || r.situacao === 'sessao_vencida' ? 'neutro' : 'erro',
         texto: r.situacao === 'recusado' ? r.motivo : MENSAGEM[r.situacao],
       }),
     );

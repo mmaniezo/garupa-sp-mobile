@@ -105,12 +105,19 @@ export type ContatoCriado = { contatoId: string };
  * só dentro do HTTPS: a API guarda apenas o hash (nunca devolve a senha).
  */
 export type NovoUsuario = { nome: string; telefone: string; senha: string; contato: NovoContato };
-/** O token, quando vem, já deixa a pessoa logada (sem pedir a senha de novo). */
-export type UsuarioCriado = { usuarioId: string; token?: string };
+/** O token, quando vem, já deixa a pessoa logada (sem pedir a senha de novo). Vale até `expiraEm`. */
+export type UsuarioCriado = { usuarioId: string; token?: string; expiraEm?: Iso8601 };
 
-/** Login: o telefone (E.164, +5511…) identifica a conta; a senha confirma. */
+/** Login (POST /autenticacao/login): o telefone (E.164, +5511…) identifica a conta; a senha confirma. */
 export type Credenciais = { telefone: string; senha: string };
-export type Login = { usuarioId: string; nome: string; token: string };
+/**
+ * A API devolve só o token e a validade; o id do usuário sai de dentro do token (`sub`).
+ * O nome vem depois, de GET /usuarios/{id} (o mock já devolve junto).
+ */
+export type Login = { usuarioId: string; token: string; expiraEm?: Iso8601; nome?: string };
+
+/** PUT /usuarios/{id}: o celular também é o login da conta. */
+export type DadosDaConta = { nome: string; telefone: string };
 
 /** GET /usuarios/{id}: sem a ficha médica, que nunca volta pela API. */
 export type Usuario = {
@@ -162,6 +169,13 @@ export type NovoSos = {
 
 export type SosCriado = { sosId: string; tokenAcompanhamento: string };
 
+/** GET /acompanhar/{token}: o que o contato vê pelo link (sem login). */
+export type Acompanhamento = {
+  estado: EstadoSos;
+  horario: Iso8601;
+  posicao: { lat: number; lon: number } | null;
+};
+
 // ---------- Relatos ----------
 
 /** Os tipos do design (tela 19). A API aceita qualquer texto de até 40 caracteres. */
@@ -204,6 +218,12 @@ export type TipoAlertaVestivel =
   | 'turno_encerrado';
 
 export type NovoAlertaVestivel = { tipo: TipoAlertaVestivel; ocorridoEm: Iso8601 };
+
+/**
+ * GET /vestivel/{dispositivoId}/alertas/pendentes: o que a pulseira lê (cada alerta uma vez,
+ * só nos 30 s de validade). Quem consulta é o firmware; o app usa só na demonstração.
+ */
+export type AlertaVestivelPendente = { alertaId: string; tipo: TipoAlertaVestivel; ocorridoEm: Iso8601 };
 
 // ---------- Saúde ----------
 
