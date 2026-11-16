@@ -2,10 +2,11 @@ import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
-import { api, mock } from '@/api';
+import { api } from '@/api';
 import type { Consentimentos } from '@/api/types';
 import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
 import { Aviso, Botao, Icone, ItemMarcavel, Segmentado, Tela, Texto } from '@/components/ui';
+import { config } from '@/config';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { apagarHistoricoDeLocais, registrarVisita } from '@/dados-locais/repositorios';
 import { fichaTemDados, lerContatos, lerFicha } from '@/dados-locais/seguro';
@@ -287,7 +288,7 @@ export default function Perfil() {
       <Botao titulo="Sair da conta" variante="contorno" tamanho="padrao" style={{ borderColor: c.borda }} onPress={sair} />
       <Botao titulo="Excluir minha conta e todos os dados" variante="perigoTexto" tamanho="padrao" onPress={excluirConta} />
 
-      {__DEV__ || mock ? (
+      {config.demo ? (
         <View style={{ gap: 6 }}>
           <Texto variante="overline" cor="textoSecundario">
             Demonstração

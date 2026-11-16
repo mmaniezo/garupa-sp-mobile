@@ -2,9 +2,9 @@ import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Modal, StyleSheet, View } from 'react-native';
 
-import { mock } from '@/api';
 import { SosManual } from '@/components/sos/sos-manual';
 import { Aviso, Botao, BotaoVoltar, Icone, Tela, Texto } from '@/components/ui';
+import { config } from '@/config';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
@@ -151,7 +151,7 @@ export default function TurnoAtivo() {
         </View>
       </View>
 
-      {__DEV__ || mock ? (
+      {config.demo ? (
         <View style={{ gap: 8 }}>
           <Texto variante="overline" cor="textoSecundario">
             Demonstração

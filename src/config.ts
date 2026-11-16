@@ -27,6 +27,11 @@ export const config = {
   urlApi: urlDaApi(),
   /** Tempo máximo de uma requisição comum. */
   timeoutMs: 10_000,
+  /**
+   * Atalhos de demonstração (simular queda, eventos da pulseira sem o Wokwi, histórico de
+   * locais). Ligados por padrão, também no APK de produção, para a apresentação e o vídeo.
+   */
+  demo: __DEV__ || process.env.EXPO_PUBLIC_DEMO !== '0',
 } as const;
 
 export const regras = {

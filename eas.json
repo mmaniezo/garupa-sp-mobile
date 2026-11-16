@@ -12,10 +12,12 @@
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_PUBLIC_API_MODE": "http", "EXPO_PUBLIC_API_URL": "https://garupa-sp-api-production.up.railway.app" }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": { "EXPO_PUBLIC_API_MODE": "http", "EXPO_PUBLIC_API_URL": "https://garupa-sp-api-production.up.railway.app" }
     }
   },
   "submit": {

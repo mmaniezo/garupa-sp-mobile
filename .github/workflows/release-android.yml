@@ -2,7 +2,8 @@
 # no release do GitHub. A cada push na main, só compila e testa (o APK fica nos artefatos do run).
 # Também dá para rodar à mão em Actions → "Release Android (APK)" → Run workflow, informando a tag.
 #
-# O APK usa a API simulada (os dados do modelo de ML, sem servidor). Para o Google Maps,
+# O APK fala com a API de produção (C#, no Railway): cadastro, login, plano do turno, SOS,
+# relatos e pulseira. Para o Google Maps,
 # cadastre o segredo GOOGLE_MAPS_API_KEY em Settings → Secrets and variables → Actions;
 # sem ele, as telas avisam que o mapa do Google não está ativado (não há mapa simulado).
 name: Release Android (APK)
@@ -34,6 +35,9 @@ jobs:
       # Em todos os passos: o prebuild põe a chave no Android e o Gradle lê o app.config.js de
       # novo para o JavaScript (expo-constants). Só no prebuild, o app achava que não havia chave.
       GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+      # API de produção (endereço público, não é segredo). Entram no JavaScript na hora do build.
+      EXPO_PUBLIC_API_MODE: http
+      EXPO_PUBLIC_API_URL: https://garupa-sp-api-production.up.railway.app
     steps:
       - name: Baixar o código
         uses: actions/checkout@v4

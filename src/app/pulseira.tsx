@@ -4,6 +4,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { api, mock } from '@/api';
 import type { TipoAlertaVestivel, TipoEventoVestivel } from '@/api/types';
 import { Aviso, Botao, BotaoIcone, Campo, Tela, Texto } from '@/components/ui';
+import { config } from '@/config';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
 import { useEstilos } from '@/lib/tema';
@@ -200,7 +201,7 @@ export default function Pulseira() {
         </Texto>
       </View>
 
-      {pareada && (mock || __DEV__) ? (
+      {pareada && config.demo ? (
         <View style={{ gap: 8 }}>
           <Texto variante="overline" cor="textoSecundario">
             Demonstração sem o Wokwi
