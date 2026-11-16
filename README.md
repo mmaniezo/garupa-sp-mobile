@@ -44,7 +44,7 @@ O app informa e avisa mais rápido; não promete salvar vidas. O mapa mostra his
 
 ## Como rodar
 
-**Só quer instalar?** Baixe o APK de Android na página [Releases](https://github.com/mmaniezo/garupa-sp-mobile/releases). Ele vem com a API simulada e funciona sem servidor. Cada tag `v*` enviada ao GitHub gera um APK novo pelo workflow `.github/workflows/release-android.yml`:
+**Só quer instalar?** Baixe o APK de Android na página [Releases](https://github.com/mmaniezo/garupa-sp-mobile/releases). Ele fala com a API de produção (`https://garupa-sp-api-production.up.railway.app`): o cadastro, o login, o plano do turno, o SOS e os relatos ficam no servidor. Cada tag `v*` enviada ao GitHub gera um APK novo pelo workflow `.github/workflows/release-android.yml`:
 
 ```bash
 git tag v0.1.1
@@ -106,7 +106,7 @@ npm test
 
 ### API real, modelo de ML e API simulada
 
-O app fala com a API C# ([garupa-sp-api](https://github.com/caio-alex/garupa-sp-api)) pelo contrato de `/api/v1` (`src/api/contrato.ts`). O risco vem do modelo de ML ([garupa-sp-ml](https://github.com/Viniciuscont2/garupa-sp-ml)): a API importa o `saida/risco_celula.csv` e responde com os pontos de percentil ≥ 95.
+O app fala com a API C# ([garupa-sp-api](https://github.com/caio-alex/garupa-sp-api)) pelo contrato de `/api/v1` (`src/api/contrato.ts`), um método por endpoint do [Swagger](https://garupa-sp-api-production.up.railway.app/swagger/index.html). A API de produção fica em `https://garupa-sp-api-production.up.railway.app` e é a do APK publicado. O risco vem do modelo de ML ([garupa-sp-ml](https://github.com/Viniciuscont2/garupa-sp-ml)): a API importa o `saida/risco_celula.csv` e responde com os pontos de percentil ≥ 95.
 
 O modelo atual (`v2-xgb-poisson-2024`) usa os dados oficiais do Infosiga (sinistros graves e fatais com moto, 2019 a 2025) e do INMET (chuva). O percentil é calculado dentro de cada contexto (faixa de 4 h, tipo de dia, chuva): em todo contexto a cidade tem de 112 a 113 células de percentil ≥ 95, inclusive no fim de semana e na chuva.
 
@@ -134,13 +134,38 @@ EXPO_PUBLIC_API_URL=http://localhost:5221
 
 4. Reinicie o Metro (`npm run go` ou `npm run dev`). Um cadastro feito no mock não existe na API: ao trocar de API, o app volta ao início do cadastro.
 
-Para conferir o app contra a API rodando (cria e apaga um usuário fictício):
+Para usar a de produção no celular, troque o endereço no passo 3 por `EXPO_PUBLIC_API_URL=https://garupa-sp-api-production.up.railway.app`.
+
+Para conferir o app contra a API (local ou de produção). O teste cria um usuário fictício, com o celular sorteado, e apaga no fim:
 
 ```bash
 GARUPA_API_URL=http://127.0.0.1:5221 npx jest src/api/__tests__/api-real.test.ts
 ```
 
-A prévia web usa só a API simulada: a API não libera CORS. HTTP sem TLS funciona no Expo Go e no build de desenvolvimento; para um APK de demonstração, publique a API com HTTPS.
+A prévia web usa só a API simulada: a API não libera CORS. HTTP sem TLS funciona no Expo Go e no build de desenvolvimento; o APK publicado usa a de produção, com HTTPS.
+
+#### Endpoints que o app usa
+
+Fora o cadastro, o login, a saúde e o acompanhamento do SOS, toda chamada vai com o token (`Authorization: Bearer`). A API confere se o recurso é da própria pessoa (403 se não for).
+
+| Endpoint | No app |
+| --- | --- |
+| `POST /usuarios` | Cadastro, passo 1 (com a senha e o primeiro contato). Devolve o token |
+| `POST /autenticacao/login` | Entrar e entrar de novo quando a sessão vence |
+| `GET /usuarios/{id}` · `PUT /usuarios/{id}` | Contatos depois do login · Perfil → Nome e celular |
+| `POST`, `PUT` e `DELETE /usuarios/{id}/contatos` | Contatos de emergência (o último não sai: 409) |
+| `PUT /usuarios/{id}/consentimentos`, `/ficha-medica`, `/perfil` | Cadastro e Perfil |
+| `DELETE /usuarios/{id}` | Perfil → Excluir minha conta |
+| `GET /distritos` | Escolha dos distritos e nome do distrito nos pontos |
+| `GET /plano-do-turno` · `GET /mensagens` | Plano do turno e mensagens de conscientização |
+| `GET /risco` · `GET /risco/celulas/{id}` | Pontos perto de você (sem distritos) · Risco por horário no Mapa |
+| `POST /sos` · `PATCH /sos/{id}/cancelar` · `PATCH /sos/{id}/encerrar` | SOS, "Estou bem" e "Já fui atendido" |
+| `GET /acompanhar/{token}` | Link que os contatos abrem (sem login) |
+| `POST /relatos` | Relatar perigo |
+| `POST` e `DELETE /usuarios/{id}/vestivel` · `POST /usuarios/{id}/alertas-vestivel` | Parear a pulseira e repetir os alertas nela |
+| `GET /eventos-vestivel/pendentes` · `POST /eventos-vestivel` | Eventos da pulseira (o POST, só na demonstração) |
+| `GET /vestivel/{dispositivoId}/alertas/pendentes` | O que a pulseira lê (o firmware; no app, só no cliente da API) |
+| `GET /saude` | Diagnóstico |
 
 ### Google Maps
 
@@ -174,18 +199,20 @@ O SMS leva só nome, o que aconteceu, a hora e o mapa: nunca ficha médica nem t
 
 O telefone identifica a conta e a senha confirma. A senha é criada no passo 1 do cadastro (pelo menos 8 caracteres, com letras e números, `src/domain/senha.ts`). Em "Já tenho conta: entrar", a pessoa entra com telefone e senha. Os contatos de emergência voltam da API, e o app pede de novo as permissões deste celular. A ficha médica nunca volta pela API: ela é preenchida de novo, se a pessoa quiser. Em Perfil, "Sair da conta" apaga o que está neste celular, e a conta continua existindo para entrar de novo.
 
-Na API simulada, as contas (telefone, nome, hash SHA-256 da senha com sal e contatos) ficam no banco do aparelho, numa chave que sair da conta não apaga. Na API C#, o login ainda não existe. O app já fala com ela por este contrato, para quem for implementar:
+Na API simulada, as contas (telefone, nome, hash SHA-256 da senha com sal e contatos) ficam no banco do aparelho, numa chave que sair da conta não apaga. Na API C#:
 
 | Endpoint | Corpo | Resposta |
 | --- | --- | --- |
-| `POST /api/v1/usuarios` | o de hoje e mais `senha` | `201 { usuarioId, token? }`. `400` no campo `senha` se ela for fraca. `409` se o telefone já tem conta |
-| `POST /api/v1/auth/login` | `{ telefone: "+5511…", senha }` | `200 { usuarioId, nome, token }`. `401 { title: "Telefone ou senha incorretos." }` quando não confere, sem dizer qual dos dois |
+| `POST /api/v1/usuarios` | nome, telefone, `senha` e o primeiro contato | `201 { usuarioId, token, expiraEm }`. `409` se o telefone já tem conta |
+| `POST /api/v1/autenticacao/login` | `{ telefone: "+5511…", senha }` | `200 { token, expiraEm }`. O id do usuário vem dentro do token (campo `sub`); o nome vem de `GET /usuarios/{id}`. `401` quando não confere, sem dizer qual dos dois; `429` depois de 10 tentativas no mesmo minuto |
 
-A API guarda só o hash da senha (BCrypt ou PBKDF2) e nunca a devolve. O app manda o token em toda chamada (`Authorization: Bearer <token>`) e o guarda no armazenamento seguro (`src/servicos/conta.ts`). Ainda não há troca de senha nem recuperação por SMS.
+A API guarda só o hash da senha e nunca a devolve. O app manda o token em toda chamada (`Authorization: Bearer <token>`) e o guarda no armazenamento seguro (`src/servicos/conta.ts`). Ainda não há troca de senha nem recuperação por SMS.
+
+**O token vale 1 hora e a API não tem renovação.** Quando ele vence, a API responde 401 e o app mostra "Sua sessão venceu" no Plano e no Perfil, com o botão "Entrar de novo" (ao abrir o app, já vai para essa tela). Entrar de novo com a mesma conta não apaga nada do celular: o que ficou na fila (registro do SOS, relatos) sai na hora. O SMS de socorro não depende da API e sai mesmo com a sessão vencida. Para um app de uso diário, o ideal é a API emitir tokens mais longos (dias) ou ter renovação.
 
 ### Demonstração
 
-Com o mock ligado (ou em desenvolvimento) aparecem atalhos para gravar o vídeo:
+Os atalhos para gravar o vídeo aparecem também no APK de produção (desliga com `EXPO_PUBLIC_DEMO=0`):
 
 - **Turno ativo → Simular queda**: abre a contagem como se o sensor tivesse detectado a queda.
 - **Pulseira → Impacto, SOS, Cancelar**: simula os eventos da pulseira sem o Wokwi. Com a pulseira real, use o mesmo `dispositivoId` do firmware.
