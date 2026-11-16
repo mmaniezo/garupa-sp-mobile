@@ -98,6 +98,7 @@ export default function RaizLayout() {
           <Stack.Screen name="turno" />
           <Stack.Screen name="pulseira" />
           <Stack.Screen name="contatos" />
+          <Stack.Screen name="meus-dados" />
           <Stack.Screen name="sos/[eventoId]" options={{ gestureEnabled: false }} />
           {/* Contagem da queda: tela inteira, sem gesto de voltar (só "Estou bem" cancela). */}
           <Stack.Screen

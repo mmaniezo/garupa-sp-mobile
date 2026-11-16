@@ -185,6 +185,7 @@ export default function Perfil() {
       {aviso ? <Aviso tom={aviso.tom} texto={aviso.texto} anunciar /> : null}
 
       <View style={styles.grupo}>
+        <Linha titulo="Nome e celular" valor="Editar" href="/meus-dados" />
         <Linha titulo="Contatos de emergência" valor={String(contatos)} href="/contatos" />
         <Linha titulo="Ficha médica" valor={temFicha ? 'Preenchida' : 'Não preenchida'} href="/cadastro/ficha?editar=1" />
         <Linha
