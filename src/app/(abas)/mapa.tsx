@@ -26,6 +26,7 @@ const FOLGA_BAIXO = 84;
  * Google Maps de verdade (Apple Maps no iOS) com os pontos do modelo de ML: cada círculo é a
  * célula de risco (~500 m) e o número é a posição no plano; tocar no ponto abre o balão do
  * Google com o motivo. Os perigos que a pessoa relatou nas últimas 24 h também aparecem.
+ * Embaixo, só o essencial do ponto (via, risco agora e o que fazer); o resto fica recolhido.
  * A mesma informação está em lista, que é a forma acessível.
  */
 export default function MapaPontos() {
@@ -39,6 +40,7 @@ export default function MapaPontos() {
   const [celulaAnterior, setCelulaAnterior] = useState(celula);
   const [resposta, setResposta] = useState<{ id: string; detalhe?: DetalheCelula; erro?: string } | null>(null);
   const [relatos, setRelatos] = useState<RelatoRecente[]>([]);
+  const [detalhesAbertos, setDetalhesAbertos] = useState(false);
   const styles = useEstilos(criarEstilos);
   const { c: paleta } = useTema();
 
@@ -88,76 +90,85 @@ export default function MapaPontos() {
     return linhas.map((r) => ({ ...r, largura: r.score / max }));
   }, [detalhe, contexto]);
 
+  // Direto ao ponto, para ler num relance e voltar a pilotar: onde, o risco agora e o que fazer.
+  // O porquê e o risco por horário ficam em "Ver risco por horário".
   const folha = selecionado && contexto ? (
     <View style={styles.folhaConteudo}>
       <View style={styles.folhaTopo}>
         <View style={styles.iconeAlerta}>
           <Icone nome="alerta" tamanho={22} cor={brand.asfalto} espessura={2.4} />
         </View>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Texto variante="corpo" style={styles.via}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Texto variante="corpo" style={styles.via} numberOfLines={2}>
             {selecionado.viaReferencia}
           </Texto>
-          <Texto variante="legenda" cor="textoSecundario">
-            {localDoPonto(selecionado)} · risco {nivelDeRisco(selecionado.percentil).toLowerCase()}
+          <Texto variante="corpoMenor" cor={paleta.atencaoTexto} style={styles.forte}>
+            {`Risco ${nivelDeRisco(selecionado.percentil).toLowerCase()} agora · ${localDoPonto(selecionado)}`}
           </Texto>
         </View>
       </View>
-      <View style={{ gap: 2 }}>
-        <Texto variante="rotulo">Por quê</Texto>
-        <Texto variante="corpoMenor" cor="textoSecundario">
-          {motivoDoPonto(contexto.faixa, contexto.tipoDia, contexto.chuva)}
-        </Texto>
-      </View>
-      <View style={{ gap: 2 }}>
-        <Texto variante="rotulo">O que fazer</Texto>
-        <Texto variante="corpoMenor" cor="textoSecundario">
+      <View style={styles.acao}>
+        <Texto variante="corpo" style={styles.acaoTexto}>
           {acaoDoPonto(contexto.faixa, contexto.chuva)}
         </Texto>
       </View>
+      <Botao
+        titulo={detalhesAbertos ? 'Esconder detalhes' : 'Ver risco por horário'}
+        variante="link"
+        tamanho="compacto"
+        larguraTotal={false}
+        onPress={() => setDetalhesAbertos((v) => !v)}
+      />
 
-      <Texto variante="overline" cor="textoSecundario" accessibilityRole="header">
-        Risco por horário neste ponto
-      </Texto>
-      {erroDetalhe ? <Aviso tom="neutro" texto={erroDetalhe} /> : null}
-      {barras.map((b) => {
-        const atual = b.faixaHoraria === contexto.faixa;
-        const nivel = nivelDeRisco(b.percentil);
-        return (
-          <View
-            key={b.faixaHoraria}
-            style={styles.barraLinha}
-            accessible
-            accessibilityLabel={`${rotuloFaixa(b.faixaHoraria)}: risco ${nivel}${atual ? ', faixa de agora' : ''}`}>
-            <Texto variante="legenda" style={[styles.barraRotulo, atual && styles.forte]}>
-              {rotuloFaixa(b.faixaHoraria)}
-            </Texto>
-            <View style={styles.barraTrilho}>
+      {detalhesAbertos ? (
+        <View style={styles.folhaConteudo}>
+          <Texto variante="corpoMenor" cor="textoSecundario">
+            {motivoDoPonto(contexto.faixa, contexto.tipoDia, contexto.chuva)}
+          </Texto>
+          <Texto variante="overline" cor="textoSecundario" accessibilityRole="header">
+            Risco por horário neste ponto
+          </Texto>
+          {erroDetalhe ? <Aviso tom="neutro" texto={erroDetalhe} /> : null}
+          {barras.map((b) => {
+            const atual = b.faixaHoraria === contexto.faixa;
+            const nivel = nivelDeRisco(b.percentil);
+            return (
               <View
-                style={[
-                  styles.barra,
-                  { width: `${Math.round(b.largura * 100)}%`, backgroundColor: atual ? alerta.atencao : paleta.neutroBarra },
-                ]}
-              />
-            </View>
-            <Texto
-              variante="legenda"
-              cor={atual ? paleta.atencaoTexto : paleta.textoSecundario}
-              style={[styles.barraNivel, atual && styles.forte]}>
-              {nivel}
-            </Texto>
-          </View>
-        );
-      })}
-      <Texto variante="legenda" cor="textoSecundario" style={{ fontSize: 14 }}>
-        {tipoDoMapa === 'embed'
-          ? 'Na prévia web, o Google Maps mostra o ponto escolhido.'
-          : tipoDoMapa === 'indisponivel'
-            ? 'O mapa do Google não está ativado neste build.'
-            : 'Cada círculo é uma área de cerca de 500 m, não um endereço exato.'}{' '}
-        {AVISO_HISTORICO} Risco calculado pelo modelo do Garupa
-        {detalhe?.versaoModelo ? ` (${detalhe.versaoModelo})` : ''} com dados do Infosiga e do INMET.
-      </Texto>
+                key={b.faixaHoraria}
+                style={styles.barraLinha}
+                accessible
+                accessibilityLabel={`${rotuloFaixa(b.faixaHoraria)}: risco ${nivel}${atual ? ', faixa de agora' : ''}`}>
+                <Texto variante="legenda" style={[styles.barraRotulo, atual && styles.forte]}>
+                  {rotuloFaixa(b.faixaHoraria)}
+                </Texto>
+                <View style={styles.barraTrilho}>
+                  <View
+                    style={[
+                      styles.barra,
+                      { width: `${Math.round(b.largura * 100)}%`, backgroundColor: atual ? alerta.atencao : paleta.neutroBarra },
+                    ]}
+                  />
+                </View>
+                <Texto
+                  variante="legenda"
+                  cor={atual ? paleta.atencaoTexto : paleta.textoSecundario}
+                  style={[styles.barraNivel, atual && styles.forte]}>
+                  {nivel}
+                </Texto>
+              </View>
+            );
+          })}
+          <Texto variante="legenda" cor="textoSecundario" style={{ fontSize: 14 }}>
+            {tipoDoMapa === 'embed'
+              ? 'Na prévia web, o Google Maps mostra o ponto escolhido.'
+              : tipoDoMapa === 'indisponivel'
+                ? 'O mapa do Google não está ativado neste build.'
+                : 'Cada círculo é uma área de cerca de 500 m, não um endereço exato.'}{' '}
+            {AVISO_HISTORICO} Risco calculado pelo modelo do Garupa
+            {detalhe?.versaoModelo ? ` (${detalhe.versaoModelo})` : ''} com dados do Infosiga e do INMET.
+          </Texto>
+        </View>
+      ) : null}
     </View>
   ) : null;
 
@@ -325,7 +336,16 @@ const criarEstilos = (c: Paleta) =>
     alignItems: 'center',
     justifyContent: 'center',
   },
-  via: { fontFamily: 'BricolageGrotesque_700Bold', fontSize: 20, lineHeight: 24 },
+  via: { fontFamily: 'BricolageGrotesque_700Bold', fontSize: 22, lineHeight: 27 },
+  acao: {
+    backgroundColor: c.superficie,
+    borderLeftWidth: 4,
+    borderLeftColor: alerta.atencao,
+    borderRadius: raio.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  acaoTexto: { fontFamily: 'BricolageGrotesque_600SemiBold', fontSize: 18, lineHeight: 24 },
   barraLinha: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 28 },
   barraRotulo: { width: 78 },
   barraTrilho: { flex: 1, height: 12, borderRadius: 6, backgroundColor: c.divisor, overflow: 'hidden' },
