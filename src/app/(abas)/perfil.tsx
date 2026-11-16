@@ -6,7 +6,7 @@ import { api, mock } from '@/api';
 import type { Consentimentos } from '@/api/types';
 import { Aviso, Botao, Icone, ItemMarcavel, Segmentado, Tela, Texto } from '@/components/ui';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
-import { apagarHistoricoDeLocais, contarCelulasVisitadas, registrarVisita } from '@/dados-locais/repositorios';
+import { apagarHistoricoDeLocais, registrarVisita } from '@/dados-locais/repositorios';
 import { fichaTemDados, lerContatos, lerFicha } from '@/dados-locais/seguro';
 import { celulaLocal } from '@/domain/geo';
 import { rotuloUso } from '@/domain/periodos';
@@ -51,7 +51,6 @@ export default function Perfil() {
   const plano = usePlano();
   const [contatos, setContatos] = useState(0);
   const [temFicha, setTemFicha] = useState(false);
-  const [celulas, setCelulas] = useState(0);
   const [aviso, setAviso] = useState<{ tom: 'sucesso' | 'erro' | 'neutro'; texto: string } | null>(null);
   const [permissaoSms, setPermissaoSms] = useState(false);
   const styles = useEstilos(criarEstilos);
@@ -61,7 +60,6 @@ export default function Perfil() {
     useCallback(() => {
       void lerContatos().then((lista) => setContatos(lista.length));
       void lerFicha().then((f) => setTemFicha(fichaTemDados(f)));
-      void contarCelulasVisitadas().then(setCelulas);
       void temPermissaoSms().then(setPermissaoSms);
     }, []),
   );
@@ -102,7 +100,6 @@ export default function Perfil() {
         style: 'destructive',
         onPress: async () => {
           await apagarHistoricoDeLocais();
-          setCelulas(0);
           void carregarPlano();
           setAviso({ tom: 'sucesso', texto: 'Histórico de locais apagado deste celular.' });
         },
@@ -158,7 +155,6 @@ export default function Perfil() {
     for (const p of plano.dados?.pontos.slice(-2) ?? []) {
       for (let i = 0; i < 5; i++) await registrarVisita(celulaLocal({ lat: p.centroLat, lon: p.centroLon }));
     }
-    setCelulas(await contarCelulasVisitadas());
     void carregarPlano();
     setAviso({ tom: 'sucesso', texto: 'Histórico simulado: os pontos visitados sobem no plano.' });
   }
@@ -261,28 +257,24 @@ export default function Perfil() {
         <ItemMarcavel
           caixaA="direita"
           titulo="Localização em segundo plano"
-          descricao="Sem ela, não há turno ativo nem alerta no trajeto."
           marcado={prefs.consentimentos.localizacaoEmSegundoPlano}
           onPress={() => void mudarConsentimento('localizacaoEmSegundoPlano')}
         />
         <ItemMarcavel
           caixaA="direita"
           titulo="Ficha médica no SOS"
-          descricao="Só quem socorre vê, com o SOS ativo."
           marcado={prefs.consentimentos.fichaMedica}
           onPress={() => void mudarConsentimento('fichaMedica')}
         />
         <ItemMarcavel
           caixaA="direita"
           titulo="Locais frequentes"
-          descricao={`Fica só neste celular, sem trajetos. ${celulas} lugares guardados.`}
           marcado={prefs.consentimentos.historicoDeLocais}
           onPress={() => void mudarConsentimento('historicoDeLocais')}
         />
         <ItemMarcavel
           caixaA="direita"
           titulo="Perfil de uso e distritos"
-          descricao="Para escolher o que o plano mostra."
           marcado={prefs.consentimentos.perfilDeUso}
           onPress={() => void mudarConsentimento('perfilDeUso')}
         />
