@@ -4,9 +4,18 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 
 1. Em **Assets**, baixe o arquivo `.apk` no celular Android.
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
-3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**.
+3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**. O cadastro e o login precisam de internet.
 
-## Novidades da 0.2.6
+## Novidades da 0.3.0
+
+- **API de produção**: o app agora fala com o servidor do Garupa SP. O cadastro, o login, o plano do turno, o SOS, os relatos e a pulseira ficam salvos na API, e dá para entrar na mesma conta em outro celular.
+- **Quem já tinha o app**: a conta das versões anteriores ficava só no celular (API simulada) e não existe no servidor. Ao atualizar, o app volta ao início do cadastro.
+- **Sessão de 1 hora**: por segurança, a API pede a senha de novo depois de 1 hora. O Plano e o Perfil avisam "Sua sessão venceu" com o botão "Entrar de novo", e nada do celular é apagado. O SMS de socorro sai mesmo com a sessão vencida, e o registro do SOS e os relatos que ficaram guardados são enviados quando você entra de novo.
+- **Nome e celular**: em Perfil → Nome e celular dá para trocar o seu nome e o seu celular. O celular também é o login.
+- **Mapa mais direto**: ao tocar num ponto, aparecem só a via, o risco de agora e o que fazer. O risco por horário fica em "Ver risco por horário".
+- **Privacidade mais limpa**: em Perfil → Privacidade ficam só as caixas, sem as descrições.
+
+## Da 0.2.6
 
 - **Voltar no turno pausado**: a tela de turno pausado também tem o botão "Voltar" no topo. Ele leva ao plano e o turno continua pausado.
 
@@ -49,11 +58,13 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 ## O que o app faz
 
 - Cadastro em camadas, plano do turno, mapa de pontos críticos, turno em segundo plano, alerta de ponto crítico, detecção de queda com contagem de 30 s, SOS, tela da testemunha, relato de perigo, pulseira simulada e conta e privacidade.
-- **API simulada**: o app funciona sem servidor, com o mesmo contrato da [API C#](https://github.com/caio-alex/garupa-sp-api) e o risco calculado pelo modelo de ML com os dados do Infosiga (`risco_celula.csv`). O cadastro some ao desinstalar o app.
+- **API C# de produção** ([garupa-sp-api](https://github.com/caio-alex/garupa-sp-api)), com o risco calculado pelo modelo de ML com os dados do Infosiga (`risco_celula.csv`).
 
 ## Limitações conhecidas
 
-- O login usa a API simulada: as contas ficam neste celular. Na API C# o login ainda vai ser implementado, e ainda não há recuperação de senha.
+- Ainda não há recuperação de senha.
+- A sessão vence depois de 1 hora (limite da API) e é preciso entrar de novo com a senha.
+- O link de acompanhamento do SOS abre os dados em texto (JSON): ainda não há uma página para o contato.
 - O SMS automático usa o chip e o plano do celular (pode ter custo da operadora).
 - APK de demonstração, assinado com a chave de depuração: não é a versão da loja.
 - Para gravar o vídeo, use os atalhos de demonstração: Turno ativo → Simular queda, e Pulseira → Impacto, SOS e Cancelar.
