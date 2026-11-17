@@ -6,7 +6,15 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**. O cadastro e o login precisam de internet.
 
-## Novidades da 0.3.1
+## Novidades da 0.4.0
+
+- **Visual novo e movimento**: botões, cartões e opções respondem ao toque com uma mola leve e uma vibração curta, e as telas entram em cascata. Tudo dentro das cores e da marca do Garupa SP.
+- **Barra de abas flutuante**: a marcação desliza entre Plano, Mapa, Relatar e Perfil.
+- **Plano**: enquanto carrega, aparece o esboço da lista no lugar da tela vazia, e cada ponto crítico tem um selo com o nível de risco.
+- **Queda**: a contagem de 30 s anda num arco contínuo.
+- **Reduzir movimento**: quem ativou essa opção no celular vê as telas sem as animações.
+
+## Da 0.3.1
 
 - **Perfil mais limpo**: saiu a seção Demonstração do fim do Perfil. Os atalhos para o vídeo continuam no Turno ativo (Simular queda) e na Pulseira.
 - **Aparência centralizada**: as opções de tema (Sistema, Claro e Escuro) dividem a largura toda, com o texto no centro.
