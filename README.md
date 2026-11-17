@@ -12,7 +12,7 @@ A garupa é quem vai junto, de olho em você. App para o motociclista de São Pa
 | --- | --- |
 | **Cidadão** | Motociclistas da capital paulista, com foco no entregador por aplicativo: quem passa mais horas nas vias de maior risco, nem sempre escolhe a rota e trabalha sob pressão de prazo. |
 | **Problema** | Motociclistas são o maior grupo de mortes no trânsito da capital (475 de 1.034 em 2025, Infosiga) e batem recorde em 2026; 67,3% dos sinistros graves ou fatais de jan–ago de 2026 envolvem moto. O risco tem hora e lugar. |
-| **Como funciona** | Cadastro em camadas (nome, telefone e um contato; ficha médica, uso da moto e distritos opcionais). Antes do turno, o plano mostra os poucos pontos críticos das áreas da pessoa, no horário e com a chuva informada. Com o turno ativo, o app fica em segundo plano: avisa ao chegar perto de um ponto crítico (bipe, vibração e banner curto), detecta a queda (impacto + queda de velocidade + imobilidade), abre uma contagem de 30 s e, sem resposta, registra o SOS com a posição. O contato recebe um link de acompanhamento; quem socorre vê a ficha médica pela tela de bloqueio e liga ao 192. |
+| **Como funciona** | Cadastro em camadas (nome, telefone e um contato; ficha médica, uso da moto e distritos opcionais). Antes do turno, o plano mostra os poucos pontos críticos das áreas da pessoa, no horário e com a chuva do momento (pela previsão do tempo ou escolhida à mão). Com o turno ativo, o app fica em segundo plano: avisa ao chegar perto de um ponto crítico (bipe, vibração e banner curto), detecta a queda (impacto + queda de velocidade + imobilidade), abre uma contagem de 30 s e, sem resposta, registra o SOS com a posição. O contato recebe um link de acompanhamento; quem socorre vê a ficha médica pela tela de bloqueio e liga ao 192. |
 | **Tecnologias** | App: Expo (React Native, TypeScript), SQLite, Google Maps, localização e sensores em segundo plano, notificações. Modelo de risco: Python com XGBoost (Infosiga, INMET), [garupa-sp-ml](https://github.com/Viniciuscont2/garupa-sp-ml). API: C#/.NET com PostgreSQL, [garupa-sp-api](https://github.com/caio-alex/garupa-sp-api). Pulseira opcional: ESP32 no Wokwi. |
 | **Ecossistema** | Motociclistas e entregadores; contatos de emergência; SAMU 192 (discagem confirmada pela pessoa); dados abertos (Infosiga, INMET, GeoSampa). Futuro: CET-SP, plataformas de entrega e seguradoras. |
 | **Medição de impacto** | Lift do modelo contra o mapa histórico; erros do detector em cenários de teste (matriz de confusão); tempo entre a queda e o link disponível ao contato; tempo do cadastro mínimo (meta: até 2 min). |
@@ -185,6 +185,14 @@ Sem a chave, o APK não mostra mapa simulado: as telas avisam que o mapa do Goog
 ### Tema claro e escuro
 
 O app segue o modo claro ou escuro do celular. Em Perfil → Aparência dá para fixar Claro ou Escuro. As cores dos dois temas vêm do manual da marca (`src/theme/colors.ts`): no claro, fundo Neblina, cartões brancos, logo preta e teal profundo nos textos. A contagem da queda e a tela da testemunha mantêm as cores fixas de emergência nos dois temas.
+
+### Plano em dia e chuva automática
+
+O plano se monta de novo sozinho, sem puxar para atualizar, quando muda a faixa horária ou o tipo de dia (conferido a cada 30 s e ao voltar para o app), quando os distritos, o tipo de uso, a chuva ou os consentimentos mudam, quando a pessoa entra de novo depois de a sessão vencer e quando a internet volta (`src/servicos/atualizacao.ts`). Com o token vencido, o aviso "Sua sessão venceu" aparece sem esperar uma chamada falhar.
+
+"Seco / Chovendo" vem sozinho da previsão do tempo da [Open-Meteo](https://open-meteo.com) (grátis, sem chave, uso não comercial, dados CC BY 4.0), consultada a cada 10 minutos (`src/servicos/clima.ts`). Garoa, chuva, pancadas e trovoada contam como chuva. A posição sai do celular arredondada em cerca de 5 km; sem localização, vale o meio dos pontos do plano ou o centro de São Paulo. Tocar em Seco ou Chovendo vale como escolha à mão até tocar em "Detectar sozinho".
+
+O mapa mostra "Você" assim que a aba abre, com a localização permitida, mesmo sem turno ativo.
 
 ### Logo em movimento
 

@@ -89,7 +89,6 @@ export default function Perfil() {
     } catch (e) {
       setAviso({ tom: 'neutro', texto: `Guardado no celular. ${mensagemDeErro(e)}` });
     }
-    if (campo === 'historicoDeLocais' || campo === 'perfilDeUso') void carregarPlano();
   }
 
   function apagarHistorico() {

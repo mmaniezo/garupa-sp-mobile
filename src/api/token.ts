@@ -15,6 +15,7 @@ const expirada = criarStore(false);
 /** `true` quando o token venceu (ou a API recusou): o app pede para entrar de novo. */
 export const useSessaoExpirada = expirada.useStore;
 export const sessaoExpirada = expirada.obter;
+export const assinarSessaoExpirada = expirada.assinar;
 
 export function definirToken(novo: string | null): void {
   token = novo;
@@ -23,6 +24,11 @@ export function definirToken(novo: string | null): void {
 
 export function tokenAtual(): string | null {
   return token;
+}
+
+/** O token passou da validade (1 hora)? Marca a sessão como vencida antes de uma chamada falhar. */
+export function conferirValidadeDoToken(agora = Date.now()): void {
+  if (token && !expirada.obter() && tokenVencido(token, agora)) expirada.definir(true);
 }
 
 /** A API respondeu 401 a uma chamada feita com token: ele venceu ou não vale mais. */

@@ -42,6 +42,7 @@ const store = criarStore<Sessao>(VAZIA);
 
 export const useSessao = store.useStore;
 export const obterSessao = store.obter;
+export const assinarSessao = store.assinar;
 
 export async function carregarSessao(): Promise<void> {
   const salva = await lerValor<Omit<Sessao, 'carregada'>>(CHAVE);

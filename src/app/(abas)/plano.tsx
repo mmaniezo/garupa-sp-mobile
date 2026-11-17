@@ -5,14 +5,24 @@ import { StyleSheet, View } from 'react-native';
 import { mock } from '@/api';
 import { LogoAbertura } from '@/components/brand/logo-abertura';
 import { ItemPonto } from '@/components/plano/item-ponto';
+import { OrigemDaChuva } from '@/components/plano/origem-da-chuva';
 import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
 import { Aviso, Botao, CartaoMensagem, Entrada, EsqueletoLista, Etiqueta, Segmentado, Tela, Texto } from '@/components/ui';
-import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
+import { usePreferencias } from '@/dados-locais/preferencias';
 import { dispensarMensagem, registrarMensagemExibida } from '@/dados-locais/repositorios';
 import { rotuloFaixa, rotuloTipoDia, saudacao } from '@/domain/contexto';
 import { AVISO_HISTORICO, localDoPonto } from '@/domain/risco';
 import { useTema } from '@/lib/tema';
-import { carregarPlano, contextoAgora, esconderMensagem, usePlano, type ContextoPlano, type PontoDoPlano } from '@/servicos/plano';
+import { escolherChuvaAMao } from '@/servicos/clima';
+import {
+  atualizarPlanoSeMudou,
+  carregarPlano,
+  contextoAgora,
+  esconderMensagem,
+  usePlano,
+  type ContextoPlano,
+  type PontoDoPlano,
+} from '@/servicos/plano';
 import { useTurno } from '@/servicos/turno';
 import { useSessao } from '@/state/sessao';
 
@@ -33,31 +43,19 @@ export default function PlanoDoTurno() {
   const prefs = usePreferencias();
   const plano = usePlano();
   const turno = useTurno();
-  // "paleta" (e não "c") porque "c" já é o contexto do plano no efeito de foco abaixo.
+  // "paleta" (e não "c"): "c" é o nome do contexto do plano no resto do app.
   const { c: paleta } = useTema();
   const dados = plano.dados;
   const contexto = dados?.contexto ?? contextoAgora(prefs.chuva);
   const mensagem = dados?.mensagens[0];
 
-  // Recarrega ao voltar para a tela se a faixa horária ou a chuva mudaram.
-  useFocusEffect(
-    useCallback(() => {
-      const agora = contextoAgora(prefs.chuva);
-      const c = plano.dados?.contexto;
-      if (!plano.carregando && (!c || c.faixa !== agora.faixa || c.tipoDia !== agora.tipoDia || c.chuva !== agora.chuva)) {
-        void carregarPlano(agora);
-      }
-    }, [prefs.chuva, plano.dados?.contexto, plano.carregando]),
-  );
+  // O plano se atualiza sozinho (servicos/atualizacao.ts); ao voltar para a tela, confere também.
+  useFocusEffect(useCallback(() => atualizarPlanoSeMudou(), []));
 
   useEffect(() => {
     if (mensagem) void registrarMensagemExibida(mensagem.id);
   }, [mensagem]);
 
-  async function mudarChuva(chuva: boolean) {
-    await atualizarPreferencias({ chuva });
-    void carregarPlano(contextoAgora(chuva));
-  }
 
   const primeiroNome = sessao.nome?.split(' ')[0];
   const botaoTurno =
@@ -93,26 +91,37 @@ export default function PlanoDoTurno() {
         </Texto>
       </Entrada>
 
-      <Entrada ordem={2} style={styles.contexto}>
-        <Etiqueta
-          aparencia="cheia"
-          fundo={paleta.superficieElevada}
-          cor={paleta.texto}
-          texto={`${rotuloTipoDia(contexto.tipoDia, true)} · ${rotuloFaixa(contexto.faixa)}`}
-        />
-        <Segmentado
-          rotulo="Está chovendo?"
-          valor={prefs.chuva ? 'chuva' : 'seco'}
-          opcoes={[
-            { valor: 'seco', rotulo: 'Seco' },
-            { valor: 'chuva', rotulo: 'Chovendo' },
-          ]}
-          onChange={(v) => void mudarChuva(v === 'chuva')}
-        />
+      <Entrada ordem={2} style={{ gap: 6 }}>
+        <View style={styles.contexto}>
+          <Etiqueta
+            aparencia="cheia"
+            fundo={paleta.superficieElevada}
+            cor={paleta.texto}
+            texto={`${rotuloTipoDia(contexto.tipoDia, true)} · ${rotuloFaixa(contexto.faixa)}`}
+          />
+          {/* A chuva vem sozinha da previsão do tempo; tocar aqui escolhe à mão. */}
+          <Segmentado
+            rotulo="Está chovendo?"
+            valor={prefs.chuva ? 'chuva' : 'seco'}
+            opcoes={[
+              { valor: 'seco', rotulo: 'Seco' },
+              { valor: 'chuva', rotulo: 'Chovendo' },
+            ]}
+            onChange={(v) => void escolherChuvaAMao(v === 'chuva')}
+          />
+        </View>
+        <OrigemDaChuva />
       </Entrada>
 
       {dados?.origem === 'cache' ? (
-        <Aviso tom="neutro" texto={`Sem internet: este é o plano guardado às ${hora(dados.atualizadoEm)}.`} />
+        <Aviso
+          tom="neutro"
+          texto={
+            dados.semInternet
+              ? `Sem internet: este é o plano guardado às ${hora(dados.atualizadoEm)}.`
+              : `Este é o plano guardado às ${hora(dados.atualizadoEm)}.`
+          }
+        />
       ) : null}
       {plano.erro ? <Aviso tom="erro" texto={plano.erro} anunciar /> : null}
 

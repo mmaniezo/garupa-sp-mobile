@@ -1,4 +1,5 @@
 import { api, ehErroDeRede } from '@/api';
+import { sessaoExpirada } from '@/api/token';
 import type { CelulaCritica, FaixaHoraria, Mensagem, TipoDia } from '@/api/types';
 import { regras } from '@/config';
 import { obterPreferencias } from '@/dados-locais/preferencias';
@@ -28,6 +29,8 @@ export type DadosPlano = {
   mensagens: Mensagem[];
   contexto: ContextoPlano;
   origem: 'api' | 'cache';
+  /** Com origem 'cache': se foi por falta de internet (o aviso diz "Sem internet"). */
+  semInternet: boolean;
   atualizadoEm: string;
   semDistritos: boolean;
   semLocalizacao: boolean;
@@ -97,23 +100,52 @@ async function ordenar(pontos: CelulaCritica[]): Promise<PontoDoPlano[]> {
     .sort((a, b) => Number(b.visitas > 0) - Number(a.visitas > 0) || b.score - a.score);
 }
 
+// "Usar meu perfil de uso e distritos" desmarcado: o plano não usa os distritos (raio da posição).
+function distritosDoPlano(): number[] {
+  const prefs = obterPreferencias();
+  return prefs.consentimentos.perfilDeUso ? prefs.perfil.distritos.map((d) => d.distritoId) : [];
+}
+
+/**
+ * Tudo o que muda o plano: conta, faixa horária, tipo de dia, chuva, distritos, tipo de uso e os
+ * consentimentos que ele usa. Se algo disso muda, o plano é montado de novo sozinho.
+ */
+function assinatura(contexto: ContextoPlano): string {
+  const prefs = obterPreferencias();
+  return [
+    obterSessao().usuarioId,
+    chaveCache(contexto, distritosDoPlano()),
+    prefs.perfil.tiposDeUso.join(','),
+    prefs.consentimentos.perfilDeUso ? 1 : 0,
+    prefs.consentimentos.historicoDeLocais ? 1 : 0,
+  ].join('|');
+}
+
+let assinaturaCarregada: string | null = null;
+let ultimaTentativa = 0;
+/** Cada carga ganha um número; se outra começou depois, a resposta mais velha é descartada. */
+let geracao = 0;
+
 export async function carregarPlano(contexto: ContextoPlano = contextoAgora()): Promise<void> {
   if (!obterSessao().usuarioId) return;
-  // "Usar meu perfil de uso e distritos" desmarcado: o plano não usa os distritos (raio da posição).
-  const prefs = obterPreferencias();
-  const distritos = prefs.consentimentos.perfilDeUso ? prefs.perfil.distritos.map((d) => d.distritoId) : [];
+  const distritos = distritosDoPlano();
   const chave = chaveCache(contexto, distritos);
+  const minha = ++geracao;
+  assinaturaCarregada = assinatura(contexto);
+  ultimaTentativa = Date.now();
   store.definir({ ...store.obter(), carregando: true, erro: null });
+  const vale = () => minha === geracao;
 
   try {
     const bruto = await buscarNaApi(contexto, distritos);
     await gravarCache('cache_plano', chave, bruto);
-    await publicar(bruto, contexto, 'api', new Date().toISOString(), distritos.length === 0);
+    if (vale()) await publicar(bruto, contexto, 'api', new Date().toISOString(), distritos.length === 0, false, vale);
   } catch (e) {
+    if (!vale()) return;
     const cache = await lerCache<Bruto>('cache_plano', chave);
     if (cache) {
-      await publicar(cache.payload, contexto, 'cache', cache.atualizadoEm, distritos.length === 0);
-    } else {
+      await publicar(cache.payload, contexto, 'cache', cache.atualizadoEm, distritos.length === 0, ehErroDeRede(e), vale);
+    } else if (vale()) {
       store.definir({
         carregando: false,
         dados: store.obter().dados,
@@ -125,16 +157,50 @@ export async function carregarPlano(contexto: ContextoPlano = contextoAgora()): 
   }
 }
 
-async function publicar(b: Bruto, contexto: ContextoPlano, origem: 'api' | 'cache', em: string, semDistritos: boolean) {
+/** Intervalo mínimo para tentar de novo quando a última carga não veio da API. */
+const TENTAR_DE_NOVO_MS = 60_000;
+
+/**
+ * Monta o plano de novo se algo que o define mudou (faixa horária, distritos, chuva, conta…),
+ * ou se a última carga não veio da API (sem internet, erro) e já dá para tentar de novo.
+ * Barato: sem mudança, não chama a API.
+ */
+export function atualizarPlanoSeMudou(): void {
+  const prefs = obterPreferencias();
+  if (!obterSessao().usuarioId || !prefs.carregadas) return;
+  const agora = contextoAgora();
+  if (assinatura(agora) !== assinaturaCarregada) {
+    void carregarPlano(agora);
+    return;
+  }
+  const { carregando, dados, erro } = store.obter();
+  const semApi = !!erro || dados?.origem === 'cache';
+  if (semApi && !carregando && !sessaoExpirada() && Date.now() - ultimaTentativa >= TENTAR_DE_NOVO_MS) {
+    void carregarPlano(agora);
+  }
+}
+
+async function publicar(
+  b: Bruto,
+  contexto: ContextoPlano,
+  origem: 'api' | 'cache',
+  em: string,
+  semDistritos: boolean,
+  semInternet: boolean,
+  vale: () => boolean,
+) {
   const dispensadas = await mensagensDispensadasHoje();
+  const pontos = await ordenar(b.pontos);
+  if (!vale()) return;
   store.definir({
     carregando: false,
     erro: null,
     dados: {
-      pontos: await ordenar(b.pontos),
+      pontos,
       mensagens: b.mensagens.filter((m) => !dispensadas.has(m.id)),
       contexto,
       origem,
+      semInternet,
       atualizadoEm: em,
       semDistritos,
       semLocalizacao: b.semLocalizacao,
@@ -150,5 +216,7 @@ export function esconderMensagem(id: string) {
 }
 
 export function limparPlano() {
+  geracao += 1;
+  assinaturaCarregada = null;
   store.definir({ carregando: false, dados: null, erro: null });
 }

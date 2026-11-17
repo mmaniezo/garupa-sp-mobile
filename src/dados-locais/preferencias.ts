@@ -6,7 +6,7 @@ import type { PreferenciaTema } from '@/theme/colors';
 
 /**
  * Preferências guardadas no aparelho (SQLite, chave e valor):
- * perfil de uso, consentimentos, chuva informada, pulseira pareada.
+ * perfil de uso, consentimentos, chuva (automática ou à mão), pulseira pareada.
  * Ficam num store para as telas reagirem quando mudam.
  */
 
@@ -21,8 +21,10 @@ export type Preferencias = {
   carregadas: boolean;
   perfil: PerfilLocal;
   consentimentos: Consentimentos;
-  /** RF10: chuva informada à mão no MVP. */
+  /** RF10: está chovendo agora? Sozinho pela previsão do tempo, ou escolhido à mão. */
   chuva: boolean;
+  /** A chuva vem da previsão do tempo (padrão). Tocar em Seco ou Chovendo desliga. */
+  chuvaAutomatica: boolean;
   pulseira: { dispositivoId: string } | null;
   /** A pessoa já foi levada ao ajuste de economia de bateria (Android). */
   bateriaOrientada: boolean;
@@ -49,6 +51,7 @@ const INICIAIS: Omit<Preferencias, 'carregadas'> = {
   perfil: PERFIL_VAZIO,
   consentimentos: CONSENTIMENTOS_VAZIOS,
   chuva: false,
+  chuvaAutomatica: true,
   pulseira: null,
   bateriaOrientada: false,
   tema: 'sistema',
@@ -59,6 +62,7 @@ const store = criarStore<Preferencias>({ carregadas: false, ...INICIAIS });
 
 export const usePreferencias = store.useStore;
 export const obterPreferencias = store.obter;
+export const assinarPreferencias = store.assinar;
 
 export async function carregarPreferencias(): Promise<Preferencias> {
   const salvas = await lerValor<Omit<Preferencias, 'carregadas'>>(CHAVE);
