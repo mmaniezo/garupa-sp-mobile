@@ -13,7 +13,7 @@ import { acaoDoPonto, AVISO_HISTORICO, localDoPonto, motivoDoPonto, nivelDeRisco
 import { mensagemDeErro } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { usePlano, type PontoDoPlano } from '@/servicos/plano';
-import { usePosicao } from '@/servicos/posicao';
+import { acompanharPosicao, usePosicao } from '@/servicos/posicao';
 import { listarRelatosRecentes, type RelatoRecente } from '@/servicos/relatos';
 import { alerta, brand, brilho, raio, type Paleta } from '@/theme';
 
@@ -50,6 +50,9 @@ export default function MapaPontos() {
       void listarRelatosRecentes().then(setRelatos);
     }, []),
   );
+
+  // "Você" no mapa: a posição é acompanhada enquanto a aba está aberta, mesmo sem turno.
+  useFocusEffect(useCallback(() => acompanharPosicao(), []));
 
   // Veio do plano com outro ponto escolhido: esse passa a ser o selecionado.
   if (celula !== celulaAnterior) {

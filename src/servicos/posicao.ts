@@ -18,6 +18,50 @@ export function registrarPosicao(p: Posicao) {
   store.definir(p);
 }
 
+/** Guarda uma leitura do sistema, sem trocar uma posição mais nova (a do turno) por uma mais velha. */
+function guardarLeitura(loc: Location.LocationObject): Ponto {
+  const ponto = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+  const em = loc.timestamp || Date.now();
+  const atual = store.obter();
+  if (!atual || em >= atual.em) {
+    const kmh = loc.coords.speed !== null && loc.coords.speed >= 0 ? loc.coords.speed * 3.6 : null;
+    store.definir({ ...ponto, kmh, precisao: loc.coords.accuracy ?? null, em });
+  }
+  return ponto;
+}
+
+/**
+ * Acompanha a posição enquanto uma tela precisa dela (o mapa aberto), com ou sem turno.
+ * Não pede permissão: sem ela, não faz nada. Mostra logo a última posição do sistema e segue
+ * atualizando. Devolve a função que para.
+ */
+export function acompanharPosicao(): () => void {
+  let ativo = true;
+  let parar: (() => void) | null = null;
+  void (async () => {
+    try {
+      const permissao = await Location.getForegroundPermissionsAsync();
+      if (!ativo || !permissao.granted) return;
+      const ultima = await Location.getLastKnownPositionAsync().catch(() => null);
+      if (ativo && ultima) guardarLeitura(ultima);
+      const assinatura = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, distanceInterval: 20, timeInterval: 5_000 },
+        (loc) => {
+          if (ativo) guardarLeitura(loc);
+        },
+      );
+      if (ativo) parar = () => assinatura.remove();
+      else assinatura.remove();
+    } catch {
+      // sem serviço de localização
+    }
+  })();
+  return () => {
+    ativo = false;
+    parar?.();
+  };
+}
+
 function comPrazo<T>(promessa: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([promessa, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
 }
@@ -32,13 +76,14 @@ export async function obterPosicao(idadeMaxMs = 60_000, prazoMs = 8_000): Promis
   try {
     const permissao = await Location.getForegroundPermissionsAsync();
     if (!permissao.granted) return memoria ? { lat: memoria.lat, lon: memoria.lon } : null;
+    // O que for lido fica na memória: o mapa já mostra "Você" sem esperar o turno.
     const ultima = await Location.getLastKnownPositionAsync({ maxAge: idadeMaxMs * 5 }).catch(() => null);
-    if (ultima) return { lat: ultima.coords.latitude, lon: ultima.coords.longitude };
+    if (ultima) return guardarLeitura(ultima);
     const atual = await comPrazo(
       Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).catch(() => null),
       prazoMs,
     );
-    if (atual) return { lat: atual.coords.latitude, lon: atual.coords.longitude };
+    if (atual) return guardarLeitura(atual);
   } catch {
     // sem serviço de localização
   }
