@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { api, ehErroApi, mock, origemApi } from '@/api';
 import { Logo } from '@/components/brand/logo';
+import { LogoAbertura } from '@/components/brand/logo-abertura';
 import {
   BannerAlerta,
   Botao,
@@ -63,6 +64,7 @@ export default function CatalogoDev() {
   const [opcao, setOpcao] = useState(true);
   const [marcado, setMarcado] = useState(true);
   const [mensagemVisivel, setMensagemVisivel] = useState(true);
+  const [rodadaLogo, setRodadaLogo] = useState(0);
 
   /**
    * Cadastro completo com dados fictícios, para ver o plano e o turno sem digitar tudo.
@@ -179,6 +181,10 @@ export default function CatalogoDev() {
         <View style={styles.claro}>
           <Logo variante="horizontal-preta" altura={40} />
         </View>
+      </View>
+      <View style={[styles.caixa, { alignItems: 'center', gap: 16 }]}>
+        <LogoAbertura key={rodadaLogo} altura={96} atraso={300} sempre />
+        <Botao titulo="Rodar o motion da logo" variante="neutro" tamanho="compacto" onPress={() => setRodadaLogo((n) => n + 1)} />
       </View>
       <Botao titulo="Iniciar turno" icone="play" tamanho="destaque" />
       <Botao titulo="Ver plano do turno" variante="contorno" tamanho="padrao" />

@@ -3,7 +3,7 @@ import { useCallback, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { mock } from '@/api';
-import { Logo } from '@/components/brand/logo';
+import { LogoAbertura } from '@/components/brand/logo-abertura';
 import { ItemPonto } from '@/components/plano/item-ponto';
 import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
 import { Aviso, Botao, CartaoMensagem, Entrada, EsqueletoLista, Etiqueta, Segmentado, Tela, Texto } from '@/components/ui';
@@ -75,7 +75,8 @@ export default function PlanoDoTurno() {
       atualizando={plano.carregando && !!dados}
       rodape={<Botao titulo={botaoTurno.titulo} icone="play" tamanho="destaque" vivo={turno.situacao === 'inativo'} onPress={botaoTurno.ir} />}>
       <Entrada ordem={0} style={styles.topo}>
-        <Logo variante="horizontal" altura={40} />
+        {/* O motion da logo roda uma vez, 1,5 s depois de abrir o app, e termina na logo parada. */}
+        <LogoAbertura altura={40} />
         {/* O risco do mock é o do modelo de ML; o que é simulado é o servidor (e o cadastro some ao fechar). */}
         {mock ? <Etiqueta texto="API simulada" /> : null}
       </Entrada>

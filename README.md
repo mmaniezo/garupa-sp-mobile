@@ -186,6 +186,10 @@ Sem a chave, o APK não mostra mapa simulado: as telas avisam que o mapa do Goog
 
 O app segue o modo claro ou escuro do celular. Em Perfil → Aparência dá para fixar Claro ou Escuro. As cores dos dois temas vêm do manual da marca (`src/theme/colors.ts`): no claro, fundo Neblina, cartões brancos, logo preta e teal profundo nos textos. A contagem da queda e a tela da testemunha mantêm as cores fixas de emergência nos dois temas.
 
+### Logo em movimento
+
+Ao abrir o app, 1,5 s depois de o Plano aparecer, o motion da marca roda uma vez no lugar da logo parada e termina nela (`src/components/brand/logo-abertura.tsx`). É o mesmo motion do projeto HyperFrames da marca, refeito em vetor com Reanimated: roda na thread de interface, segue o tema e não usa vídeo. Com "reduzir movimento" no celular, a logo aparece parada. No catálogo (dev) há o botão "Rodar o motion da logo".
+
 ### SMS de socorro
 
 Quando o SOS dispara (queda sem resposta, pulseira ou SOS manual), o app avisa os contatos de emergência por SMS com a localização no Google Maps. SMS não depende de internet.
