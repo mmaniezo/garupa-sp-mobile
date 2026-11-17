@@ -12,10 +12,12 @@ type Props<T extends string> = {
   opcoes: Opcao<T>[];
   valor: T;
   onChange: (v: T) => void;
+  /** Opções dividindo a largura toda, com o texto centralizado (ex.: tema do app no Perfil). */
+  preencher?: boolean;
 };
 
 /** Escolha entre poucas opções (Seco | Chovendo). Selecionada: fundo invertido e texto em negrito. */
-export function Segmentado<T extends string>({ rotulo, opcoes, valor, onChange }: Props<T>) {
+export function Segmentado<T extends string>({ rotulo, opcoes, valor, onChange, preencher }: Props<T>) {
   const styles = useEstilos(criarEstilos);
   return (
     <View style={styles.grupo} accessibilityRole="radiogroup" accessibilityLabel={rotulo}>
@@ -29,7 +31,7 @@ export function Segmentado<T extends string>({ rotulo, opcoes, valor, onChange }
             accessibilityLabel={o.rotulo}
             accessibilityState={{ checked: ativo }}
             hitSlop={4}
-            style={[styles.opcao, ativo && styles.ativa]}>
+            style={[styles.opcao, preencher && styles.preenche, ativo && styles.ativa]}>
             <Texto
               variante="corpoMenor"
               cor={ativo ? 'textoInverso' : 'texto'}
@@ -47,5 +49,6 @@ const criarEstilos = (c: Paleta) =>
   StyleSheet.create({
     grupo: { flexDirection: 'row', backgroundColor: c.superficieElevada, borderRadius: raio.pilula, padding: 4, gap: 4 },
     opcao: { minHeight: 40, paddingHorizontal: 14, borderRadius: raio.pilula, justifyContent: 'center' },
+    preenche: { flex: 1, alignItems: 'center' },
     ativa: { backgroundColor: c.texto },
   });

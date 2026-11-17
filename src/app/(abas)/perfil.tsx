@@ -6,16 +6,14 @@ import { api } from '@/api';
 import type { Consentimentos } from '@/api/types';
 import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
 import { Aviso, Botao, Icone, ItemMarcavel, Segmentado, Tela, Texto } from '@/components/ui';
-import { config } from '@/config';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
-import { apagarHistoricoDeLocais, registrarVisita } from '@/dados-locais/repositorios';
+import { apagarHistoricoDeLocais } from '@/dados-locais/repositorios';
 import { fichaTemDados, lerContatos, lerFicha } from '@/dados-locais/seguro';
-import { celulaLocal } from '@/domain/geo';
 import { rotuloUso } from '@/domain/periodos';
 import { mensagemDeErro } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { sairDaConta } from '@/servicos/conta';
-import { carregarPlano, usePlano } from '@/servicos/plano';
+import { carregarPlano } from '@/servicos/plano';
 import { pedirPermissaoSms, smsAutomaticoSuportado, temPermissaoSms } from '@/servicos/sms';
 import { finalizarTurno, useTurno } from '@/servicos/turno';
 import { useSessao } from '@/state/sessao';
@@ -50,7 +48,6 @@ export default function Perfil() {
   const sessao = useSessao();
   const prefs = usePreferencias();
   const turno = useTurno();
-  const plano = usePlano();
   const [contatos, setContatos] = useState(0);
   const [temFicha, setTemFicha] = useState(false);
   const [aviso, setAviso] = useState<{ tom: 'sucesso' | 'erro' | 'neutro'; texto: string } | null>(null);
@@ -153,14 +150,6 @@ export default function Perfil() {
     );
   }
 
-  async function simularHistorico() {
-    for (const p of plano.dados?.pontos.slice(-2) ?? []) {
-      for (let i = 0; i < 5; i++) await registrarVisita(celulaLocal({ lat: p.centroLat, lon: p.centroLon }));
-    }
-    void carregarPlano();
-    setAviso({ tom: 'sucesso', texto: 'Histórico simulado: os pontos visitados sobem no plano.' });
-  }
-
   const usos = prefs.perfil.tiposDeUso.map(rotuloUso).join(' · ') || 'Perfil de uso não informado';
   const inicial = (sessao.nome ?? '?').trim().charAt(0).toUpperCase();
 
@@ -241,6 +230,7 @@ export default function Perfil() {
       <View style={{ gap: 6 }}>
         <Segmentado<PreferenciaTema>
           rotulo="Tema do app"
+          preencher
           valor={prefs.tema}
           opcoes={[
             { valor: 'sistema', rotulo: 'Sistema' },
@@ -249,7 +239,7 @@ export default function Perfil() {
           ]}
           onChange={(tema) => void atualizarPreferencias({ tema })}
         />
-        <Texto variante="legenda" cor="textoSecundario">
+        <Texto variante="legenda" cor="textoSecundario" centro>
           Em Sistema, o app segue o modo claro ou escuro do celular.
         </Texto>
       </View>
@@ -287,17 +277,6 @@ export default function Perfil() {
       <Botao titulo="Apagar histórico de locais" variante="contorno" tamanho="padrao" style={{ borderColor: c.borda }} onPress={apagarHistorico} />
       <Botao titulo="Sair da conta" variante="contorno" tamanho="padrao" style={{ borderColor: c.borda }} onPress={sair} />
       <Botao titulo="Excluir minha conta e todos os dados" variante="perigoTexto" tamanho="padrao" onPress={excluirConta} />
-
-      {config.demo ? (
-        <View style={{ gap: 6 }}>
-          <Texto variante="overline" cor="textoSecundario">
-            Demonstração
-          </Texto>
-          <Botao titulo="Simular histórico de locais" variante="link" tamanho="compacto" onPress={simularHistorico} />
-          <Botao titulo="Diagnóstico do segundo plano" variante="link" tamanho="compacto" onPress={() => router.push('/diagnostico')} />
-          {__DEV__ ? <Botao titulo="Catálogo de telas" variante="link" tamanho="compacto" onPress={() => router.push('/dev')} /> : null}
-        </View>
-      ) : null}
     </Tela>
   );
 }
