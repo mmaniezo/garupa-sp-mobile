@@ -217,7 +217,6 @@ Os atalhos para gravar o vídeo aparecem também no APK de produção (desliga c
 - **Turno ativo → Simular queda**: abre a contagem como se o sensor tivesse detectado a queda.
 - **Pulseira → Impacto, SOS, Cancelar**: simula os eventos da pulseira sem o Wokwi. Com a pulseira real, use o mesmo `dispositivoId` do firmware.
 - **Pulseira → tocar numa luz**: manda aquele alerta para a pulseira acender.
-- **Perfil → Simular histórico de locais**: os pontos "visitados" sobem no plano (P1).
 - **Catálogo (dev)**: toque longo na logo das boas-vindas. Tem "Simular cadastro" com dados fictícios: a conta de demonstração tem o telefone (11) 90000-0000 e a senha `garupa123`. Se ela já existe, o atalho entra nela.
 
 ## Como funciona por dentro
