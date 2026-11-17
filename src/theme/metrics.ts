@@ -38,3 +38,15 @@ export const altura = {
   botaoEstouBem: 96,
   barraNavegacao: 72,
 } as const;
+
+/**
+ * Luz colorida embaixo dos botões de ação (a cor do próprio botão, esmaecida) e sombra de
+ * superfícies que flutuam (barra de abas, folhas). Só profundidade: nenhuma informação depende disso.
+ */
+export const brilho = {
+  teal: '0 10px 26px rgba(9,155,169,0.34)',
+  seguro: '0 10px 26px rgba(21,128,61,0.36)',
+  emergencia: '0 10px 26px rgba(214,40,40,0.38)',
+  flutuante: '0 10px 30px rgba(0,0,0,0.22)',
+  foco: '0 0 0 4px rgba(9,155,169,0.24)',
+} as const;

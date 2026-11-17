@@ -2,12 +2,14 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Vibration, View } from 'react-native';
+import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Circle } from 'react-native-svg';
 
-import { Botao, Icone, Texto } from '@/components/ui';
+import { Botao, Entrada, Icone, Ondas, Pressionavel, Surgir, Texto } from '@/components/ui';
 import { regras } from '@/config';
+import { mola } from '@/lib/movimento';
 import { voltarOu } from '@/lib/navegacao';
 import { estouBem, pedirAjudaAgora, useQueda } from '@/servicos/queda';
 import { useSos } from '@/servicos/sos';
@@ -18,6 +20,8 @@ const semToque = { pointerEvents: 'none' as const };
 
 const R = 106;
 const CIRC = 2 * Math.PI * R;
+
+const CirculoAnimado = Animated.createAnimatedComponent(Circle);
 
 /** Alarme alto em laço e vibração enquanto a contagem está na tela (RF19). */
 function useAlarme(ativo: boolean) {
@@ -66,6 +70,19 @@ export default function ContagemDaQueda() {
     }
   }, [emContagem, cancelado, ctx.estado]);
 
+  const restante = emContagem ? segundos : 0;
+  const progresso = restante / regras.contagemQuedaSegundos;
+
+  // O arco esvazia sem saltos entre um segundo e o outro, e o número "bate" a cada segundo.
+  const arco = useSharedValue(progresso);
+  const batida = useSharedValue(1);
+  useEffect(() => {
+    arco.set(withTiming(progresso, { duration: 950, easing: Easing.linear }));
+    batida.set(withSequence(withTiming(1.07, { duration: 90 }), withSpring(1, mola.viva)));
+  }, [progresso, arco, batida]);
+  const propsArco = useAnimatedProps(() => ({ strokeDashoffset: CIRC * (1 - arco.get()) }));
+  const estiloNumero = useAnimatedStyle(() => ({ transform: [{ scale: batida.get() }] }));
+
   async function cancelar() {
     setCancelado(true);
     await estouBem();
@@ -76,19 +93,22 @@ export default function ContagemDaQueda() {
     return (
       <View style={[styles.raiz, styles.ok, { paddingTop: insets.top + 64 }]} accessibilityLiveRegion="assertive">
         <StatusBar style="light" />
-        <Icone nome="check" tamanho={72} cor={brand.branco} espessura={3} />
-        <Texto variante="display" cor={brand.branco} centro>
-          Que bom que você está bem.
-        </Texto>
-        <Texto variante="corpo" cor={brand.branco} centro>
-          Contagem cancelada. Seguimos de olho.
-        </Texto>
+        <Surgir>
+          <Icone nome="check" tamanho={72} cor={brand.branco} espessura={3} />
+        </Surgir>
+        <Entrada ordem={1}>
+          <Texto variante="display" cor={brand.branco} centro>
+            Que bom que você está bem.
+          </Texto>
+        </Entrada>
+        <Entrada ordem={2}>
+          <Texto variante="corpo" cor={brand.branco} centro>
+            Contagem cancelada. Seguimos de olho.
+          </Texto>
+        </Entrada>
       </View>
     );
   }
-
-  const restante = emContagem ? segundos : 0;
-  const progresso = restante / regras.contagemQuedaSegundos;
 
   return (
     <View style={[styles.raiz, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]}>
@@ -116,9 +136,10 @@ export default function ContagemDaQueda() {
         accessible
         accessibilityLabel={`Faltam ${restante} segundos para o SOS`}
         accessibilityLiveRegion="polite">
+        <Ondas cor="rgba(255,255,255,0.55)" tamanho={236} quantidade={2} duracao={2000} ate={1.28} />
         <Svg width={236} height={236} style={StyleSheet.absoluteFill}>
           <Circle cx={118} cy={118} r={R} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth={14} />
-          <Circle
+          <CirculoAnimado
             cx={118}
             cy={118}
             r={R}
@@ -127,26 +148,30 @@ export default function ContagemDaQueda() {
             strokeWidth={14}
             strokeLinecap="round"
             strokeDasharray={CIRC}
-            strokeDashoffset={CIRC * (1 - progresso)}
+            animatedProps={propsArco}
             transform="rotate(-90 118 118)"
           />
         </Svg>
-        <Texto style={styles.numero}>{restante}</Texto>
+        <Animated.View style={estiloNumero}>
+          <Texto style={styles.numero}>{restante}</Texto>
+        </Animated.View>
         <Texto variante="rotulo" cor={brand.branco} style={{ fontSize: 17 }}>
           segundos
         </Texto>
       </View>
 
       <View style={[styles.acoes, { pointerEvents: 'box-none' }]}>
-        <Pressable
+        <Pressionavel
           onPress={cancelar}
           accessibilityRole="button"
           accessibilityLabel="Estou bem"
           accessibilityHint="Cancela a contagem. Tocar em qualquer lugar da tela também cancela."
-          style={({ pressed }) => [styles.estouBem, pressed && { opacity: 0.9 }]}>
+          toque="nenhum"
+          escala={0.97}
+          style={styles.estouBem}>
           <Icone nome="check" tamanho={32} cor={alerta.seguro} espessura={3} />
           <Texto style={styles.estouBemTexto}>Estou bem</Texto>
-        </Pressable>
+        </Pressionavel>
         <Texto variante="rotulo" cor={brand.branco} centro style={[{ fontSize: 16 }, semToque]}>
           Ou toque em qualquer lugar da tela
         </Texto>
@@ -192,6 +217,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
+    boxShadow: '0 14px 36px rgba(0,0,0,0.28)',
   },
   estouBemTexto: { fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 30, color: alerta.seguro },
 });

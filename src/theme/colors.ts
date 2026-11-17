@@ -95,6 +95,8 @@ export type Paleta = {
   borda: string;
   /** Linhas divisórias e trilhos de barra. */
   divisor: string;
+  /** Fio de luz na borda de cartões e da barra de abas: dá profundidade sem pesar. */
+  fio: string;
   texto: string;
   textoSecundario: string;
   /** Texto sobre uma superfície da cor do texto (o inverso do tema). */
@@ -132,6 +134,7 @@ export const paletas: Record<NomeTema, Paleta> = {
     superficieElevada: brand.viseira,
     borda: tons.borda,
     divisor: brand.viseira,
+    fio: 'rgba(255,255,255,0.08)',
     texto: brand.branco,
     textoSecundario: tons.textoSecundario,
     textoInverso: brand.asfalto,
@@ -156,6 +159,7 @@ export const paletas: Record<NomeTema, Paleta> = {
     superficieElevada: '#E6EBED',
     borda: '#9AA4A9',
     divisor: tons.divisorClaro,
+    fio: 'rgba(17,20,23,0.08)',
     texto: brand.asfalto,
     textoSecundario: tons.textoSecundarioClaro,
     textoInverso: brand.branco,

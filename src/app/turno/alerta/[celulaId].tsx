@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { api } from '@/api';
 import type { CelulaCritica, Mensagem } from '@/api/types';
-import { Botao, BotaoIcone, CartaoMensagem, Icone, Tela, Texto } from '@/components/ui';
+import { Botao, BotaoIcone, CartaoMensagem, Entrada, Icone, Tela, Texto } from '@/components/ui';
 import { regras } from '@/config';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import {
@@ -87,7 +87,7 @@ export default function MotivoDoAlerta() {
   if (emMovimento) {
     return (
       <Tela rolagem={false} rodape={<Botao titulo="Voltar ao turno" onPress={() => voltarOu('/turno/ativo')} />}>
-        <View style={styles.movimento}>
+        <Entrada style={styles.movimento} distancia={20}>
           <Icone nome="alerta" tamanho={64} cor={c.atencaoTexto} />
           <Texto variante="display" centro>
             Pare a moto para ler.
@@ -95,7 +95,7 @@ export default function MotivoDoAlerta() {
           <Texto variante="corpo" cor="textoSecundario" centro>
             Em movimento, o aviso é só o bipe e a vibração.
           </Texto>
-        </View>
+        </Entrada>
       </Tela>
     );
   }
@@ -109,7 +109,7 @@ export default function MotivoDoAlerta() {
         </Texto>
       </View>
 
-      <View style={styles.cartao} accessible accessibilityRole="summary">
+      <Entrada ordem={1} distancia={20} style={styles.cartao} accessible accessibilityRole="summary">
         <View style={styles.linha}>
           <Icone nome="alerta" tamanho={26} cor={brand.asfalto} espessura={2.4} />
           <Texto variante="rotulo" cor={brand.asfalto} style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
@@ -136,7 +136,7 @@ export default function MotivoDoAlerta() {
             {acaoDoPonto(contexto.faixa, contexto.chuva)}
           </Texto>
         </View>
-      </View>
+      </Entrada>
 
       {mensagem ? (
         <View style={{ gap: 10 }}>
@@ -174,7 +174,7 @@ export default function MotivoDoAlerta() {
 
 const styles = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  cartao: { backgroundColor: alerta.atencao, borderRadius: raio.cartao, padding: 18, gap: 10 },
+  cartao: { backgroundColor: alerta.atencao, borderRadius: raio.cartao, padding: 18, gap: 10, boxShadow: '0 12px 32px rgba(245,165,36,0.26)' },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avaliacao: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   movimento: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },

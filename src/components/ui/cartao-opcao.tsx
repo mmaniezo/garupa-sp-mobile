@@ -1,9 +1,11 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useEstilos } from '@/lib/tema';
 import { brand, raio, type Paleta } from '@/theme';
 
+import { Surgir } from './entrada';
 import { Icone } from './icone';
+import { Pressionavel } from './pressionavel';
 import { Texto } from './texto';
 
 type Props = {
@@ -17,28 +19,29 @@ type Props = {
 export function CartaoOpcao({ titulo, descricao, selecionado, onPress }: Props) {
   const styles = useEstilos(criarEstilos);
   return (
-    <Pressable
+    <Pressionavel
       onPress={onPress}
       accessibilityRole="checkbox"
       accessibilityLabel={descricao ? `${titulo}. ${descricao}` : titulo}
       accessibilityState={{ checked: selecionado }}
-      style={({ pressed }) => [
-        styles.base,
-        selecionado ? styles.selecionado : styles.normal,
-        pressed && { opacity: 0.85 },
-      ]}>
+      toque="selecao"
+      style={[styles.base, selecionado ? styles.selecionado : styles.normal]}>
       <View style={styles.topo}>
         <Texto variante="corpo" style={styles.titulo}>
           {titulo}
         </Texto>
-        {selecionado ? <Icone nome="check" tamanho={18} cor={styles.cores.check} espessura={3} /> : null}
+        {selecionado ? (
+          <Surgir>
+            <Icone nome="check" tamanho={18} cor={styles.cores.check} espessura={3} />
+          </Surgir>
+        ) : null}
       </View>
       {descricao ? (
         <Texto variante="legenda" cor="textoSecundario">
           {descricao}
         </Texto>
       ) : null}
-    </Pressable>
+    </Pressionavel>
   );
 }
 

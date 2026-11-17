@@ -1,11 +1,13 @@
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Modal, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { SosManual } from '@/components/sos/sos-manual';
-import { Aviso, Botao, BotaoVoltar, Icone, Tela, Texto } from '@/components/ui';
+import { Aviso, Botao, BotaoVoltar, Entrada, Icone, Ondas, Tela, Texto } from '@/components/ui';
 import { config } from '@/config';
 import { usePreferencias } from '@/dados-locais/preferencias';
+import { usePulso } from '@/lib/movimento';
 import { voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { simularQueda } from '@/servicos/queda';
@@ -21,9 +23,12 @@ function duracao(ms: number): string {
 function Indicador({ titulo, ok, texto }: { titulo: string; ok: boolean; texto: string }) {
   const styles = useEstilos(criarEstilos);
   const { c } = useTema();
+  // Ligado: a luz respira, como um LED. Com problema, fica parada (o texto diz o que é).
+  const pulso = usePulso(1500, ok);
+  const estiloLuz = useAnimatedStyle(() => ({ opacity: 1 - 0.55 * pulso.get() }));
   return (
     <View style={styles.indicador} accessible accessibilityLabel={`${titulo}: ${texto}`}>
-      <View style={[styles.bolinha, { backgroundColor: ok ? c.seguroTexto : tons.emergenciaLed }]} />
+      <Animated.View style={[styles.bolinha, { backgroundColor: ok ? c.seguroTexto : tons.emergenciaLed }, estiloLuz]} />
       <Texto variante="rotulo" style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
         {titulo}
       </Texto>
@@ -76,6 +81,7 @@ export default function TurnoAtivo() {
 
   return (
     <Tela
+      aurora={alerta.seguro}
       rodape={
         <View style={styles.acoes}>
           <View style={{ flex: 1 }}>
@@ -86,7 +92,7 @@ export default function TurnoAtivo() {
           </View>
         </View>
       }>
-      <View style={styles.topo}>
+      <Entrada ordem={0} style={styles.topo}>
         <BotaoVoltar dica="Volta para o plano. O turno continua ativo." onPress={() => voltarOu('/plano')} />
         <Botao
           titulo="SOS"
@@ -97,20 +103,24 @@ export default function TurnoAtivo() {
           dica="Pedir socorro agora, escolhendo o tipo"
           onPress={() => setSosAberto(true)}
         />
-      </View>
+      </Entrada>
 
-      <View style={styles.centro}>
-        <View style={styles.anel} accessible accessibilityLabel={`Turno ativo há ${duracao(agora - (turno.iniciadoEm ?? agora))}`}>
-          <Icone nome="escudoOk" tamanho={40} cor={c.seguroTexto} />
-          <Texto variante="alerta" style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 24 }}>
-            Turno ativo
-          </Texto>
-          <Texto variante="numero">{duracao(agora - (turno.iniciadoEm ?? agora))}</Texto>
+      <Entrada ordem={1} distancia={24} style={styles.centro}>
+        <View style={styles.anelArea}>
+          {/* Ondas saindo do anel: o turno está ligado e de olho. */}
+          <Ondas cor={alerta.seguro} tamanho={220} quantidade={2} duracao={3400} ate={1.3} />
+          <View style={styles.anel} accessible accessibilityLabel={`Turno ativo há ${duracao(agora - (turno.iniciadoEm ?? agora))}`}>
+            <Icone nome="escudoOk" tamanho={40} cor={c.seguroTexto} />
+            <Texto variante="alerta" style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 24 }}>
+              Turno ativo
+            </Texto>
+            <Texto variante="numero">{duracao(agora - (turno.iniciadoEm ?? agora))}</Texto>
+          </View>
         </View>
         <Texto variante="corpoMenor" cor="textoSecundario" centro style={{ maxWidth: 300 }}>
           Pode abrir seu app de entregas. A gente segue de olho em segundo plano.
         </Texto>
-      </View>
+      </Entrada>
 
       {turnoSoComAppAberto ? (
         <Aviso
@@ -123,13 +133,13 @@ export default function TurnoAtivo() {
         <Aviso tom="erro" texto="Sem sinal de GPS: sem alerta de ponto crítico até o sinal voltar." anunciar />
       ) : null}
 
-      <View style={styles.indicadores}>
+      <Entrada ordem={2} style={styles.indicadores}>
         <Indicador titulo="GPS" ok={gpsOk || iniciou} texto={gpsOk ? 'Ativo' : iniciou ? 'Ligando' : 'Sem sinal'} />
         <Indicador titulo="Sensor" ok={sensorOk || iniciou} texto={sensorOk ? 'Detectando queda' : iniciou ? 'Ligando' : 'Sem leitura'} />
         <Indicador titulo="Pulseira" ok={!!prefs.pulseira} texto={prefs.pulseira ? 'Pareada' : 'Não pareada'} />
-      </View>
+      </Entrada>
 
-      <View style={{ gap: 8 }}>
+      <Entrada ordem={3} style={{ gap: 8 }}>
         <Texto variante="overline" cor="textoSecundario">
           Na barra de notificações
         </Texto>
@@ -149,7 +159,7 @@ export default function TurnoAtivo() {
             Pausar
           </Texto>
         </View>
-      </View>
+      </Entrada>
 
       {config.demo ? (
         <View style={{ gap: 8 }}>
@@ -194,20 +204,22 @@ export default function TurnoAtivo() {
 const criarEstilos = (c: Paleta, nome: NomeTema) =>
   StyleSheet.create({
     topo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    centro: { alignItems: 'center', gap: 14, paddingTop: 12 },
+    centro: { alignItems: 'center', gap: 22, paddingTop: 34, paddingBottom: 6 },
+    anelArea: { width: 220, height: 220, alignItems: 'center', justifyContent: 'center' },
     anel: {
       width: 220,
       height: 220,
       borderRadius: 110,
       borderWidth: 3,
       borderColor: alerta.seguro,
+      backgroundColor: nome === 'claro' ? 'rgba(21,128,61,0.07)' : 'rgba(21,128,61,0.12)',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 4,
-      boxShadow: '0 0 0 14px rgba(21,128,61,0.16), 0 0 0 30px rgba(21,128,61,0.07)',
+      boxShadow: '0 0 40px rgba(21,128,61,0.28)',
     },
     indicadores: { flexDirection: 'row', gap: 8 },
-    indicador: { flex: 1, backgroundColor: c.superficie, borderRadius: raio.lg, padding: 12, gap: 6 },
+    indicador: { flex: 1, backgroundColor: c.superficie, borderRadius: raio.lg, padding: 12, gap: 6, borderWidth: 1, borderColor: c.fio },
     bolinha: { width: 10, height: 10, borderRadius: 5 },
     notificacao: {
       backgroundColor: nome === 'claro' ? brand.branco : brand.neblina,

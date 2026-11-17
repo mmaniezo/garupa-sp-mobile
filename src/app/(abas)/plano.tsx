@@ -6,7 +6,7 @@ import { mock } from '@/api';
 import { Logo } from '@/components/brand/logo';
 import { ItemPonto } from '@/components/plano/item-ponto';
 import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
-import { Aviso, Botao, CartaoMensagem, Etiqueta, Segmentado, Tela, Texto } from '@/components/ui';
+import { Aviso, Botao, CartaoMensagem, Entrada, EsqueletoLista, Etiqueta, Segmentado, Tela, Texto } from '@/components/ui';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { dispensarMensagem, registrarMensagemExibida } from '@/dados-locais/repositorios';
 import { rotuloFaixa, rotuloTipoDia, saudacao } from '@/domain/contexto';
@@ -73,16 +73,16 @@ export default function PlanoDoTurno() {
       gap={16}
       aoAtualizar={() => void carregarPlano(contextoAgora(prefs.chuva))}
       atualizando={plano.carregando && !!dados}
-      rodape={<Botao titulo={botaoTurno.titulo} icone="play" tamanho="destaque" onPress={botaoTurno.ir} />}>
-      <View style={styles.topo}>
+      rodape={<Botao titulo={botaoTurno.titulo} icone="play" tamanho="destaque" vivo={turno.situacao === 'inativo'} onPress={botaoTurno.ir} />}>
+      <Entrada ordem={0} style={styles.topo}>
         <Logo variante="horizontal" altura={40} />
         {/* O risco do mock é o do modelo de ML; o que é simulado é o servidor (e o cadastro some ao fechar). */}
         {mock ? <Etiqueta texto="API simulada" /> : null}
-      </View>
+      </Entrada>
 
       <AvisoSessaoExpirada />
 
-      <View style={{ gap: 4 }}>
+      <Entrada ordem={1} style={{ gap: 4 }}>
         <Texto variante="corpoMenor" cor="textoSecundario">
           {saudacao()}
           {primeiroNome ? `, ${primeiroNome}` : ''}
@@ -90,9 +90,9 @@ export default function PlanoDoTurno() {
         <Texto variante="titulo" accessibilityRole="header">
           Seu plano do turno
         </Texto>
-      </View>
+      </Entrada>
 
-      <View style={styles.contexto}>
+      <Entrada ordem={2} style={styles.contexto}>
         <Etiqueta
           aparencia="cheia"
           fundo={paleta.superficieElevada}
@@ -108,7 +108,7 @@ export default function PlanoDoTurno() {
           ]}
           onChange={(v) => void mudarChuva(v === 'chuva')}
         />
-      </View>
+      </Entrada>
 
       {dados?.origem === 'cache' ? (
         <Aviso tom="neutro" texto={`Sem internet: este é o plano guardado às ${hora(dados.atualizadoEm)}.`} />
@@ -145,17 +145,15 @@ export default function PlanoDoTurno() {
         </View>
       ) : null}
 
-      <View style={styles.cabecalhoLista}>
+      <Entrada ordem={3} style={styles.cabecalhoLista}>
         <Texto variante="tituloSecao" accessibilityRole="header">
           Pontos críticos agora
         </Texto>
         <Botao titulo="Ver no mapa" variante="link" tamanho="compacto" larguraTotal={false} onPress={() => router.navigate('/mapa')} />
-      </View>
+      </Entrada>
 
       {plano.carregando && !dados ? (
-        <Texto variante="legenda" cor="textoSecundario">
-          Montando o seu plano…
-        </Texto>
+        <EsqueletoLista rotulo="Montando o seu plano" />
       ) : dados && dados.pontos.length === 0 && !dados.semLocalizacao ? (
         <Aviso tom="neutro" texto="Nenhum ponto crítico nesta faixa horária nas suas áreas. Mesmo assim, atenção no trajeto." />
       ) : (
@@ -166,6 +164,7 @@ export default function PlanoDoTurno() {
               ponto={p}
               posicao={i + 1}
               destaque={i < 2}
+              ordem={4 + i}
               linha={linhaDoPonto(p, contexto)}
               onPress={() => router.navigate({ pathname: '/mapa', params: { celula: p.celulaId } })}
             />

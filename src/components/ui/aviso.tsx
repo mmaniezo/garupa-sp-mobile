@@ -1,4 +1,7 @@
 import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+
+import { useEntrada } from '@/lib/movimento';
 
 import { useEstilos } from '@/lib/tema';
 import { alerta, raio, type NomeTema, type Paleta } from '@/theme';
@@ -22,9 +25,10 @@ type Props = { texto: string; titulo?: string; tom?: Tom; anunciar?: boolean };
 /** Caixa de aviso em linha (erro de envio, sem internet, dica). Sempre ícone + texto, nunca só cor. */
 export function Aviso({ texto, titulo, tom = 'neutro', anunciar }: Props) {
   const t = useEstilos(tonsDoTema)[tom];
+  const entrada = useEntrada(0, 10);
   return (
-    <View
-      style={[styles.caixa, { backgroundColor: t.fundo, borderColor: tom === 'erro' ? alerta.emergencia : 'transparent' }]}
+    <Animated.View
+      style={[styles.caixa, { backgroundColor: t.fundo, borderColor: tom === 'erro' ? alerta.emergencia : 'transparent' }, entrada]}
       accessibilityRole={anunciar ? 'alert' : undefined}
       accessibilityLiveRegion={anunciar ? 'polite' : undefined}>
       <Icone nome={t.nome} tamanho={20} cor={t.icone} />
@@ -32,7 +36,7 @@ export function Aviso({ texto, titulo, tom = 'neutro', anunciar }: Props) {
         {titulo ? <Texto variante="rotulo">{titulo}</Texto> : null}
         <Texto variante="legenda">{texto}</Texto>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

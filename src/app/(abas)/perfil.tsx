@@ -1,11 +1,11 @@
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { api } from '@/api';
 import type { Consentimentos } from '@/api/types';
 import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
-import { Aviso, Botao, Icone, ItemMarcavel, Segmentado, Tela, Texto } from '@/components/ui';
+import { Aviso, Botao, Entrada, Icone, ItemMarcavel, Pressionavel, Segmentado, Tela, Texto } from '@/components/ui';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { apagarHistoricoDeLocais } from '@/dados-locais/repositorios';
 import { fichaTemDados, lerContatos, lerFicha } from '@/dados-locais/seguro';
@@ -17,17 +17,18 @@ import { carregarPlano } from '@/servicos/plano';
 import { pedirPermissaoSms, smsAutomaticoSuportado, temPermissaoSms } from '@/servicos/sms';
 import { finalizarTurno, useTurno } from '@/servicos/turno';
 import { useSessao } from '@/state/sessao';
-import { brand, raio, type Paleta, type PreferenciaTema } from '@/theme';
+import { brand, brilho, raio, type Paleta, type PreferenciaTema } from '@/theme';
 
 function Linha({ titulo, valor, href, corValor }: { titulo: string; valor: string; href: Href; corValor?: string }) {
   const styles = useEstilos(criarEstilos);
   const { c } = useTema();
   return (
-    <Pressable
+    <Pressionavel
       onPress={() => router.push(href)}
       accessibilityRole="button"
       accessibilityLabel={`${titulo}: ${valor}`}
-      style={({ pressed }) => [styles.linha, pressed && { opacity: 0.85 }]}>
+      escala={0.985}
+      style={styles.linha}>
       <Texto variante="corpoMenor" style={{ flex: 1, fontFamily: 'BricolageGrotesque_600SemiBold', fontSize: 17 }}>
         {titulo}
       </Texto>
@@ -35,7 +36,7 @@ function Linha({ titulo, valor, href, corValor }: { titulo: string; valor: strin
         {valor}
       </Texto>
       <Icone nome="chevronDireita" tamanho={18} cor={c.textoSecundario} />
-    </Pressable>
+    </Pressionavel>
   );
 }
 
@@ -155,11 +156,13 @@ export default function Perfil() {
 
   return (
     <Tela dentroDeAbas gap={14}>
-      <View style={styles.cabecalho}>
-        <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Texto variante="titulo" cor={brand.asfalto} style={{ fontSize: 24 }}>
-            {inicial}
-          </Texto>
+      <Entrada ordem={0} style={styles.cabecalho}>
+        <View style={styles.avatarAnel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <View style={styles.avatar}>
+            <Texto variante="titulo" cor={brand.asfalto} style={{ fontSize: 24 }}>
+              {inicial}
+            </Texto>
+          </View>
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Texto variante="alerta" style={{ fontFamily: 'BricolageGrotesque_800ExtraBold' }} accessibilityRole="header">
@@ -169,12 +172,12 @@ export default function Perfil() {
             {usos}
           </Texto>
         </View>
-      </View>
+      </Entrada>
 
       <AvisoSessaoExpirada />
       {aviso ? <Aviso tom={aviso.tom} texto={aviso.texto} anunciar /> : null}
 
-      <View style={styles.grupo}>
+      <Entrada ordem={1} style={styles.grupo}>
         <Linha titulo="Nome e celular" valor="Editar" href="/meus-dados" />
         <Linha titulo="Contatos de emergência" valor={String(contatos)} href="/contatos" />
         <Linha titulo="Ficha médica" valor={temFicha ? 'Preenchida' : 'Não preenchida'} href="/cadastro/ficha?editar=1" />
@@ -203,7 +206,7 @@ export default function Perfil() {
           href="/pulseira"
         />
         <Linha titulo="Permissões do celular" valor="Revisar" href="/cadastro/permissoes?editar=1" />
-      </View>
+      </Entrada>
 
       <Texto variante="overline" cor="textoSecundario" accessibilityRole="header" style={{ marginTop: 6 }}>
         Socorro
@@ -284,8 +287,19 @@ export default function Perfil() {
 const criarEstilos = (c: Paleta) =>
   StyleSheet.create({
   cabecalho: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' },
-  grupo: { backgroundColor: c.superficie, borderRadius: raio.xxl, overflow: 'hidden' },
+  // Anel fino em volta do avatar, com a luz do teal por baixo.
+  avatarAnel: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 2,
+    borderColor: c.selecionadoFundo,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: brilho.teal,
+  },
+  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' },
+  grupo: { backgroundColor: c.superficie, borderRadius: raio.xxl, overflow: 'hidden', borderWidth: 1, borderColor: c.fio },
   linha: {
     flexDirection: 'row',
     alignItems: 'center',

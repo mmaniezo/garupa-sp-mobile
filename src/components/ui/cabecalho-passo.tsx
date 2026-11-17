@@ -1,4 +1,8 @@
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+
+import { curvaEntrada } from '@/lib/movimento';
 
 import { useTema } from '@/lib/tema';
 import { brand } from '@/theme';
@@ -15,6 +19,21 @@ type Props = {
   passo?: number;
   total?: number;
 };
+
+/** Um trecho da barra de progresso. O do passo atual enche da esquerda para a direita ao entrar. */
+function Segmento({ cheio, atual, trilho }: { cheio: boolean; atual: boolean; trilho: string }) {
+  const reduzido = useReducedMotion();
+  const p = useSharedValue(cheio && !(atual && !reduzido) ? 1 : 0);
+  useEffect(() => {
+    p.set(cheio ? withDelay(atual ? 180 : 0, withTiming(1, { duration: 520, easing: curvaEntrada })) : withTiming(0, { duration: 200 }));
+  }, [cheio, atual, p]);
+  const animado = useAnimatedStyle(() => ({ width: `${p.get() * 100}%` }));
+  return (
+    <View style={[styles.segmento, { backgroundColor: trilho }]}>
+      <Animated.View style={[styles.segmentoCheio, animado]} />
+    </View>
+  );
+}
 
 /** Cabeçalho do cadastro em camadas: voltar, passo atual, "Pular" e barra de progresso. */
 export function CabecalhoPasso({ rotulo, onVoltar, onPular, passo, total = 4 }: Props) {
@@ -49,10 +68,7 @@ export function CabecalhoPasso({ rotulo, onVoltar, onPular, passo, total = 4 }: 
           accessibilityLabel={`Cadastro: passo ${passo} de ${total}`}
           accessibilityValue={{ min: 0, max: total, now: passo }}>
           {Array.from({ length: total }, (_, i) => (
-            <View
-              key={i}
-              style={[styles.segmento, { backgroundColor: i < passo ? brand.teal : c.divisor }]}
-            />
+            <Segmento key={i} cheio={i < passo} atual={i === passo - 1} trilho={c.divisor} />
           ))}
         </View>
       ) : null}
@@ -66,5 +82,6 @@ const styles = StyleSheet.create({
   vazio: { width: 48, height: 48 },
   pular: { height: 48, justifyContent: 'center', paddingHorizontal: 4 },
   progresso: { flexDirection: 'row', gap: 6 },
-  segmento: { flex: 1, height: 6, borderRadius: 3 },
+  segmento: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
+  segmentoCheio: { height: 6, borderRadius: 3, backgroundColor: brand.teal },
 });

@@ -1,8 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { tempo } from '@/lib/movimento';
 import { useEstilos } from '@/lib/tema';
-import { alerta, altura, brand, familias, raio, type Paleta } from '@/theme';
+import { alerta, altura, brand, brilho, familias, raio, type Paleta } from '@/theme';
 
 import { Texto } from './texto';
 
@@ -22,6 +24,11 @@ export function Campo({ rotulo, erro, dica, aparencia = 'escuro', direita, onFoc
   const styles = useEstilos(criarEstilos);
   const interno = aparencia === 'interno';
   const corBorda = erro ? alerta.emergencia : focado ? brand.teal : styles.cores.borda;
+  const foco = useSharedValue(0);
+  useEffect(() => {
+    foco.set(withTiming(focado && !erro ? 1 : 0, { duration: tempo.rapido }));
+  }, [focado, erro, foco]);
+  const estiloAnel = useAnimatedStyle(() => ({ opacity: foco.get() }));
 
   return (
     <View style={styles.grupo}>
@@ -29,6 +36,7 @@ export function Campo({ rotulo, erro, dica, aparencia = 'escuro', direita, onFoc
         {rotulo}
       </Texto>
       <View style={styles.linha}>
+        <Animated.View style={[styles.anel, { borderRadius: interno ? raio.md : raio.lg }, estiloAnel]} aria-hidden />
       <TextInput
         accessibilityLabel={rotulo}
         accessibilityHint={dica}
@@ -75,6 +83,7 @@ const criarEstilos = (c: Paleta) => ({
     linha: { justifyContent: 'center' },
     direita: { position: 'absolute', right: 4, top: 0, bottom: 0, justifyContent: 'center' },
     comDireita: { paddingRight: 56 },
+    anel: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, boxShadow: brilho.foco, pointerEvents: 'none' },
     input: {
       borderWidth: 2,
       color: c.texto,

@@ -10,7 +10,7 @@ export default function TurnoLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: c.fundo },
-        animation: 'slide_from_right',
+        animation: 'ios_from_right',
       }}
     />
   );

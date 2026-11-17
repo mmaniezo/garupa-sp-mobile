@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { useTema } from '@/lib/tema';
 import { altura } from '@/theme';
 
 import { Icone, type NomeIcone } from './icone';
+import { Pressionavel } from './pressionavel';
 
 type Props = {
   icone: NomeIcone;
@@ -26,18 +27,15 @@ export function BotaoIcone({
 }: Props) {
   const { c } = useTema();
   return (
-    <Pressable
+    <Pressionavel
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={rotulo}
       hitSlop={6}
-      style={({ pressed }) => [
-        styles.base,
-        { width: tamanho, height: tamanho, backgroundColor: fundo ?? c.superficieElevada },
-        pressed && { opacity: 0.8 },
-      ]}>
+      escala={0.9}
+      style={[styles.base, { width: tamanho, height: tamanho, backgroundColor: fundo ?? c.superficieElevada }]}>
       <Icone nome={icone} tamanho={Math.round(tamanho * 0.45)} cor={cor ?? c.texto} />
-    </Pressable>
+    </Pressionavel>
   );
 }
 

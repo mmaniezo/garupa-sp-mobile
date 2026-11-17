@@ -1,9 +1,11 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useTema } from '@/lib/tema';
 import { altura, brand, raio } from '@/theme';
 
+import { Surgir } from './entrada';
 import { Icone } from './icone';
+import { Pressionavel } from './pressionavel';
 import { Texto } from './texto';
 
 type Props = {
@@ -30,19 +32,20 @@ export function Chip({
 }: Props) {
   const { c } = useTema();
   return (
-    <Pressable
+    <Pressionavel
       onPress={onPress}
       disabled={desabilitado}
       accessibilityRole={escolha === 'unica' ? 'radio' : 'checkbox'}
       accessibilityLabel={rotulo}
       accessibilityState={{ checked: selecionado, disabled: !!desabilitado }}
       hitSlop={4}
-      style={({ pressed }) => [
+      toque="selecao"
+      escala={0.94}
+      opacidade={desabilitado ? 0.45 : 1}
+      style={[
         styles.base,
         formato === 'bloco' ? styles.bloco : styles.pilula,
         selecionado ? styles.selecionado : [styles.normal, { borderColor: c.borda }],
-        pressed && { opacity: 0.85 },
-        desabilitado && { opacity: 0.45 },
       ]}>
       <View style={styles.linha}>
         <Texto
@@ -51,9 +54,13 @@ export function Chip({
           cor={selecionado ? brand.asfalto : c.texto}>
           {rotulo}
         </Texto>
-        {selecionado ? <Icone nome="check" tamanho={16} cor={brand.asfalto} espessura={3} /> : null}
+        {selecionado ? (
+          <Surgir>
+            <Icone nome="check" tamanho={16} cor={brand.asfalto} espessura={3} />
+          </Surgir>
+        ) : null}
       </View>
-    </Pressable>
+    </Pressionavel>
   );
 }
 

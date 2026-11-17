@@ -83,7 +83,8 @@ export default function RaizLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: c.fundo },
-          animation: 'slide_from_right',
+          // Empurra a tela nova da direita, com a de trás recuando (no iOS, a transição padrão).
+          animation: 'ios_from_right',
         }}>
         <Stack.Screen name="index" options={{ animation: 'none' }} />
         <Stack.Screen name="boas-vindas" options={{ animation: 'fade' }} />

@@ -9,7 +9,8 @@ export default function AbasLayout() {
   return (
     <Tabs
       tabBar={(props) => <BarraAbas {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.fundo } }}>
+      // "shift": a aba nova entra deslizando de leve enquanto a anterior some.
+      screenOptions={{ headerShown: false, animation: 'shift', sceneStyle: { backgroundColor: c.fundo } }}>
       <Tabs.Screen name="plano" />
       <Tabs.Screen name="mapa" />
       <Tabs.Screen name="relatar" />

@@ -1,3 +1,4 @@
+export { Aurora } from './aurora';
 export { Aviso } from './aviso';
 export { BannerAlerta } from './banner-alerta';
 export { Botao, type TamanhoBotao, type VarianteBotao } from './botao';
@@ -10,9 +11,13 @@ export { CartaoMensagem } from './cartao-mensagem';
 export { CartaoOpcao } from './cartao-opcao';
 export { Chip } from './chip';
 export { ContagemDesfazer } from './contagem-desfazer';
+export { Entrada, Surgir } from './entrada';
+export { Esqueleto, EsqueletoLista } from './esqueleto';
 export { Etiqueta } from './etiqueta';
 export { Icone, type NomeIcone } from './icone';
 export { ItemMarcavel } from './item-marcavel';
+export { Ondas } from './ondas';
+export { Pressionavel } from './pressionavel';
 export { Segmentado } from './segmentado';
 export { Tela } from './tela';
 export { Texto } from './texto';

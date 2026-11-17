@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { TipoRelato } from '@/api/types';
 import { SEGUNDOS_PARA_DESFAZER_SOS, SosManual } from '@/components/sos/sos-manual';
-import { Aviso, ContagemDesfazer, Icone, Tela, Texto } from '@/components/ui';
+import { Aviso, ContagemDesfazer, Entrada, Icone, Pressionavel, Tela, Texto } from '@/components/ui';
 import { useEstilos, useTema } from '@/lib/tema';
 import { useDesfazer } from '@/lib/use-desfazer';
 import { relatarPerigo, TIPOS_RELATO, type ResultadoRelato } from '@/servicos/relatos';
@@ -47,14 +47,14 @@ export default function Relatar() {
 
   return (
     <Tela dentroDeAbas gap={16}>
-      <View style={{ gap: 4 }}>
+      <Entrada ordem={0} style={{ gap: 4 }}>
         <Texto variante="titulo" accessibilityRole="header">
           Viu um perigo?
         </Texto>
         <Texto variante="corpoMenor" cor="textoSecundario">
           Dois toques e ele volta para a cidade. Local: onde você está agora.
         </Texto>
-      </View>
+      </Entrada>
 
       {pendente ? (
         <ContagemDesfazer
@@ -68,19 +68,23 @@ export default function Relatar() {
         />
       ) : (
         <View style={styles.grade}>
-          {TIPOS_RELATO.map((t) => (
-            <Pressable
-              key={t.id}
-              onPress={() => escolher(t.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`Relatar ${t.rotulo}`}
-              accessibilityHint={`Envia em ${SEGUNDOS_PARA_DESFAZER_RELATO} segundos, com opção de desfazer ou enviar na hora`}
-              style={({ pressed }) => [styles.tipo, pressed && { opacity: 0.85 }]}>
-              <Icone nome={t.icone} tamanho={28} cor={c.atencaoTexto} />
-              <Texto variante="corpo" style={styles.tipoTexto}>
-                {t.rotulo}
-              </Texto>
-            </Pressable>
+          {TIPOS_RELATO.map((t, i) => (
+            <Entrada key={t.id} ordem={1 + i} style={styles.celula}>
+              <Pressionavel
+                onPress={() => escolher(t.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Relatar ${t.rotulo}`}
+                accessibilityHint={`Envia em ${SEGUNDOS_PARA_DESFAZER_RELATO} segundos, com opção de desfazer ou enviar na hora`}
+                toque="medio"
+                style={styles.tipo}>
+                <View style={styles.tipoIcone}>
+                  <Icone nome={t.icone} tamanho={26} cor={c.atencaoTexto} />
+                </View>
+                <Texto variante="corpo" style={styles.tipoTexto}>
+                  {t.rotulo}
+                </Texto>
+              </Pressionavel>
+            </Entrada>
           ))}
         </View>
       )}
@@ -107,14 +111,25 @@ export default function Relatar() {
 const criarEstilos = (c: Paleta) =>
   StyleSheet.create({
     grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    celula: { flexBasis: '45%', flexGrow: 1 },
     tipo: {
-      flexBasis: '45%',
-      flexGrow: 1,
-      minHeight: 104,
+      minHeight: 112,
       borderRadius: raio.xxl,
-      backgroundColor: c.superficieElevada,
+      backgroundColor: c.superficie,
+      borderWidth: 1,
+      borderColor: c.fio,
       padding: 14,
       justifyContent: 'space-between',
+      gap: 10,
+    },
+    // Âmbar esmaecido atrás do ícone: perigo na via é "atenção", a mesma cor do ponto crítico.
+    tipoIcone: {
+      width: 46,
+      height: 46,
+      borderRadius: 15,
+      backgroundColor: 'rgba(245,165,36,0.16)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     tipoTexto: { fontFamily: 'BricolageGrotesque_700Bold', fontSize: 18 },
     divisor: { height: 1, backgroundColor: c.divisor, marginVertical: 4 },

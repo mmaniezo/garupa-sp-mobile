@@ -5,6 +5,7 @@ import { useEstilos } from '@/lib/tema';
 import { raio, type Paleta } from '@/theme';
 
 import { BotaoIcone } from './botao-icone';
+import { Entrada } from './entrada';
 import { Icone } from './icone';
 import { Texto } from './texto';
 
@@ -22,7 +23,7 @@ type Props = {
 export function CartaoMensagem({ texto, fonte, titulo, onDispensar }: Props) {
   const styles = useEstilos(criarEstilos);
   return (
-    <View style={styles.cartao} accessibilityRole="summary">
+    <Entrada style={styles.cartao} distancia={10} accessibilityRole="summary">
       <View style={styles.topo}>
         <Icone nome="info" tamanho={22} cor={styles.cores.icone} />
         <View style={styles.corpo}>
@@ -61,7 +62,7 @@ export function CartaoMensagem({ texto, fonte, titulo, onDispensar }: Props) {
           />
         ) : null}
       </View>
-    </View>
+    </Entrada>
   );
 }
 
@@ -71,7 +72,7 @@ const criarEstilos = (c: Paleta) => ({
     fundoFechar: c.barraStatus === 'light' ? 'rgba(255,255,255,0.1)' : 'rgba(17,20,23,0.08)',
   },
   ...StyleSheet.create({
-    cartao: { backgroundColor: c.informacaoFundo, borderRadius: raio.xl, padding: 16 },
+    cartao: { backgroundColor: c.informacaoFundo, borderRadius: raio.xl, padding: 16, borderWidth: 1, borderColor: c.fio },
     topo: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
     corpo: { flex: 1, gap: 4 },
     texto: { color: c.texto, fontSize: 17, lineHeight: 23 },

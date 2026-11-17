@@ -7,7 +7,7 @@ import { api } from '@/api';
 import type { DetalheCelula } from '@/api/types';
 import { MapaPontos as Mapa, tipoDoMapa } from '@/components/mapa/mapa-pontos';
 import { ItemPonto } from '@/components/plano/item-ponto';
-import { Aviso, Botao, Icone, Segmentado, Texto } from '@/components/ui';
+import { Aviso, Botao, Entrada, Icone, Segmentado, Texto } from '@/components/ui';
 import { FAIXAS, rotuloFaixa } from '@/domain/contexto';
 import { acaoDoPonto, AVISO_HISTORICO, localDoPonto, motivoDoPonto, nivelDeRisco } from '@/domain/risco';
 import { mensagemDeErro } from '@/lib/navegacao';
@@ -15,7 +15,7 @@ import { useEstilos, useTema } from '@/lib/tema';
 import { usePlano, type PontoDoPlano } from '@/servicos/plano';
 import { usePosicao } from '@/servicos/posicao';
 import { listarRelatosRecentes, type RelatoRecente } from '@/servicos/relatos';
-import { alerta, brand, raio, type Paleta } from '@/theme';
+import { alerta, brand, brilho, raio, type Paleta } from '@/theme';
 
 /** Altura da pílula e do seletor por cima do mapa, e da legenda com a borda da folha embaixo. */
 const FOLGA_TOPO = 72;
@@ -218,6 +218,7 @@ export default function MapaPontos() {
             ponto={p}
             posicao={i + 1}
             destaque={i < 2}
+            ordem={i}
             linha={localDoPonto(p)}
             onPress={() => {
               setSelecionadoId(p.celulaId);
@@ -279,7 +280,10 @@ export default function MapaPontos() {
 
       <ScrollView style={styles.folha} contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={styles.alca} />
-        {folha}
+        {/* Trocou de ponto: o conteúdo da folha entra de novo, para ficar claro que mudou. */}
+        <Entrada key={idSelecionado} distancia={12}>
+          {folha}
+        </Entrada>
       </ScrollView>
     </View>
   );
@@ -305,6 +309,9 @@ const criarEstilos = (c: Paleta) =>
     backgroundColor: c.superficieElevada,
     justifyContent: 'center',
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: c.fio,
+    boxShadow: brilho.flutuante,
   },
   legenda: { position: 'absolute', left: 16, bottom: 36, flexDirection: 'row', gap: 8, pointerEvents: 'none' },
   legendaItem: {

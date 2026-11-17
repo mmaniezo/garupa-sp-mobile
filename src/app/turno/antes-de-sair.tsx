@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Logo } from '@/components/brand/logo';
-import { Aviso, Botao, BotaoIcone, Etiqueta, ItemMarcavel, Tela, Texto } from '@/components/ui';
+import { Aviso, Botao, BotaoIcone, Entrada, Etiqueta, ItemMarcavel, Tela, Texto } from '@/components/ui';
 import { rotuloDaFonte } from '@/domain/mensagens';
 import { voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
@@ -47,18 +47,18 @@ export default function AntesDeSair() {
     <Tela
       rodape={
         <>
-          <Botao titulo="Combinado, iniciar turno" tamanho="destaque" onPress={iniciar} carregando={iniciando} />
+          <Botao titulo="Combinado, iniciar turno" tamanho="destaque" vivo onPress={iniciar} carregando={iniciando} />
           <Texto variante="legenda" cor="textoSecundario" centro>
             Com a moto andando, a gente só fala por som e vibração.
           </Texto>
         </>
       }>
-      <View style={styles.topo}>
+      <Entrada ordem={0} style={styles.topo}>
         <BotaoIcone icone="voltar" rotulo="Voltar" onPress={() => voltarOu('/plano')} />
         <Etiqueta texto="Antes de sair" aparencia="cheia" fundo={c.selecionadoFundo} cor={c.tealTexto} />
-      </View>
+      </Entrada>
 
-      <View style={{ gap: 10 }}>
+      <Entrada ordem={1} style={{ gap: 10 }}>
         <Logo variante="capacete" largura={84} decorativa />
         <Texto variante="hero" accessibilityRole="header">
           Pilote com cuidado{primeiroNome ? `, ${primeiroNome}` : ''}.
@@ -66,10 +66,10 @@ export default function AntesDeSair() {
         <Texto variante="corpo" cor="textoSecundario">
           A entrega espera. Você chegar inteiro é o que importa.
         </Texto>
-      </View>
+      </Entrada>
 
       {mensagem ? (
-        <View style={styles.mensagem}>
+        <Entrada ordem={2} style={styles.mensagem}>
           <Texto variante="overline" cor="informacaoTexto">
             Para o turno de hoje
           </Texto>
@@ -79,7 +79,7 @@ export default function AntesDeSair() {
           <Texto variante="legenda" cor="informacaoTexto" style={{ fontSize: 14 }}>
             Fonte: {rotuloDaFonte(mensagem.fonte)}
           </Texto>
-        </View>
+        </Entrada>
       ) : null}
 
       {faltas.length ? (
@@ -94,7 +94,7 @@ export default function AntesDeSair() {
         </View>
       ) : null}
 
-      <View style={{ gap: 4 }} accessibilityRole="list">
+      <Entrada ordem={3} style={{ gap: 4 }} accessibilityRole="list">
         <Texto variante="rotulo" cor="textoSecundario" style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
           Checklist rápido (opcional)
         </Texto>
@@ -106,7 +106,7 @@ export default function AntesDeSair() {
             onPress={() => setMarcados((m) => m.map((v, j) => (j === i ? !v : v)))}
           />
         ))}
-      </View>
+      </Entrada>
     </Tela>
   );
 }
@@ -114,5 +114,5 @@ export default function AntesDeSair() {
 const criarEstilos = (c: Paleta) =>
   StyleSheet.create({
     topo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    mensagem: { backgroundColor: c.informacaoFundo, borderRadius: raio.xxl, padding: 16, gap: 8, borderColor: c.fundo },
+    mensagem: { backgroundColor: c.informacaoFundo, borderRadius: raio.xxl, padding: 16, gap: 8, borderWidth: 1, borderColor: c.fio },
   });

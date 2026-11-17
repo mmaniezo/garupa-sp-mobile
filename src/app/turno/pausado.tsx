@@ -1,7 +1,10 @@
 import { Redirect, router } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 
-import { Botao, BotaoVoltar, Icone, Tela, Texto } from '@/components/ui';
+import { Botao, BotaoVoltar, Entrada, Icone, Tela, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { regras } from '@/config';
 import { voltarOu } from '@/lib/navegacao';
@@ -19,6 +22,14 @@ export default function TurnoPausado() {
   const prefs = usePreferencias();
   const { c } = useTema();
   const styles = useEstilos(criarEstilos);
+
+  // O anel tracejado gira bem devagar: pausado, mas esperando (não travado).
+  const giro = useSharedValue(0);
+  useEffect(() => {
+    giro.set(withRepeat(withTiming(360, { duration: 48_000, easing: Easing.linear }), -1, false));
+    return () => cancelAnimation(giro);
+  }, [giro]);
+  const estiloGiro = useAnimatedStyle(() => ({ transform: [{ rotate: `${giro.get()}deg` }] }));
 
   if (turno.situacao === 'ativo') return <Redirect href="/turno/ativo" />;
   if (turno.situacao === 'inativo') return <Redirect href="/plano" />;
@@ -44,9 +55,9 @@ export default function TurnoPausado() {
           />
         </>
       }>
-      <View style={styles.topo}>
+      <Entrada ordem={0} style={styles.topo}>
         <BotaoVoltar dica="Volta para o plano. O turno continua pausado." onPress={() => voltarOu('/plano')} />
-      </View>
+      </Entrada>
 
       {automatica ? (
         <View style={{ gap: 8 }}>
@@ -69,8 +80,13 @@ export default function TurnoPausado() {
         </View>
       ) : null}
 
-      <View style={styles.centro}>
+      <Entrada ordem={1} distancia={24} style={styles.centro}>
         <View style={styles.anel} accessible accessibilityLabel="Turno pausado">
+          <Animated.View style={[styles.tracejado, estiloGiro]} aria-hidden>
+            <Svg width={210} height={210}>
+              <Circle cx={105} cy={105} r={103} fill="none" stroke={c.neutroBarra} strokeWidth={3} strokeDasharray="10 9" strokeLinecap="round" />
+            </Svg>
+          </Animated.View>
           <Icone nome="pausa" tamanho={40} cor={c.textoSecundario} />
           <Texto variante="alerta" style={{ fontFamily: 'BricolageGrotesque_800ExtraBold', fontSize: 26 }}>
             Turno pausado
@@ -84,7 +100,7 @@ export default function TurnoPausado() {
             ? 'Esperando pedido? Tudo certo. O monitoramento volta sozinho quando a moto andar.'
             : 'Sem alerta e sem detecção de queda até você retomar.'}
         </Texto>
-      </View>
+      </Entrada>
 
       {prefs.pulseira ? (
         <View style={styles.pulseira}>
@@ -118,13 +134,11 @@ const criarEstilos = (c: Paleta, nome: NomeTema) =>
       width: 210,
       height: 210,
       borderRadius: 105,
-      borderWidth: 3,
-      borderStyle: 'dashed',
-      borderColor: c.neutroBarra,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
     },
+    tracejado: { position: 'absolute', top: 0, left: 0, width: 210, height: 210 },
     pulseira: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: c.superficie, borderRadius: raio.xl, padding: 16 },
     led: { width: 14, height: 14, borderRadius: 7, backgroundColor: c.seguroTexto },
   });

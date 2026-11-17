@@ -1,9 +1,11 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useEstilos } from '@/lib/tema';
 import { brand, raio, type Paleta } from '@/theme';
 
+import { Surgir } from './entrada';
 import { Icone } from './icone';
+import { Pressionavel } from './pressionavel';
 import { Texto } from './texto';
 
 type Props = {
@@ -29,20 +31,22 @@ export function ItemMarcavel({
   const styles = useEstilos(criarEstilos);
   const caixa = (
     <View style={[styles.caixa, marcado ? styles.caixaMarcada : styles.caixaVazia]}>
-      {marcado ? <Icone nome="check" tamanho={18} cor={brand.asfalto} espessura={3} /> : null}
+      {marcado ? (
+        <Surgir>
+          <Icone nome="check" tamanho={18} cor={brand.asfalto} espessura={3} />
+        </Surgir>
+      ) : null}
     </View>
   );
   return (
-    <Pressable
+    <Pressionavel
       onPress={onPress}
       accessibilityRole="checkbox"
       accessibilityLabel={descricao ? `${titulo}. ${descricao}` : titulo}
       accessibilityState={{ checked: marcado }}
-      style={({ pressed }) => [
-        styles.linha,
-        aparencia === 'cartao' && styles.cartao,
-        pressed && { opacity: 0.85 },
-      ]}>
+      toque="selecao"
+      escala={0.98}
+      style={[styles.linha, aparencia === 'cartao' && styles.cartao]}>
       {caixaA === 'esquerda' ? caixa : null}
       <View style={styles.textos}>
         <Texto
@@ -57,7 +61,7 @@ export function ItemMarcavel({
         ) : null}
       </View>
       {caixaA === 'direita' ? caixa : null}
-    </Pressable>
+    </Pressionavel>
   );
 }
 
@@ -69,6 +73,8 @@ const criarEstilos = (c: Paleta) =>
     borderRadius: raio.xl,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: c.fio,
   },
   textos: { flex: 1, gap: 2 },
   tituloForte: { fontFamily: 'BricolageGrotesque_700Bold', fontSize: 17, lineHeight: 22 },

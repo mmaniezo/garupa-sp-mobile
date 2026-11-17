@@ -14,6 +14,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useTema } from '@/lib/tema';
 import { brand, margemTela } from '@/theme';
 
+import { Aurora } from './aurora';
+
 type Props = {
   children: ReactNode;
   /** Ações fixas no pé da tela (botão principal). */
@@ -28,6 +30,11 @@ type Props = {
   dentroDeAbas?: boolean;
   gap?: number;
   style?: ViewStyle;
+  /**
+   * Luz ambiente no topo. Padrão: o teal da marca nas telas com o fundo do tema; telas de cor
+   * cheia (queda, testemunha) não têm. Uma cor troca a luz (verde no turno ativo); false desliga.
+   */
+  aurora?: string | false;
   /** Puxar para atualizar (só com rolagem). */
   aoAtualizar?: () => void;
   atualizando?: boolean;
@@ -44,6 +51,7 @@ export function Tela({
   dentroDeAbas = false,
   gap = 18,
   style,
+  aurora,
   aoAtualizar,
   atualizando = false,
 }: Props) {
@@ -62,6 +70,7 @@ export function Tela({
       style={[styles.raiz, { backgroundColor: fundoFinal, paddingTop: insets.top + 8 }]}
       behavior={Platform.OS === 'web' ? undefined : 'padding'}>
       <StatusBar style={barraFinal ? 'light' : 'dark'} />
+      {aurora === false || (fundo && !aurora) ? null : <Aurora cor={aurora || undefined} />}
       {rolagem ? (
         <ScrollView
           contentContainerStyle={[conteudo, { paddingBottom: rodape ? 16 : baixo }]}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 
+import { Entrada } from './entrada';
+
 import { useTema } from '@/lib/tema';
 import { alerta, raio } from '@/theme';
 
@@ -45,7 +47,8 @@ export function ContagemDesfazer({ titulo, descricao, restante, total, tom, onDe
   }, []);
 
   return (
-    <View
+    <Entrada
+      distancia={12}
       style={[
         styles.cartao,
         emergencia
@@ -80,7 +83,7 @@ export function ContagemDesfazer({ titulo, descricao, restante, total, tom, onDe
           />
         </View>
       </View>
-    </View>
+    </Entrada>
   );
 }
 
