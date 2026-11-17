@@ -6,7 +6,14 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**. O cadastro e o login precisam de internet.
 
-## Novidades da 0.4.1
+## Novidades da 0.5.0
+
+- **Chuva automática**: "Seco / Chovendo" agora vem sozinho da previsão do tempo (Open-Meteo, grátis), atualizada a cada 10 minutos. Garoa, chuva, pancadas e trovoada contam como chuva. A sua posição sai do celular arredondada em cerca de 5 km. Se preferir, toque em Seco ou Chovendo para escolher você; "Detectar sozinho" volta ao automático.
+- **Plano sempre em dia**: o plano se atualiza sozinho quando muda a faixa horária, quando você salva distritos ou tipo de uso, quando entra de novo depois de a sessão vencer e quando a internet volta. Não precisa mais puxar a tela para atualizar.
+- **Sua posição no mapa**: "Você" aparece assim que o mapa abre, mesmo sem turno ativo (com a localização permitida).
+- **Sessão vencida**: o aviso "Sua sessão venceu" aparece assim que o token passa de 1 hora, e o plano guardado não diz mais "Sem internet" quando o motivo é a sessão.
+
+## Da 0.4.1
 
 - **Logo em movimento**: ao abrir o app, 1,5 s depois de o Plano aparecer, o motion da marca roda uma vez no lugar da logo parada. O capacete entra com a viseira aberta, a viseira desce com "Garupa" escrito nela, o nome sai para o lado e o "SP" aparece. Termina exatamente na logo de sempre.
 - **Tema claro e escuro**: no tema claro, as letras saem brancas da viseira e escurecem no caminho.
