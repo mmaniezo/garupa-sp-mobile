@@ -6,7 +6,13 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**. O cadastro e o login precisam de internet.
 
-## Novidades da 0.4.0
+## Novidades da 0.4.1
+
+- **Logo em movimento**: ao abrir o app, 1,5 s depois de o Plano aparecer, o motion da marca roda uma vez no lugar da logo parada. O capacete entra com a viseira aberta, a viseira desce com "Garupa" escrito nela, o nome sai para o lado e o "SP" aparece. Termina exatamente na logo de sempre.
+- **Tema claro e escuro**: no tema claro, as letras saem brancas da viseira e escurecem no caminho.
+- **Reduzir movimento**: com essa opção ativada no celular, a logo aparece parada, sem o motion.
+
+## Da 0.4.0
 
 - **Visual novo e movimento**: botões, cartões e opções respondem ao toque com uma mola leve e uma vibração curta, e as telas entram em cascata. Tudo dentro das cores e da marca do Garupa SP.
 - **Barra de abas flutuante**: a marcação desliza entre Plano, Mapa, Relatar e Perfil.
