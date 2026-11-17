@@ -6,7 +6,12 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**. O cadastro e o login precisam de internet.
 
-## Novidades da 0.3.0
+## Novidades da 0.3.1
+
+- **Perfil mais limpo**: saiu a seção Demonstração do fim do Perfil. Os atalhos para o vídeo continuam no Turno ativo (Simular queda) e na Pulseira.
+- **Aparência centralizada**: as opções de tema (Sistema, Claro e Escuro) dividem a largura toda, com o texto no centro.
+
+## Da 0.3.0
 
 - **API de produção**: o app agora fala com o servidor do Garupa SP. O cadastro, o login, o plano do turno, o SOS, os relatos e a pulseira ficam salvos na API, e dá para entrar na mesma conta em outro celular.
 - **Quem já tinha o app**: a conta das versões anteriores ficava só no celular (API simulada) e não existe no servidor. Ao atualizar, o app volta ao início do cadastro.
