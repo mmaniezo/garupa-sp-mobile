@@ -6,7 +6,16 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**. O cadastro e o login precisam de internet.
 
-## Novidades da 0.5.0
+## Novidades da 0.5.1
+
+- **Queda com a tela bloqueada**: o sensor de batida agora segue funcionando com a tela bloqueada e outro app na frente. Antes ele parava em segundo plano (o diagnóstico mostrava 0 leituras). Em Perfil → Diagnóstico do segundo plano, "Origem do sensor" deve mostrar "Garupa".
+- **SOS mais confiável**: o local enviado nunca é mais velho que o pedido; dois disparos juntos viram um SOS só; e, se o SOS sair sem local, os contatos recebem um segundo SMS com o mapa assim que o GPS achar a posição.
+- **Turno**: reabrir o app durante o turno não pausa mais por inatividade na hora, e a pausa por inatividade não interrompe uma contagem de queda.
+- **Contagem da queda**: depois do zero, a tela mostra "Enviando o SOS" e um toque não parece mais cancelar.
+- **Plano sem internet**: se o plano guardado é de outro horário ou clima, ele aparece com a etiqueta dele e o aviso.
+- **Chuva**: tocar na opção já marcada não desliga mais a detecção automática, e a legenda não pisca a cada atualização.
+
+## Da 0.5.0
 
 - **Chuva automática**: "Seco / Chovendo" agora vem sozinho da previsão do tempo (Open-Meteo, grátis), atualizada a cada 10 minutos. Garoa, chuva, pancadas e trovoada contam como chuva. A sua posição sai do celular arredondada em cerca de 5 km. Se preferir, toque em Seco ou Chovendo para escolher você; "Detectar sozinho" volta ao automático.
 - **Plano sempre em dia**: o plano se atualiza sozinho quando muda a faixa horária, quando você salva distritos ou tipo de uso, quando entra de novo depois de a sessão vencer e quando a internet volta. Não precisa mais puxar a tela para atualizar.
