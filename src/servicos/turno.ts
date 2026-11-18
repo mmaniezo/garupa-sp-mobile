@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import { Accelerometer } from 'expo-sensors';
 import { AppState, Platform } from 'react-native';
+import { ouvirAcelerometro } from 'sensor-queda';
 
 import { api } from '@/api';
 import type { CelulaCritica, Mensagem } from '@/api/types';
@@ -51,7 +52,8 @@ import { avisarPulseira, consultarEventosPulseira, pulseiraPareada } from './ves
  * - Android: serviço em primeiro plano do expo-location (notificação fixa do sistema)
  *   + uma notificação do turno com Pausar e Finalizar;
  * - GPS a cada ~1 s (posição e velocidade) alimenta alertas, pausa e o detector de queda;
- * - acelerômetro a 20 Hz alimenta o detector de queda;
+ * - acelerômetro a 20 Hz alimenta o detector de queda (no Android, pelo módulo sensor-queda, que
+ *   segue com a tela bloqueada; o expo-sensors desliga o sensor quando o app sai da frente);
  * - cada leitura do GPS também é o "relógio" do turno em segundo plano (contagem, pulseira, fila).
  *
  * Se o acelerômetro não entregar leituras com a tela bloqueada (o maior risco do projeto),
@@ -70,6 +72,8 @@ export type Diagnostico = {
   leiturasGpsEmSegundoPlano: number;
   segundoPlanoDesde: number | null;
   tempoEmSegundoPlanoMs: number;
+  /** O acelerômetro vem do módulo do Garupa (segue com a tela bloqueada) ou do expo-sensors. */
+  sensorNativo: boolean;
 };
 
 export type EstadoTurno = {
@@ -96,6 +100,7 @@ const DIAGNOSTICO_VAZIO: Diagnostico = {
   leiturasGpsEmSegundoPlano: 0,
   segundoPlanoDesde: null,
   tempoEmSegundoPlanoMs: 0,
+  sensorNativo: false,
 };
 
 const INICIAL: EstadoTurno = {
@@ -225,23 +230,32 @@ function emSegundoPlano() {
   return AppState.currentState !== 'active';
 }
 
+/** 20 leituras por segundo. */
+const INTERVALO_SENSOR_MS = 50;
+
+function aoLerSensor(x: number, y: number, z: number, em: number) {
+  if (ultimaLeituraSensor !== null) {
+    contadores.maiorIntervaloSensorMs = Math.max(contadores.maiorIntervaloSensorMs, em - ultimaLeituraSensor);
+  }
+  ultimaLeituraSensor = em;
+  contadores.leiturasSensor += 1;
+  if (emSegundoPlano()) contadores.leiturasSensorEmSegundoPlano += 1;
+  if (store.obter().situacao === 'ativo') eventoQueda({ tipo: 'aceleracao', em, x, y, z });
+}
+
 function ligarSensor() {
   if (assinaturaSensor || !nativo) return; // na prévia web não há acelerômetro
+  // Android (build do app): o módulo próprio, que segue lendo com a tela bloqueada.
+  assinaturaSensor = ouvirAcelerometro(INTERVALO_SENSOR_MS, (l) => aoLerSensor(l.x, l.y, l.z, l.em));
+  contadores.sensorNativo = assinaturaSensor !== null;
+  if (assinaturaSensor) return;
+  // Expo Go e iOS: o expo-sensors, que só lê com o app na frente.
   try {
-    Accelerometer.setUpdateInterval(50); // 20 Hz
+    Accelerometer.setUpdateInterval(INTERVALO_SENSOR_MS);
   } catch {
     return;
   }
-  assinaturaSensor = Accelerometer.addListener(({ x, y, z }) => {
-    const em = Date.now();
-    if (ultimaLeituraSensor !== null) {
-      contadores.maiorIntervaloSensorMs = Math.max(contadores.maiorIntervaloSensorMs, em - ultimaLeituraSensor);
-    }
-    ultimaLeituraSensor = em;
-    contadores.leiturasSensor += 1;
-    if (emSegundoPlano()) contadores.leiturasSensorEmSegundoPlano += 1;
-    if (store.obter().situacao === 'ativo') eventoQueda({ tipo: 'aceleracao', em, x, y, z });
-  });
+  assinaturaSensor = Accelerometer.addListener(({ x, y, z }) => aoLerSensor(x, y, z, Date.now()));
 }
 
 function desligarSensor() {
@@ -361,6 +375,9 @@ export async function processarLocalizacoes(locs: Location.LocationObject[]): Pr
     definir({ ultimoGpsEm: em });
 
     if (store.obter().situacao !== 'ativo') continue;
+
+    // O sistema reabriu o app só para entregar o GPS (sem a tela): o sensor da queda liga junto.
+    if (!assinaturaSensor) ligarSensor();
 
     if (kmh !== null) eventoQueda({ tipo: 'velocidade', em, kmh });
 

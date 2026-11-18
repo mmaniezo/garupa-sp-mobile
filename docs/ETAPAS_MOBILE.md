@@ -47,7 +47,7 @@ O código das 11 etapas está escrito e verificado com typecheck, lint, 56 teste
 3. Plano → Iniciar turno → Combinado.
 4. Abra um app de mapa ou de entregas e bloqueie a tela por **10 minutos**.
 5. Volte, abra Perfil → Diagnóstico do segundo plano e anote: leituras do sensor em segundo plano e maior intervalo sem leitura.
-6. Se não passar, siga o plano de saída: (1) módulo nativo que lê o sensor dentro do serviço em primeiro plano; (2) demo só no Android; (3) demo com o app na frente, dito no vídeo. Registre o resultado e o modelo do aparelho no README.
+6. Primeiro teste (v0.5.0, Android): não passou, com 0 leituras do sensor em 13 min de segundo plano, enquanto o GPS seguiu. A causa é o `expo-sensors`, que desliga o acelerômetro quando o app sai da frente. Saída (1) aplicada: o módulo nativo `modules/sensor-queda` lê o sensor sem depender da tela, com wake lock parcial no turno ativo. Teste de novo com o APK novo; "Origem do sensor" deve mostrar "Garupa". Se ainda não passar, libere o app da economia de bateria; a última saída é a demo com o app na frente, dita no vídeo. Registre o resultado e o modelo do aparelho no README.
 
 ### B. Fluxo completo ("pronto quando" do documento)
 

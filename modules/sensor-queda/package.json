@@ -1,0 +1,7 @@
+{
+  "name": "sensor-queda",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Módulo nativo local do Garupa SP: acelerômetro do detector de queda que segue funcionando com a tela bloqueada (Android).",
+  "main": "src/index.ts"
+}

@@ -51,8 +51,9 @@ export default function Diagnostico() {
       ? { tom: 'sucesso' as const, texto: 'Passou: o sensor entregou leituras em segundo plano, sem buracos longos.' }
       : {
           tom: 'erro' as const,
-          texto:
-            'Não passou: o sensor parou em segundo plano. Plano de saída: (1) módulo nativo que lê o sensor dentro do serviço em primeiro plano; (2) demo só no Android; (3) demo com o app na frente, dito no vídeo.',
+          texto: d.sensorNativo
+            ? 'Não passou: o sensor parou em segundo plano. Em Perfil → Permissões do celular, libere o Garupa da economia de bateria e teste de novo. Se continuar, a demonstração da queda é com o app na frente.'
+            : 'Não passou: este build lê o sensor pelo Expo, que para com a tela bloqueada (Expo Go). Instale o APK do release, que tem o sensor próprio do Garupa.',
         };
 
   return (
@@ -83,6 +84,7 @@ export default function Diagnostico() {
         <Numero rotulo="…em segundo plano" valor={String(d.leiturasSensorEmSegundoPlano)} />
         <Numero rotulo="Maior intervalo sem leitura" valor={`${(d.maiorIntervaloSensorMs / 1000).toFixed(1)} s`} />
         <Numero rotulo="Leituras do GPS (2º plano)" valor={`${d.leiturasGps} (${d.leiturasGpsEmSegundoPlano})`} />
+        <Numero rotulo="Origem do sensor" valor={turno.situacao === 'inativo' ? '—' : d.sensorNativo ? 'Garupa' : 'Expo'} />
       </View>
 
       <Texto variante="legenda" cor="textoSecundario">

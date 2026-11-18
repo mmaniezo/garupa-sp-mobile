@@ -15,6 +15,9 @@
       ],
       "sms-socorro": [
         "./modules/sms-socorro/src/index.ts"
+      ],
+      "sensor-queda": [
+        "./modules/sensor-queda/src/index.ts"
       ]
     }
   },
