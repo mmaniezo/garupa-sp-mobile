@@ -5,6 +5,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 
 import { nivelDeRisco } from '@/domain/risco';
+import { horaCurta } from '@/lib/hora';
 import { useTema } from '@/lib/tema';
 import { alerta, brand } from '@/theme';
 
@@ -26,7 +27,6 @@ export const tipoDoMapa: TipoDeMapa =
 const RAIO_CELULA_METROS = 400;
 const SAO_PAULO: Region = { latitude: -23.56, longitude: -46.64, latitudeDelta: 0.3, longitudeDelta: 0.3 };
 const AMBAR = (opacidade: number) => `rgba(245, 165, 36, ${opacidade})`;
-const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 export function MapaPontos(props: PropsMapaPontos) {
   if (tipoDoMapa === 'indisponivel') {
@@ -168,10 +168,10 @@ function MapaReal({
           coordinate={{ latitude: r.lat, longitude: r.lon }}
           anchor={{ x: 0.5, y: 0.5 }}
           title={`Perigo relatado: ${r.rotulo}`}
-          description={`Você relatou às ${hora(r.criadoEm)}. Passe com atenção.`}
+          description={`Você relatou às ${horaCurta(r.criadoEm)}. Passe com atenção.`}
           tracksViewChanges={redesenhar}
           zIndex={15}
-          accessibilityLabel={`Perigo relatado por você: ${r.rotulo}, às ${hora(r.criadoEm)}`}>
+          accessibilityLabel={`Perigo relatado por você: ${r.rotulo}, às ${horaCurta(r.criadoEm)}`}>
           <MarcadorRelato />
         </Marker>
       ))}

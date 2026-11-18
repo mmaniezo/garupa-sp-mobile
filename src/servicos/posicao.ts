@@ -67,18 +67,20 @@ function comPrazo<T>(promessa: Promise<T>, ms: number): Promise<T | null> {
 }
 
 /**
- * Melhor posição disponível sem travar: a da memória (até `idadeMaxMs`), a última do sistema
- * ou uma leitura nova com prazo. Devolve null se não houver permissão ou sinal.
+ * Melhor posição disponível sem travar, nunca mais velha que `idadeMaxMs`: a da memória, a
+ * última do sistema ou uma leitura nova com prazo. Sem permissão, sem sinal ou só com posição
+ * velha, devolve null: para o SOS, um local antigo pode estar a quilômetros de onde a pessoa está.
  */
 export async function obterPosicao(idadeMaxMs = 60_000, prazoMs = 8_000): Promise<Ponto | null> {
+  const recente = (em: number) => Date.now() - em <= idadeMaxMs;
   const memoria = store.obter();
-  if (memoria && Date.now() - memoria.em <= idadeMaxMs) return { lat: memoria.lat, lon: memoria.lon };
+  if (memoria && recente(memoria.em)) return { lat: memoria.lat, lon: memoria.lon };
   try {
     const permissao = await Location.getForegroundPermissionsAsync();
-    if (!permissao.granted) return memoria ? { lat: memoria.lat, lon: memoria.lon } : null;
+    if (!permissao.granted) return null;
     // O que for lido fica na memória: o mapa já mostra "Você" sem esperar o turno.
-    const ultima = await Location.getLastKnownPositionAsync({ maxAge: idadeMaxMs * 5 }).catch(() => null);
-    if (ultima) return guardarLeitura(ultima);
+    const ultima = await Location.getLastKnownPositionAsync({ maxAge: idadeMaxMs }).catch(() => null);
+    if (ultima && recente(ultima.timestamp)) return guardarLeitura(ultima);
     const atual = await comPrazo(
       Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).catch(() => null),
       prazoMs,
@@ -87,5 +89,5 @@ export async function obterPosicao(idadeMaxMs = 60_000, prazoMs = 8_000): Promis
   } catch {
     // sem serviço de localização
   }
-  return memoria ? { lat: memoria.lat, lon: memoria.lon } : null;
+  return null;
 }

@@ -33,6 +33,12 @@ export function textoSmsSocorro(d: { nome: string | null; tipo: TipoSos; hora: s
   return `SOS Garupa SP: ${quem} pediu socorro as ${d.hora} (${RESUMO[d.tipo]}).${onde} Ligue para ${d.nome ? 'ele(a)' : 'a pessoa'} ou 192.`;
 }
 
+/** Segundo SMS, quando o SOS saiu sem local e a posição chegou depois. */
+export function textoSmsLocal(nome: string | null, mapa: string): string {
+  const quem = nome ? semAcentos(nome) : 'Seu contato';
+  return `SOS Garupa SP: local de ${quem} agora: ${mapa} Ligue para ${nome ? 'ele(a)' : 'a pessoa'} ou 192.`;
+}
+
 export function textoSmsCancelado(nome: string | null, encerrado: boolean): string {
   const quem = nome ? semAcentos(nome) : 'Seu contato';
   return encerrado

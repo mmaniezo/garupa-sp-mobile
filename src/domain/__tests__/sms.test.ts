@@ -1,4 +1,4 @@
-import { linkGoogleMaps, semAcentos, textoSmsCancelado, textoSmsSocorro } from '../sms';
+import { linkGoogleMaps, semAcentos, textoSmsCancelado, textoSmsLocal, textoSmsSocorro } from '../sms';
 
 describe('SMS de socorro', () => {
   const mapa = linkGoogleMaps(-23.587481234, -46.684975678);
@@ -19,6 +19,14 @@ describe('SMS de socorro', () => {
     const texto = textoSmsSocorro({ nome: null, tipo: 'mal_estar', hora: '07:05', mapa: null });
     expect(texto).toContain('Seu contato pediu socorro');
     expect(texto).toContain('Local ainda indisponivel');
+  });
+
+  it('o mapa que chega depois cabe num SMS só, sem acento', () => {
+    const t = textoSmsLocal('Léo', linkGoogleMaps(-23.56123, -46.65612));
+    expect(t).toContain('local de Leo agora');
+    expect(t).toContain('query=-23.56123,-46.65612');
+    expect(t.length).toBeLessThanOrEqual(160);
+    expect(t).toMatch(/^[ -~]+$/);
   });
 
   it('cancelamento e encerramento têm texto próprio', () => {

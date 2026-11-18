@@ -9,6 +9,7 @@ import { lerSos, type RegistroSos } from '@/dados-locais/repositorios';
 import { atualizarPreferencias } from '@/dados-locais/preferencias';
 import { lerContatos } from '@/dados-locais/seguro';
 import { linkGoogleMaps } from '@/domain/sms';
+import { horaCurta } from '@/lib/hora';
 import { useEstilos } from '@/lib/tema';
 import { reiniciarDetector } from '@/servicos/queda';
 import {
@@ -98,7 +99,7 @@ export default function SosEnviado() {
   }
 
   const ativo = sos.situacao === 'ativo';
-  const hora = new Date(sos.payload.ocorridoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const hora = horaCurta(sos.payload.ocorridoEm);
   const titulo = !ativo
     ? sos.situacao === 'cancelado'
       ? 'SOS cancelado'

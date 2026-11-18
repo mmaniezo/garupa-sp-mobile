@@ -6,8 +6,9 @@ import type { TipoSos } from '@/api/types';
 import { obterPreferencias } from '@/dados-locais/preferencias';
 import { lerContatos } from '@/dados-locais/seguro';
 import { gravarValor, lerValor } from '@/db';
-import { linkGoogleMaps, textoSmsCancelado, textoSmsSocorro } from '@/domain/sms';
+import { linkGoogleMaps, textoSmsCancelado, textoSmsLocal, textoSmsSocorro } from '@/domain/sms';
 import { validarTelefone } from '@/domain/telefone';
+import { horaCurta } from '@/lib/hora';
 import { criarStore } from '@/lib/store';
 import { obterSessao } from '@/state/sessao';
 
@@ -54,7 +55,7 @@ async function destinatarios(): Promise<{ numeros: string[]; nomes: string[] }> 
 }
 
 function mensagemDoSos(d: DadosSos): string {
-  const hora = new Date(d.ocorridoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const hora = horaCurta(d.ocorridoEm);
   return textoSmsSocorro({
     nome: obterSessao().nome?.split(' ')[0] ?? null,
     tipo: d.tipo,
@@ -95,6 +96,18 @@ export async function avisarCancelamentoPorSms(eventoId: string, encerrado: bool
   if (estado?.situacao !== 'enviado' || !podeEnviarSmsDireto()) return;
   const { numeros } = await destinatarios();
   const texto = textoSmsCancelado(obterSessao().nome?.split(' ')[0] ?? null, encerrado);
+  for (const n of numeros) enviarSmsDireto(n, texto);
+}
+
+/**
+ * O SOS saiu sem local (sem GPS na hora): quando a posição chega, manda o mapa aos mesmos
+ * contatos que receberam o SMS automático. Com o SMS aberto à mão, a tela do SOS já traz o mapa.
+ */
+export async function avisarLocalPorSms(eventoId: string, lat: number, lon: number): Promise<void> {
+  const estado = await carregarEstadoSms(eventoId);
+  if (estado?.situacao !== 'enviado' || !podeEnviarSmsDireto()) return;
+  const { numeros } = await destinatarios();
+  const texto = textoSmsLocal(obterSessao().nome?.split(' ')[0] ?? null, linkGoogleMaps(lat, lon));
   for (const n of numeros) enviarSmsDireto(n, texto);
 }
 

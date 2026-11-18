@@ -16,6 +16,7 @@ import {
 import { gravarValor, lerValor } from '@/db';
 import { escolherMensagem } from '@/domain/mensagens';
 import { acaoDoPonto, motivoDoPonto } from '@/domain/risco';
+import { horaCurta } from '@/lib/hora';
 import { voltarOu } from '@/lib/navegacao';
 import { useTema } from '@/lib/tema';
 import { contextoAgora, usePlano } from '@/servicos/plano';
@@ -82,7 +83,7 @@ export default function MotivoDoAlerta() {
     setAvaliou(true);
   }
 
-  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const hora = horaCurta();
 
   if (emMovimento) {
     return (

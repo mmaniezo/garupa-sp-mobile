@@ -83,7 +83,12 @@ export default function ContagemDaQueda() {
   const propsArco = useAnimatedProps(() => ({ strokeDashoffset: CIRC * (1 - arco.get()) }));
   const estiloNumero = useAnimatedStyle(() => ({ transform: [{ scale: batida.get() }] }));
 
+  // Contagem vencida (ou "Preciso de ajuda agora"): o SOS está saindo e um toque não cancela
+  // mais nada aqui. Cancelar o SOS fica na tela dele, com "Estou bem".
+  const enviando = ctx.estado === 'sos_enviado';
+
   async function cancelar() {
+    if (!emContagem) return;
     setCancelado(true);
     await estouBem();
     setTimeout(() => voltarOu('/turno/ativo'), 1500);
@@ -115,19 +120,23 @@ export default function ContagemDaQueda() {
       <StatusBar style="light" />
       {/* A tela inteira cancela: camada de toque atrás do conteúdo. Para o leitor de tela,
           o botão é o "Estou bem" (não pode haver botão dentro de botão). */}
-      <Pressable onPress={cancelar} style={StyleSheet.absoluteFill} aria-hidden focusable={false} />
-      <View style={[styles.topo, semToque]}>
-        <View style={styles.selo}>
-          <Icone nome="alarme" tamanho={16} cor={brand.branco} espessura={2.4} />
-          <Texto variante="rotulo" cor={brand.branco} style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
-            Alarme tocando
-          </Texto>
-        </View>
+      {emContagem ? <Pressable onPress={cancelar} style={StyleSheet.absoluteFill} aria-hidden focusable={false} /> : null}
+      <View style={[styles.topo, semToque]} accessibilityLiveRegion="assertive">
+        {emContagem ? (
+          <View style={styles.selo}>
+            <Icone nome="alarme" tamanho={16} cor={brand.branco} espessura={2.4} />
+            <Texto variante="rotulo" cor={brand.branco} style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
+              Alarme tocando
+            </Texto>
+          </View>
+        ) : null}
         <Texto variante="hero" cor={brand.branco} centro>
-          Você caiu?
+          {enviando ? 'Enviando o SOS' : 'Você caiu?'}
         </Texto>
         <Texto variante="corpo" cor={brand.branco} centro style={{ maxWidth: 300 }}>
-          Se não responder, avisamos seu contato e registramos o SOS.
+          {enviando
+            ? 'Avisando seus contatos e registrando o pedido de ajuda.'
+            : 'Se não responder, avisamos seu contato e registramos o SOS.'}
         </Texto>
       </View>
 
@@ -160,7 +169,7 @@ export default function ContagemDaQueda() {
         </Texto>
       </View>
 
-      <View style={[styles.acoes, { pointerEvents: 'box-none' }]}>
+      <View style={[styles.acoes, { pointerEvents: 'box-none' }, enviando && styles.escondido]} aria-hidden={enviando}>
         <Pressionavel
           onPress={cancelar}
           accessibilityRole="button"
@@ -209,6 +218,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   acoes: { marginTop: 'auto', alignSelf: 'stretch', gap: 12 },
+  escondido: { opacity: 0, pointerEvents: 'none' },
   estouBem: {
     height: 96,
     borderRadius: 28,

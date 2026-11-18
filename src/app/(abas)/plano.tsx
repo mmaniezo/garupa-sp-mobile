@@ -12,6 +12,7 @@ import { usePreferencias } from '@/dados-locais/preferencias';
 import { dispensarMensagem, registrarMensagemExibida } from '@/dados-locais/repositorios';
 import { rotuloFaixa, rotuloTipoDia, saudacao } from '@/domain/contexto';
 import { AVISO_HISTORICO, localDoPonto } from '@/domain/risco';
+import { horaCurta } from '@/lib/hora';
 import { useTema } from '@/lib/tema';
 import { escolherChuvaAMao } from '@/servicos/clima';
 import {
@@ -21,17 +22,25 @@ import {
   esconderMensagem,
   usePlano,
   type ContextoPlano,
+  type DadosPlano,
   type PontoDoPlano,
 } from '@/servicos/plano';
 import { useTurno } from '@/servicos/turno';
 import { useSessao } from '@/state/sessao';
+
+/** Aviso do plano guardado: por que (sem internet ou não) e se é de outro horário ou clima. */
+function avisoDoCache(d: DadosPlano): string {
+  const qual = d.outroContexto
+    ? `o último plano guardado (${horaCurta(d.atualizadoEm)}), de outro horário ou clima`
+    : `o plano guardado às ${horaCurta(d.atualizadoEm)}`;
+  return d.semInternet ? `Sem internet: este é ${qual}.` : `Este é ${qual}.`;
+}
 
 function linhaDoPonto(p: PontoDoPlano, c: ContextoPlano): string {
   const porque = c.chuva ? 'sinistros graves com chuva' : `sinistros graves das ${rotuloFaixa(c.faixa)}`;
   return `${localDoPonto(p)} · ${porque}`;
 }
 
-const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 /**
  * Tela 07 · Plano do turno (RF07, RF10, RF11, RF15).
@@ -116,11 +125,7 @@ export default function PlanoDoTurno() {
       {dados?.origem === 'cache' ? (
         <Aviso
           tom="neutro"
-          texto={
-            dados.semInternet
-              ? `Sem internet: este é o plano guardado às ${hora(dados.atualizadoEm)}.`
-              : `Este é o plano guardado às ${hora(dados.atualizadoEm)}.`
-          }
+          texto={avisoDoCache(dados)}
         />
       ) : null}
       {plano.erro ? <Aviso tom="erro" texto={plano.erro} anunciar /> : null}

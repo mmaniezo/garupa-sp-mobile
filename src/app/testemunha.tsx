@@ -9,6 +9,7 @@ import type { FichaMedica } from '@/api/types';
 import { Botao, Icone, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { fichaTemDados, lerFicha } from '@/dados-locais/seguro';
+import { horaCurta } from '@/lib/hora';
 import { voltarOu } from '@/lib/navegacao';
 import { useTema } from '@/lib/tema';
 import { useSos } from '@/servicos/sos';
@@ -61,7 +62,7 @@ export default function Testemunha() {
     );
   }
 
-  const hora = new Date(sos.payload.ocorridoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const hora = horaCurta(sos.payload.ocorridoEm);
 
   if (etapa === 'chamada') {
     return (

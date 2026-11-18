@@ -41,7 +41,7 @@ const FOLGA = 170;
 const VIEWBOX = `${CAIXA.x} ${CAIXA.y - FOLGA} ${CAIXA.largura} ${CAIXA.altura + 2 * FOLGA}`;
 const DESLOCA_CAPACETE = 'translate(-412 -439)';
 
-/** O motion roda uma vez por abertura do app, não a cada volta para a tela. */
+/** O motion roda uma vez por abertura do app (até o fim), não a cada volta para a tela. */
 let jaAbriu = false;
 
 type Props = {
@@ -67,12 +67,16 @@ export function LogoAbertura({ altura, atraso = 1500, sempre = false }: Props) {
 
   useEffect(() => {
     if (!animar) return;
-    if (!sempre) jaAbriu = true;
+    // Só marca que rodou quando chega ao fim: se a tela sair antes, na volta ele roda de novo.
+    const concluir = () => {
+      if (!sempre) jaAbriu = true;
+      setTerminou(true);
+    };
     t.set(
       withDelay(
         atraso,
         withTiming(DURACAO_ABERTURA, { duration: DURACAO_ABERTURA * 1000, easing: Easing.linear }, (completo) => {
-          if (completo) scheduleOnRN(setTerminou, true);
+          if (completo) scheduleOnRN(concluir);
         }),
       ),
     );

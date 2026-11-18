@@ -2,9 +2,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { Botao, Texto } from '@/components/ui';
 import { usePreferencias } from '@/dados-locais/preferencias';
+import { horaCurta } from '@/lib/hora';
 import { useClima, voltarChuvaAutomatica } from '@/servicos/clima';
-
-const hora = (ms: number) => new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 /**
  * Embaixo de "Seco / Chovendo": diz de onde veio a chuva. Automática, pela previsão do tempo
@@ -31,17 +30,18 @@ export function OrigemDaChuva() {
     );
   }
 
+  // Com uma previsão já em mãos, a consulta seguinte não troca o texto (nada de piscar).
   const texto =
-    clima.situacao === 'ok' && clima.em
-      ? `Automático, pela previsão do tempo das ${hora(clima.em)}.`
-      : clima.situacao === 'sem-dados'
-        ? clima.em
-          ? `Previsão do tempo das ${hora(clima.em)}; sem atualizar agora.`
-          : 'Sem a previsão do tempo agora. Se precisar, escolha você.'
+    clima.situacao === 'sem-dados'
+      ? clima.em
+        ? `Previsão do tempo das ${horaCurta(clima.em)}; sem atualizar agora.`
+        : 'Sem a previsão do tempo agora. Se precisar, escolha você.'
+      : clima.em
+        ? `Automático, pela previsão do tempo das ${horaCurta(clima.em)}.`
         : 'Consultando a previsão do tempo…';
 
   return (
-    <Texto variante="legenda" cor="textoSecundario" accessibilityLiveRegion="polite">
+    <Texto variante="legenda" cor="textoSecundario">
       {texto}
     </Texto>
   );

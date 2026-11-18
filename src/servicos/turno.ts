@@ -410,7 +410,8 @@ export async function pulso(agora = Date.now()): Promise<void> {
     const paradoMin = (agora - s.ultimoMovimentoEm) / 60_000;
     const limite = regras.pausaInatividadeMinutos;
     const aviso = limite - regras.avisoAntesDaPausaMinutos;
-    if (paradoMin >= limite) {
+    // Com uma queda em verificação, contagem ou SOS, a pausa espera: ela desligaria o detector.
+    if (paradoMin >= limite && obterQueda().ctx.estado === 'monitorando') {
       await pausarTurno('inatividade');
     } else if (paradoMin >= aviso && !s.avisoPausaDado) {
       definir({ avisoPausaDado: true });
@@ -534,13 +535,23 @@ export async function restaurarTurno(opcoes: { religar: boolean } = { religar: t
   restaurado = true;
   const salvo = await lerValor<Partial<EstadoTurno>>(CHAVE);
   if (!salvo?.situacao || salvo.situacao === 'inativo' || !salvo.turnoId) return;
-  const alertas = await alertasDoTurno(salvo.turnoId);
-  store.definir({
-    ...INICIAL,
-    ...salvo,
-    alertados: alertas.map((a) => a.celulaId),
-    alertasEm: alertas.map((a) => a.em),
-  } as EstadoTurno);
+  const atual = store.obter();
+  // A tarefa do GPS já está rodando este turno neste processo (a tela abriu depois): o estado
+  // da memória é o mais novo; o salvo não guarda cada movimento.
+  if (atual.turnoId !== salvo.turnoId || atual.situacao === 'inativo') {
+    const alertas = await alertasDoTurno(salvo.turnoId);
+    store.definir({
+      ...INICIAL,
+      ...salvo,
+      // O último movimento salvo pode ser de horas atrás (só é gravado ao iniciar, pausar e
+      // retomar). Sem saber, a volta do app conta como movimento: a pausa por inatividade
+      // só vem se a moto ficar parada 30 min a partir de agora.
+      ultimoMovimentoEm: Math.max(salvo.ultimoMovimentoEm ?? 0, Date.now()),
+      avisoPausaDado: false,
+      alertados: alertas.map((a) => a.celulaId),
+      alertasEm: alertas.map((a) => a.em),
+    } as EstadoTurno);
+  }
   if (!opcoes.religar) return;
   if (salvo.situacao === 'ativo') {
     // Com o app aberto (Expo Go), a escuta do GPS some quando o app reabre: liga de novo.

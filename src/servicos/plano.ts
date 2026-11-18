@@ -31,6 +31,8 @@ export type DadosPlano = {
   origem: 'api' | 'cache';
   /** Com origem 'cache': se foi por falta de internet (o aviso diz "Sem internet"). */
   semInternet: boolean;
+  /** Com origem 'cache': o plano guardado é de outro horário ou clima (o contexto é o dele). */
+  outroContexto: boolean;
   atualizadoEm: string;
   semDistritos: boolean;
   semLocalizacao: boolean;
@@ -51,6 +53,8 @@ const chaveCache = (c: ContextoPlano, distritos: number[]) =>
   `${c.faixa}|${c.tipoDia}|${c.chuva ? 1 : 0}|${distritos.join(',') || 'raio'}`;
 
 type Bruto = { pontos: CelulaCritica[]; mensagens: Mensagem[]; semLocalizacao: boolean };
+/** No cache vai junto o contexto (versões antigas não guardavam). */
+type Guardado = Bruto & { contexto?: ContextoPlano };
 
 /** Um raio de 50 km (o máximo da API) a partir deste ponto cobre o município inteiro. */
 const COBERTURA_SP = { lat: -23.68, lon: -46.6, raioMetros: 50_000 };
@@ -138,13 +142,19 @@ export async function carregarPlano(contexto: ContextoPlano = contextoAgora()): 
 
   try {
     const bruto = await buscarNaApi(contexto, distritos);
-    await gravarCache('cache_plano', chave, bruto);
-    if (vale()) await publicar(bruto, contexto, 'api', new Date().toISOString(), distritos.length === 0, false, vale);
+    const guardado: Guardado = { ...bruto, contexto };
+    await gravarCache('cache_plano', chave, guardado);
+    if (vale()) await publicar(bruto, contexto, 'api', new Date().toISOString(), distritos.length === 0, false, false, vale);
   } catch (e) {
     if (!vale()) return;
-    const cache = await lerCache<Bruto>('cache_plano', chave);
-    if (cache) {
-      await publicar(cache.payload, contexto, 'cache', cache.atualizadoEm, distritos.length === 0, ehErroDeRede(e), vale);
+    // O cache desta chave; sem ele, o último guardado, mas mostrado com o contexto dele (outra
+    // faixa ou outra chuva), nunca com a etiqueta de agora.
+    const cache = await lerCache<Guardado>('cache_plano', chave);
+    const contextoDoCache = cache?.mesmaChave ? contexto : cache?.payload.contexto;
+    if (cache && contextoDoCache) {
+      const semInternet = ehErroDeRede(e);
+      const outro = !cache.mesmaChave;
+      await publicar(cache.payload, contextoDoCache, 'cache', cache.atualizadoEm, distritos.length === 0, semInternet, outro, vale);
     } else if (vale()) {
       store.definir({
         carregando: false,
@@ -187,6 +197,7 @@ async function publicar(
   em: string,
   semDistritos: boolean,
   semInternet: boolean,
+  outroContexto: boolean,
   vale: () => boolean,
 ) {
   const dispensadas = await mensagensDispensadasHoje();
@@ -201,6 +212,7 @@ async function publicar(
       contexto,
       origem,
       semInternet,
+      outroContexto,
       atualizadoEm: em,
       semDistritos,
       semLocalizacao: b.semLocalizacao,

@@ -62,7 +62,8 @@ export function Segmentado<T extends string>({ rotulo, opcoes, valor, onChange, 
           <Pressable
             key={o.valor}
             onPress={() => {
-              if (!ativo) vibrar('selecao');
+              if (ativo) return; // já escolhida: tocar de novo não muda nada
+              vibrar('selecao');
               onChange(o.valor);
             }}
             onLayout={(e) => {

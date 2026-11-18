@@ -106,11 +106,14 @@ async function migrar(db: SQLite.SQLiteDatabase): Promise<void> {
   let versao = linha?.user_version ?? 0;
   while (versao < MIGRACOES.length) {
     const sql = MIGRACOES[versao];
+    const proxima = versao + 1;
+    // A versão vai na mesma transação: se o app morrer no meio, nada fica pela metade
+    // (sem isso, um ALTER TABLE já aplicado rodaria de novo e o banco nunca mais abriria).
     await db.withTransactionAsync(async () => {
       await db.execAsync(sql);
+      await db.execAsync(`PRAGMA user_version = ${proxima}`);
     });
-    versao += 1;
-    await db.execAsync(`PRAGMA user_version = ${versao}`);
+    versao = proxima;
   }
 }
 

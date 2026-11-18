@@ -16,7 +16,7 @@ import { obterSessao } from '@/state/sessao';
 
 import { notificarSosAtivo, removerNotificacaoSos } from './notificacoes';
 import { obterPosicao } from './posicao';
-import { avisarCancelamentoPorSms, avisarContatosPorSms } from './sms';
+import { avisarCancelamentoPorSms, avisarContatosPorSms, avisarLocalPorSms } from './sms';
 import { avisarPulseira } from './vestivel';
 
 /**
@@ -70,6 +70,8 @@ async function tentarEnviar(eventoId: string): Promise<void> {
     }
     payload = { ...payload, lat: pos.lat, lon: pos.lon };
     await atualizarSos(eventoId, { payload });
+    // O SMS saiu sem local: agora que a posição chegou, os contatos recebem o mapa.
+    void avisarLocalPorSms(eventoId, pos.lat, pos.lon).catch(() => undefined);
   }
 
   try {
@@ -84,8 +86,21 @@ async function tentarEnviar(eventoId: string): Promise<void> {
   }
 }
 
-/** Dispara o SOS (automático ao fim da contagem, pela pulseira ou manual). Devolve o eventoId. */
-export async function dispararSos(opcoes: { tipo: TipoSos; origem: OrigemSos }): Promise<string | null> {
+/** Disparo em andamento: enquanto espera o GPS, um segundo pedido recebe o mesmo SOS. */
+let disparoEmAndamento: Promise<string | null> | null = null;
+
+/**
+ * Dispara o SOS (automático ao fim da contagem, pela pulseira ou manual). Devolve o eventoId.
+ * Um SOS por vez: dois pedidos juntos (fim da contagem e pulseira, por exemplo) viram um só.
+ */
+export function dispararSos(opcoes: { tipo: TipoSos; origem: OrigemSos }): Promise<string | null> {
+  disparoEmAndamento ??= disparar(opcoes).finally(() => {
+    disparoEmAndamento = null;
+  });
+  return disparoEmAndamento;
+}
+
+async function disparar(opcoes: { tipo: TipoSos; origem: OrigemSos }): Promise<string | null> {
   const atual = store.obter();
   if (atual?.situacao === 'ativo') return atual.eventoId; // um SOS por vez
 

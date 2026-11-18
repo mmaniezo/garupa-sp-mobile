@@ -86,39 +86,48 @@ export function criarApiHttp(urlBase: string, timeoutMs: number): GarupaApi {
 
     const token = opcoes.publica ? null : tokenAtual();
     const controle = new AbortController();
+    // O prazo vale até o corpo da resposta chegar inteiro, não só os cabeçalhos.
     const timer = setTimeout(() => controle.abort(), timeoutMs);
-    let resposta: Response;
+    const erroDeRede = () => new ErroDeRede(controle.signal.aborted ? 'tempo_esgotado' : 'sem_conexao');
     try {
-      resposta = await fetch(url, {
-        method: metodo,
-        headers: {
-          Accept: 'application/json',
-          ...(opcoes.corpo !== undefined ? { 'Content-Type': 'application/json' } : {}),
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: opcoes.corpo !== undefined ? JSON.stringify(opcoes.corpo) : undefined,
-        signal: controle.signal,
-      });
-    } catch {
-      throw new ErroDeRede(controle.signal.aborted ? 'tempo_esgotado' : 'sem_conexao');
+      let resposta: Response;
+      try {
+        resposta = await fetch(url, {
+          method: metodo,
+          headers: {
+            Accept: 'application/json',
+            ...(opcoes.corpo !== undefined ? { 'Content-Type': 'application/json' } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: opcoes.corpo !== undefined ? JSON.stringify(opcoes.corpo) : undefined,
+          signal: controle.signal,
+        });
+      } catch {
+        throw erroDeRede();
+      }
+
+      if (!resposta.ok) {
+        // O token vale 1 hora: vencido, a API responde 401 e o app pede para entrar de novo.
+        if (resposta.status === 401 && token) marcarSessaoExpirada();
+        let problema: ProblemDetails | undefined;
+        try {
+          problema = (await resposta.json()) as ProblemDetails;
+        } catch {
+          problema = undefined;
+        }
+        throw new ErroApi(resposta.status, problema);
+      }
+      if (resposta.status === 202 || resposta.status === 204) return undefined as T;
+      let texto: string;
+      try {
+        texto = await resposta.text();
+      } catch {
+        throw erroDeRede();
+      }
+      return (texto ? JSON.parse(texto) : undefined) as T;
     } finally {
       clearTimeout(timer);
     }
-
-    if (!resposta.ok) {
-      // O token vale 1 hora: vencido, a API responde 401 e o app pede para entrar de novo.
-      if (resposta.status === 401 && token) marcarSessaoExpirada();
-      let problema: ProblemDetails | undefined;
-      try {
-        problema = (await resposta.json()) as ProblemDetails;
-      } catch {
-        problema = undefined;
-      }
-      throw new ErroApi(resposta.status, problema);
-    }
-    if (resposta.status === 202 || resposta.status === 204) return undefined as T;
-    const texto = await resposta.text();
-    return (texto ? JSON.parse(texto) : undefined) as T;
   }
 
   const id = encodeURIComponent;
