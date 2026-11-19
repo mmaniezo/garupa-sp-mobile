@@ -2,6 +2,15 @@
 
 Global Solution 2026.2 · CitizenTech · **Mobile Development e IoT**.
 
+## Integrantes
+
+| Nome | RM |
+| --- | --- |
+| Caio Alexandre dos Santos | 558460 |
+| Leandro do Nascimento Souza | 558893 |
+| Rafael de Mônaco Maniezo | 556079 |
+| Vinicius Rozas Pannuci de Paula Cont | 555338 |
+
 A garupa é quem vai junto, de olho em você. App para o motociclista de São Paulo, em especial o entregador por aplicativo: cadastro rápido, plano do turno com os pontos e horários de maior risco nas áreas em que ele roda, alerta no trajeto com o app em segundo plano, detecção de queda, SOS com link de acompanhamento e tela para quem socorre.
 
 > Prints das telas e link do vídeo (até 3 min): **a preencher** depois do teste no aparelho. Andamento e roteiro de testes: [docs/ETAPAS_MOBILE.md](docs/ETAPAS_MOBILE.md).
