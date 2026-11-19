@@ -21,6 +21,8 @@ export type Sessao = {
    * têm: ao sair, não dá para entrar de novo, e o Perfil avisa antes.
    */
   temSenha?: boolean;
+  /** Quando a pessoa aceitou o uso dos dados no cadastro (LGPD, Lei 13.709/2018), em ISO. */
+  lgpdAceitoEm?: string | null;
   passos: {
     basico: SituacaoPasso;
     ficha: SituacaoPasso;

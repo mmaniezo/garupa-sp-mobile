@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { api, ehErroApi, origemApi } from '@/api';
 import { CampoCelular } from '@/components/cadastro/campo-celular';
-import { Aviso, Botao, CabecalhoPasso, Campo, CampoSenha, Icone, Tela, Texto } from '@/components/ui';
+import { Aviso, Botao, CabecalhoPasso, Campo, CampoSenha, Icone, ItemMarcavel, Tela, Texto } from '@/components/ui';
 import { regras } from '@/config';
 import { useSessao } from '@/contexto/autenticacao';
 import { gravarContatos, lerContatos, type ContatoLocal } from '@/dados-locais/seguro';
@@ -15,13 +15,14 @@ import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { guardarToken } from '@/servicos/conta';
 import { atualizarSessao } from '@/state/sessao';
-import { brand, raio, type Paleta } from '@/theme';
+import { alerta, brand, raio, type Paleta } from '@/theme';
 
 type ContatoForm = { contatoId: string | null; nome: string; telefone: string };
 type Erros = Record<string, string | undefined>;
 
 /**
- * Tela 02 · Cadastro 1/4, obrigatório (RF01): nome ou apelido, celular, senha e um contato.
+ * Tela 02 · Cadastro 1/4, obrigatório (RF01): nome ou apelido, celular, senha, um contato e o
+ * aceite do uso dos dados (LGPD): sem ele, a conta não é criada.
  * O celular e a senha são o login (para entrar de novo ou em outro celular). Até 3 contatos,
  * sempre celular com o 9 (é para eles que vai o SMS do socorro). Editar e excluir contato
  * depois do cadastro fica na tela Contatos de emergência (Perfil).
@@ -35,6 +36,7 @@ export default function CadastroBasico() {
   const [senha, setSenha] = useState('');
   const [telefoneTemConta, setTelefoneTemConta] = useState(false);
   const [contatos, setContatos] = useState<ContatoForm[]>([{ contatoId: null, nome: '', telefone: '' }]);
+  const [aceiteLgpd, setAceiteLgpd] = useState(false);
   const [erros, setErros] = useState<Erros>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -67,6 +69,7 @@ export default function CadastroBasico() {
       if (!celular.valido) e.telefone = celular.mensagem;
       const problema = problemaDaSenha(senha);
       if (problema) e.senha = problema;
+      if (!aceiteLgpd) e.lgpd = 'Para criar a conta, marque que você aceita o uso dos seus dados.';
     }
     const preenchidos = contatos.filter((c) => c.contatoId || c.nome.trim() || c.telefone.trim());
     if (preenchidos.length === 0) e['contato-0-nome'] = 'Informe ao menos um contato de emergência.';
@@ -102,7 +105,13 @@ export default function CadastroBasico() {
         usuarioId = criado.usuarioId;
         await guardarToken(criado.token);
         // Guarda já: se outro contato falhar, tentar de novo não cria outro usuário.
-        await atualizarSessao({ usuarioId, nome: nome.trim(), apiDoCadastro: origemApi, temSenha: true });
+        await atualizarSessao({
+          usuarioId,
+          nome: nome.trim(),
+          apiDoCadastro: origemApi,
+          temSenha: true,
+          lgpdAceitoEm: new Date().toISOString(),
+        });
         // O id do contato não volta no POST; vem na consulta do cadastro.
         const contatoId = await api
           .obterUsuario(usuarioId)
@@ -287,6 +296,25 @@ export default function CadastroBasico() {
           onPress={() => setContatos((l) => [...l, { contatoId: null, nome: '', telefone: '' }])}
         />
       ) : null}
+
+      {!jaTemUsuario ? (
+        <View style={[styles.lgpd, erros.lgpd ? styles.lgpdErro : null]}>
+          <ItemMarcavel
+            titulo="Aceito que o Garupa SP use meus dados, conforme a LGPD"
+            descricao="Nome, celular e contatos de emergência servem para a sua conta e para avisar alguém se você precisar de socorro. Não vendemos nem repassamos seus dados. Você pode revogar os consentimentos e excluir a conta no Perfil (Lei 13.709/2018)."
+            marcado={aceiteLgpd}
+            onPress={() => {
+              limparErro('lgpd');
+              setAceiteLgpd((v) => !v);
+            }}
+          />
+          {erros.lgpd ? (
+            <Texto variante="legenda" cor="emergenciaTexto" accessibilityLiveRegion="polite" role="alert">
+              {erros.lgpd}
+            </Texto>
+          ) : null}
+        </View>
+      ) : null}
     </Tela>
   );
 }
@@ -303,4 +331,13 @@ const criarEstilos = (c: Paleta) =>
       gap: 12,
     },
     contatoTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    lgpd: {
+      backgroundColor: c.superficie,
+      borderWidth: 1,
+      borderColor: c.fio,
+      borderRadius: raio.xl,
+      padding: 16,
+      gap: 8,
+    },
+    lgpdErro: { borderColor: alerta.emergencia },
   });
