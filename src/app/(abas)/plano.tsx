@@ -8,6 +8,7 @@ import { ItemPonto } from '@/components/plano/item-ponto';
 import { OrigemDaChuva } from '@/components/plano/origem-da-chuva';
 import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
 import { Aviso, Botao, CartaoMensagem, Entrada, EsqueletoLista, Etiqueta, Segmentado, Tela, Texto } from '@/components/ui';
+import { useSessao } from '@/contexto/autenticacao';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { dispensarMensagem, registrarMensagemExibida } from '@/dados-locais/repositorios';
 import { rotuloFaixa, rotuloTipoDia, saudacao } from '@/domain/contexto';
@@ -26,7 +27,6 @@ import {
   type PontoDoPlano,
 } from '@/servicos/plano';
 import { useTurno } from '@/servicos/turno';
-import { useSessao } from '@/state/sessao';
 
 /** Aviso do plano guardado: por que (sem internet ou não) e se é de outro horário ou clima. */
 function avisoDoCache(d: DadosPlano): string {

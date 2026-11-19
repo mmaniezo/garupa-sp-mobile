@@ -6,17 +6,16 @@ import { api } from '@/api';
 import type { Consentimentos } from '@/api/types';
 import { AvisoSessaoExpirada } from '@/components/sessao/aviso-sessao-expirada';
 import { Aviso, Botao, Entrada, Icone, ItemMarcavel, Pressionavel, Segmentado, Tela, Texto } from '@/components/ui';
+import { useAutenticacao } from '@/contexto/autenticacao';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { apagarHistoricoDeLocais } from '@/dados-locais/repositorios';
 import { fichaTemDados, lerContatos, lerFicha } from '@/dados-locais/seguro';
 import { rotuloUso } from '@/domain/periodos';
 import { mensagemDeErro } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
-import { sairDaConta } from '@/servicos/conta';
 import { carregarPlano } from '@/servicos/plano';
 import { pedirPermissaoSms, smsAutomaticoSuportado, temPermissaoSms } from '@/servicos/sms';
 import { finalizarTurno, useTurno } from '@/servicos/turno';
-import { useSessao } from '@/state/sessao';
 import { brand, brilho, raio, type Paleta, type PreferenciaTema } from '@/theme';
 
 function Linha({ titulo, valor, href, corValor }: { titulo: string; valor: string; href: Href; corValor?: string }) {
@@ -46,7 +45,7 @@ function Linha({ titulo, valor, href, corValor }: { titulo: string; valor: strin
  * e excluir a conta (DELETE /usuarios/{id} e limpeza do aparelho).
  */
 export default function Perfil() {
-  const sessao = useSessao();
+  const { sessao, sair: sairDaConta } = useAutenticacao();
   const prefs = usePreferencias();
   const turno = useTurno();
   const [contatos, setContatos] = useState(0);

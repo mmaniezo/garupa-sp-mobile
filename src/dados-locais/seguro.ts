@@ -2,14 +2,14 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 import type { FichaMedica } from '@/api/types';
-import { apagarValor, gravarValor, lerValor } from '@/db';
+import { apagarValor, gravarValor, lerValor } from '@/dados-locais/armazenamento';
 
 /**
  * Dados sensíveis no aparelho: ficha médica (saúde), contatos de emergência (telefone) e o
  * token da conta.
  * Ficam no armazenamento seguro do sistema (Keystore no Android, Keychain no iOS),
  * criptografados, e não no SQLite. Na prévia web, que não tem esse armazenamento,
- * caem no banco comum só para a tela funcionar.
+ * caem no AsyncStorage comum só para a tela funcionar.
  */
 
 export type ContatoLocal = { contatoId: string | null; nome: string; telefone: string };

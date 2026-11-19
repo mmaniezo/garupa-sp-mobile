@@ -1,7 +1,8 @@
 import { Redirect } from 'expo-router';
 
 import { sessaoExpirada } from '@/api/token';
-import { cadastroConcluido, proximaTelaDoCadastro, useSessao } from '@/state/sessao';
+import { useSessao } from '@/contexto/autenticacao';
+import { cadastroConcluido, proximaTelaDoCadastro } from '@/state/sessao';
 
 /**
  * Porta de entrada: manda para as boas-vindas, para o passo do cadastro em que parou ou para o

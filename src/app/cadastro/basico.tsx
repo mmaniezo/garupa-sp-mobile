@@ -6,14 +6,15 @@ import { api, ehErroApi, origemApi } from '@/api';
 import { CampoCelular } from '@/components/cadastro/campo-celular';
 import { Aviso, Botao, CabecalhoPasso, Campo, CampoSenha, Icone, Tela, Texto } from '@/components/ui';
 import { regras } from '@/config';
+import { useSessao } from '@/contexto/autenticacao';
 import { gravarContatos, lerContatos, type ContatoLocal } from '@/dados-locais/seguro';
-import { gravarValor, lerValor } from '@/db';
+import { gravarValor, lerValor } from '@/dados-locais/armazenamento';
 import { problemaDaSenha } from '@/domain/senha';
 import { validarCelular, validarTelefone } from '@/domain/telefone';
 import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { guardarToken } from '@/servicos/conta';
-import { atualizarSessao, useSessao } from '@/state/sessao';
+import { atualizarSessao } from '@/state/sessao';
 import { brand, raio, type Paleta } from '@/theme';
 
 type ContatoForm = { contatoId: string | null; nome: string; telefone: string };

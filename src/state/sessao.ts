@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router';
 
-import { apagarTudoDoAparelho, gravarValor, lerValor } from '@/db';
+import { apagarValoresDoApp, gravarValor, lerValor } from '@/dados-locais/armazenamento';
+import { apagarTudoDoAparelho } from '@/db';
 import { criarStore } from '@/lib/store';
 
 /**
@@ -40,7 +41,8 @@ const VAZIA: Sessao = {
 
 const store = criarStore<Sessao>(VAZIA);
 
-export const useSessao = store.useStore;
+/** Só para o AutenticacaoProvider: as telas usam useSessao/useAutenticacao (contexto/autenticacao). */
+export const useSessaoDoAparelho = store.useStore;
 export const obterSessao = store.obter;
 export const assinarSessao = store.assinar;
 
@@ -67,6 +69,7 @@ export async function atualizarSessao(mudanca: Partial<Omit<Sessao, 'carregada' 
 /** Sai do aparelho: apaga sessão, cache, filas e histórico local (a conta continua na API). */
 export async function encerrarSessaoNoAparelho(): Promise<void> {
   await apagarTudoDoAparelho();
+  await apagarValoresDoApp();
   store.definir({ ...VAZIA, carregada: true });
 }
 

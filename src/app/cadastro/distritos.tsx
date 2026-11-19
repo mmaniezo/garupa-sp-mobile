@@ -6,13 +6,14 @@ import { api } from '@/api';
 import type { Distrito } from '@/api/types';
 import { Aviso, Botao, CabecalhoPasso, Campo, ItemMarcavel, Tela, Texto } from '@/components/ui';
 import { regras } from '@/config';
+import { useSessao } from '@/contexto/autenticacao';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
-import { gravarValor, lerValor } from '@/db';
+import { gravarValor, lerValor } from '@/dados-locais/armazenamento';
 import { horariosHabituais } from '@/domain/periodos';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
 import { useEstilos } from '@/lib/tema';
 import { salvarPerfilNaApi } from '@/servicos/cadastro';
-import { atualizarSessao, useSessao } from '@/state/sessao';
+import { atualizarSessao } from '@/state/sessao';
 import { brand, raio, type Paleta } from '@/theme';
 
 const semAcento = (t: string) =>

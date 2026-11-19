@@ -1,5 +1,5 @@
 import { config } from '@/config';
-import { CHAVE_CONTAS_MOCK, gravarValor, lerValor } from '@/db';
+import { CHAVE_CONTAS_MOCK, gravarValor, lerValor } from '@/dados-locais/armazenamento';
 
 import type { GarupaApi } from './contrato';
 import { criarApiHttp } from './http';

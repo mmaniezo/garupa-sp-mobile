@@ -5,12 +5,12 @@ import { api, mock } from '@/api';
 import type { TipoAlertaVestivel, TipoEventoVestivel } from '@/api/types';
 import { Aviso, Botao, BotaoIcone, Campo, Tela, Texto } from '@/components/ui';
 import { config } from '@/config';
+import { useSessao } from '@/contexto/autenticacao';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
 import { useEstilos } from '@/lib/tema';
 import { useTurno } from '@/servicos/turno';
 import { avisarPulseira, desparearPulseira, parearPulseira } from '@/servicos/vestivel';
-import { useSessao } from '@/state/sessao';
 import { brand, raio, tons, type NomeTema, type Paleta } from '@/theme';
 
 type Luz = {

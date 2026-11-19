@@ -4,10 +4,11 @@ import { StyleSheet, View } from 'react-native';
 
 import type { FichaMedica } from '@/api/types';
 import { Aviso, Botao, CabecalhoPasso, Campo, Chip, Tela, Texto } from '@/components/ui';
+import { useSessao } from '@/contexto/autenticacao';
 import { gravarFicha, lerFicha } from '@/dados-locais/seguro';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
 import { salvarFichaNaApi } from '@/servicos/cadastro';
-import { atualizarSessao, useSessao } from '@/state/sessao';
+import { atualizarSessao } from '@/state/sessao';
 
 const TIPOS_SANGUINEOS = ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'];
 

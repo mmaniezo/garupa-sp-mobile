@@ -5,6 +5,7 @@ import { Linking, Share, StyleSheet, View } from 'react-native';
 import { api, mock } from '@/api';
 import { MapaPosicao } from '@/components/mapa/mapa-pontos';
 import { Aviso, Botao, Icone, Tela, Texto } from '@/components/ui';
+import { useSessao } from '@/contexto/autenticacao';
 import { lerSos, type RegistroSos } from '@/dados-locais/repositorios';
 import { atualizarPreferencias } from '@/dados-locais/preferencias';
 import { lerContatos } from '@/dados-locais/seguro';
@@ -22,7 +23,6 @@ import {
   type EstadoSms,
 } from '@/servicos/sms';
 import { cancelarSos, encerrarSos, useSos } from '@/servicos/sos';
-import { useSessao } from '@/state/sessao';
 import { alerta, brand, raio, type Paleta } from '@/theme';
 
 const ROTULO_TIPO = { queda: 'queda detectada', mal_estar: 'mal-estar', agressao_assalto: 'agressão ou assalto' } as const;

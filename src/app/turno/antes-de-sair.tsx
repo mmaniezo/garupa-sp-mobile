@@ -4,12 +4,12 @@ import { StyleSheet, View } from 'react-native';
 
 import { Logo } from '@/components/brand/logo';
 import { Aviso, Botao, BotaoIcone, Entrada, Etiqueta, ItemMarcavel, Tela, Texto } from '@/components/ui';
+import { useSessao } from '@/contexto/autenticacao';
 import { rotuloDaFonte } from '@/domain/mensagens';
 import { voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
 import { carregarPlano, usePlano } from '@/servicos/plano';
 import { iniciarTurno } from '@/servicos/turno';
-import { useSessao } from '@/state/sessao';
 import { raio, type Paleta } from '@/theme';
 
 const CHECKLIST = ['Capacete afivelado e viseira limpa', 'Celular firme no suporte', 'Farol aceso e capa de chuva'];

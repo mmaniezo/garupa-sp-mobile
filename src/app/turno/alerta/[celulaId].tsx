@@ -13,7 +13,7 @@ import {
   registrarMensagemExibida,
   ultimasMensagensExibidas,
 } from '@/dados-locais/repositorios';
-import { gravarValor, lerValor } from '@/db';
+import { gravarValor, lerValor } from '@/dados-locais/armazenamento';
 import { escolherMensagem } from '@/domain/mensagens';
 import { acaoDoPonto, motivoDoPonto } from '@/domain/risco';
 import { horaCurta } from '@/lib/hora';

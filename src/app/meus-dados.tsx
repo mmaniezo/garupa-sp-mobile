@@ -4,9 +4,10 @@ import { View } from 'react-native';
 import { api, ehErroApi } from '@/api';
 import { CampoCelular } from '@/components/cadastro/campo-celular';
 import { Aviso, Botao, CabecalhoPasso, Campo, Tela, Texto } from '@/components/ui';
+import { useSessao } from '@/contexto/autenticacao';
 import { mascararTelefone, validarCelular } from '@/domain/telefone';
 import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
-import { atualizarSessao, useSessao } from '@/state/sessao';
+import { atualizarSessao } from '@/state/sessao';
 
 type Erros = { nome?: string; telefone?: string };
 

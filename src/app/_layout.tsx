@@ -12,10 +12,11 @@ import * as SystemUI from 'expo-system-ui';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Vigia } from '@/components/navegacao/vigia';
+import { AutenticacaoProvider, useAutenticacao } from '@/contexto/autenticacao';
 import { usePreferencias } from '@/dados-locais/preferencias';
 import { aplicarTemaNoSistema, useTema } from '@/lib/tema';
 import { iniciarServicos } from '@/servicos/inicializacao';
-import { cadastroConcluido, carregarSessao, useSessao } from '@/state/sessao';
+import { carregarSessao } from '@/state/sessao';
 import { brand, tons, type NomeTema, type Paleta } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -36,7 +37,16 @@ function temaDaNavegacao(nome: NomeTema, c: Paleta): Theme {
   };
 }
 
+/** A autenticação (Context API) envolve o app inteiro. */
 export default function RaizLayout() {
+  return (
+    <AutenticacaoProvider>
+      <Navegacao />
+    </AutenticacaoProvider>
+  );
+}
+
+function Navegacao() {
   const [fontesProntas, erroFontes] = useFonts({
     BricolageGrotesque_400Regular,
     BricolageGrotesque_500Medium,
@@ -44,7 +54,7 @@ export default function RaizLayout() {
     BricolageGrotesque_700Bold,
     BricolageGrotesque_800ExtraBold,
   });
-  const sessao = useSessao();
+  const { sessao, cadastrado } = useAutenticacao();
   const [servicosProntos, setServicosProntos] = useState(false);
   const { nome: tema, c } = useTema();
   const { tema: preferenciaTema } = usePreferencias();
@@ -74,8 +84,6 @@ export default function RaizLayout() {
   }, [pronto]);
 
   if (!pronto) return null;
-
-  const cadastrado = cadastroConcluido(sessao);
 
   return (
     <ThemeProvider value={temaNavegacao}>

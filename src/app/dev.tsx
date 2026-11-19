@@ -20,6 +20,7 @@ import {
 } from '@/components/ui';
 import { DISTRITOS } from '@/api/mock/dados';
 import { config } from '@/config';
+import { useSessao } from '@/contexto/autenticacao';
 import { atualizarPreferencias, limparPreferencias } from '@/dados-locais/preferencias';
 import { apagarDadosSeguros, gravarContatos, gravarFicha } from '@/dados-locais/seguro';
 import { versaoDoEsquema } from '@/db';
@@ -27,7 +28,7 @@ import { horariosHabituais } from '@/domain/periodos';
 import { guardarToken } from '@/servicos/conta';
 import { carregarPlano, limparPlano } from '@/servicos/plano';
 import { useEstilos } from '@/lib/tema';
-import { atualizarSessao, encerrarSessaoNoAparelho, useSessao } from '@/state/sessao';
+import { atualizarSessao, encerrarSessaoNoAparelho } from '@/state/sessao';
 import { brand, raio, tons, type Paleta } from '@/theme';
 
 /**

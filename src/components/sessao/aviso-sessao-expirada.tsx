@@ -1,15 +1,15 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
-import { useSessaoExpirada } from '@/api/token';
 import { Aviso, Botao } from '@/components/ui';
+import { useAutenticacao } from '@/contexto/autenticacao';
 
 /**
  * A sessão com a API venceu (o token vale 1 hora). O app segue funcionando com o que está no
  * celular; o que precisa do servidor (relato, registro do SOS, salvar dados) espera o novo login.
  */
 export function AvisoSessaoExpirada() {
-  const expirada = useSessaoExpirada();
+  const { sessaoExpirada: expirada } = useAutenticacao();
   if (!expirada) return null;
   return (
     <View style={{ gap: 8 }}>

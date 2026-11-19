@@ -4,11 +4,12 @@ import { StyleSheet, View } from 'react-native';
 
 import type { TipoDia, TipoUso } from '@/api/types';
 import { Aviso, Botao, CabecalhoPasso, CartaoOpcao, Chip, Tela, Texto } from '@/components/ui';
+import { useSessao } from '@/contexto/autenticacao';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
 import { DIAS, horariosHabituais, PERIODOS, TIPOS_DE_USO, type Periodo } from '@/domain/periodos';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
 import { salvarPerfilNaApi } from '@/servicos/cadastro';
-import { atualizarSessao, useSessao } from '@/state/sessao';
+import { atualizarSessao } from '@/state/sessao';
 
 const alternar = <T,>(lista: T[], item: T) => (lista.includes(item) ? lista.filter((x) => x !== item) : [...lista, item]);
 

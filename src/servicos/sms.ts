@@ -5,7 +5,7 @@ import { enviarSmsDireto, podeEnviarSmsDireto, smsDiretoDisponivel } from 'sms-s
 import type { TipoSos } from '@/api/types';
 import { obterPreferencias } from '@/dados-locais/preferencias';
 import { lerContatos } from '@/dados-locais/seguro';
-import { gravarValor, lerValor } from '@/db';
+import { gravarValor, lerValor } from '@/dados-locais/armazenamento';
 import { linkGoogleMaps, textoSmsCancelado, textoSmsLocal, textoSmsSocorro } from '@/domain/sms';
 import { validarTelefone } from '@/domain/telefone';
 import { horaCurta } from '@/lib/hora';

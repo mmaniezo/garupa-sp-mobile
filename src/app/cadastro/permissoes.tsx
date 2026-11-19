@@ -5,8 +5,9 @@ import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { api } from '@/api';
 import type { Consentimentos } from '@/api/types';
 import { Aviso, Botao, CabecalhoPasso, ItemMarcavel, Tela, Texto } from '@/components/ui';
+import { useSessao } from '@/contexto/autenticacao';
 import { atualizarPreferencias, usePreferencias } from '@/dados-locais/preferencias';
-import { gravarValor, lerValor } from '@/db';
+import { gravarValor, lerValor } from '@/dados-locais/armazenamento';
 import { mensagemDeErro, useEdicao, voltarOu } from '@/lib/navegacao';
 import {
   abrirAjusteDeBateria,
@@ -19,7 +20,7 @@ import {
 } from '@/servicos/permissoes';
 import { carregarPlano } from '@/servicos/plano';
 import { pedirPermissaoSms, smsAutomaticoSuportado, temPermissaoSms } from '@/servicos/sms';
-import { atualizarSessao, useSessao } from '@/state/sessao';
+import { atualizarSessao } from '@/state/sessao';
 
 /**
  * Tela 06 · Permissões e consentimentos (RF05, RF36, RB08).

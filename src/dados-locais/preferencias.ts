@@ -1,5 +1,5 @@
 import type { Consentimentos, Distrito, TipoDia, TipoUso } from '@/api/types';
-import { gravarValor, lerValor } from '@/db';
+import { gravarValor, lerValor } from '@/dados-locais/armazenamento';
 import type { Periodo } from '@/domain/periodos';
 import { criarStore } from '@/lib/store';
 import type { PreferenciaTema } from '@/theme/colors';

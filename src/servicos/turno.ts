@@ -21,7 +21,7 @@ import {
   registrarVisita,
   ultimasMensagensExibidas,
 } from '@/dados-locais/repositorios';
-import { gravarValor, lerValor } from '@/db';
+import { gravarValor, lerValor } from '@/dados-locais/armazenamento';
 import { escolherAlerta } from '@/domain/alertas';
 import { celulaLocal, distanciaMetros, paraKmh, type Ponto } from '@/domain/geo';
 import { contextoDaMensagem, escolherMensagem } from '@/domain/mensagens';

@@ -5,11 +5,11 @@ import { api, ehErroApi } from '@/api';
 import { CampoCelular } from '@/components/cadastro/campo-celular';
 import { Aviso, Botao, CabecalhoPasso, Campo, Icone, Tela, Texto } from '@/components/ui';
 import { regras } from '@/config';
+import { useSessao } from '@/contexto/autenticacao';
 import { gravarContatos, lerContatos, type ContatoLocal } from '@/dados-locais/seguro';
 import { validarCelular, validarTelefone } from '@/domain/telefone';
 import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
 import { useEstilos, useTema } from '@/lib/tema';
-import { useSessao } from '@/state/sessao';
 import { brand, raio, type Paleta } from '@/theme';
 
 /** contatoId null: contato novo. */

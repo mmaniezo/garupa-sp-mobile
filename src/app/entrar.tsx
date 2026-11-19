@@ -5,9 +5,9 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { ehErroApi } from '@/api';
 import { CampoCelular } from '@/components/cadastro/campo-celular';
 import { Aviso, Botao, CabecalhoPasso, CampoSenha, Tela, Texto } from '@/components/ui';
+import { useAutenticacao } from '@/contexto/autenticacao';
 import { mascararTelefone, validarCelular } from '@/domain/telefone';
 import { mensagemDeErro, voltarOu } from '@/lib/navegacao';
-import { entrarNaConta } from '@/servicos/conta';
 import { obterSessao, proximaTelaDoCadastro } from '@/state/sessao';
 
 /**
@@ -24,6 +24,7 @@ export default function Entrar() {
   const [erros, setErros] = useState<{ telefone?: string; senha?: string }>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const { entrar: entrarNaConta } = useAutenticacao();
 
   async function entrar() {
     setErroGeral(null);

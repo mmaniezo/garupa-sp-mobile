@@ -135,45 +135,26 @@ export function obterBanco(): Promise<SQLite.SQLiteDatabase> {
 
 export const versaoDoEsquema = MIGRACOES.length;
 
-// ---------- Chave e valor (configurações e sessão) ----------
+// ---------- Chave e valor antigos (até a v0.5.1) ----------
+// Sessão e preferências passaram para o AsyncStorage (dados-locais/armazenamento.ts). A tabela
+// kv fica só para a migração: o que ainda estiver aqui é lido uma vez e apagado.
 
-/**
- * Cópia em memória usada se o SQLite não abrir (por exemplo, na pré-visualização web).
- * No celular o SQLite é sempre o caminho.
- */
-const reserva = new Map<string, string>();
-
-export async function lerValor<T>(chave: string): Promise<T | null> {
+export async function lerValorAntigo<T>(chave: string): Promise<T | null> {
   try {
     const db = await obterBanco();
     const linha = await db.getFirstAsync<{ valor: string }>('SELECT valor FROM kv WHERE chave = ?', chave);
     return linha ? (JSON.parse(linha.valor) as T) : null;
   } catch {
-    const v = reserva.get(chave);
-    return v ? (JSON.parse(v) as T) : null;
+    return null;
   }
 }
 
-export async function gravarValor(chave: string, valor: unknown): Promise<void> {
-  const json = JSON.stringify(valor);
-  try {
-    const db = await obterBanco();
-    await db.runAsync(
-      'INSERT INTO kv (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor',
-      chave,
-      json,
-    );
-  } catch {
-    reserva.set(chave, json);
-  }
-}
-
-export async function apagarValor(chave: string): Promise<void> {
+export async function apagarValorAntigo(chave: string): Promise<void> {
   try {
     const db = await obterBanco();
     await db.runAsync('DELETE FROM kv WHERE chave = ?', chave);
   } catch {
-    reserva.delete(chave);
+    // sem banco, sem o que apagar
   }
 }
 
@@ -187,15 +168,11 @@ export async function comBanco<T>(fn: (db: SQLite.SQLiteDatabase) => Promise<T>,
   }
 }
 
-/**
- * Contas da API simulada (o "servidor" do protótipo sem API). Não são dados do app neste
- * aparelho: sair da conta não as apaga (excluir a conta apaga pela própria API).
- */
-export const CHAVE_CONTAS_MOCK = 'mock.contas';
+/** Contas da API simulada (ver dados-locais/armazenamento.ts): sair da conta não as apaga. */
+const CHAVE_CONTAS_MOCK = 'mock.contas';
 
 /** Sair ou excluir a conta (RF06): apaga tudo o que o app guardou no aparelho. */
 export async function apagarTudoDoAparelho(): Promise<void> {
-  for (const chave of [...reserva.keys()]) if (chave !== CHAVE_CONTAS_MOCK) reserva.delete(chave);
   try {
     const db = await obterBanco();
     await db.runAsync('DELETE FROM kv WHERE chave <> ?', CHAVE_CONTAS_MOCK);
