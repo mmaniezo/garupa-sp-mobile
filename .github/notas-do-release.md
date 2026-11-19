@@ -6,7 +6,13 @@ Protótipo do **Garupa SP** para Android: Global Solution 2026.2 (CitizenTech), 
 2. Abra o arquivo e permita a instalação de apps de fonte desconhecida, se o Android pedir. Ele instala por cima da versão anterior.
 3. No primeiro uso, faça o cadastro (use dados fictícios), crie a sua senha e permita localização, notificações, movimento e **SMS**. O cadastro e o login precisam de internet.
 
-## Novidades da 0.5.1
+## Novidades da 0.6.0
+
+- **Aceite da LGPD no cadastro**: para criar a conta, é preciso marcar que aceita o uso dos dados (nome, celular e contatos de emergência), com a explicação de para que servem e de onde revogar. A data do aceite fica registrada.
+- **Sessão e preferências no AsyncStorage**: a sessão, as preferências e o estado do turno passaram para o AsyncStorage. Quem atualiza não perde nada: o que estava guardado é copiado na primeira abertura.
+- **Login pelo contexto de autenticação**: entrar, sair e o aviso de sessão vencida passam pelo mesmo contexto em todas as telas.
+
+## Da 0.5.1
 
 - **Queda com a tela bloqueada**: o sensor de batida agora segue funcionando com a tela bloqueada e outro app na frente. Antes ele parava em segundo plano (o diagnóstico mostrava 0 leituras). Em Perfil → Diagnóstico do segundo plano, "Origem do sensor" deve mostrar "Garupa".
 - **SOS mais confiável**: o local enviado nunca é mais velho que o pedido; dois disparos juntos viram um SOS só; e, se o SOS sair sem local, os contatos recebem um segundo SMS com o mapa assim que o GPS achar a posição.
