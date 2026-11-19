@@ -13,7 +13,7 @@ Global Solution 2026.2 · CitizenTech · **Mobile Development e IoT**.
 
 A garupa é quem vai junto, de olho em você. App para o motociclista de São Paulo, em especial o entregador por aplicativo: cadastro rápido, plano do turno com os pontos e horários de maior risco nas áreas em que ele roda, alerta no trajeto com o app em segundo plano, detecção de queda, SOS com link de acompanhamento e tela para quem socorre.
 
-- **Vídeo do app rodando (até 3 min):** _link a incluir_ · roteiro em [docs/ROTEIRO_VIDEO.md](docs/ROTEIRO_VIDEO.md)
+- **Vídeo do app rodando (até 3 min):** https://youtube.com/shorts/yBzqNj-elqk · roteiro em [docs/ROTEIRO_VIDEO.md](docs/ROTEIRO_VIDEO.md)
 - **Prints das telas:** [logo abaixo](#prints-das-telas)
 - **Rodar o app:** [Como rodar](#como-rodar) · andamento e testes no aparelho: [docs/ETAPAS_MOBILE.md](docs/ETAPAS_MOBILE.md)
 
