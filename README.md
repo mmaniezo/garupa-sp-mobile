@@ -13,20 +13,52 @@ Global Solution 2026.2 · CitizenTech · **Mobile Development e IoT**.
 
 A garupa é quem vai junto, de olho em você. App para o motociclista de São Paulo, em especial o entregador por aplicativo: cadastro rápido, plano do turno com os pontos e horários de maior risco nas áreas em que ele roda, alerta no trajeto com o app em segundo plano, detecção de queda, SOS com link de acompanhamento e tela para quem socorre.
 
-> Prints das telas e link do vídeo (até 3 min): **a preencher** depois do teste no aparelho. Andamento e roteiro de testes: [docs/ETAPAS_MOBILE.md](docs/ETAPAS_MOBILE.md).
+- **Vídeo do app rodando (até 3 min):** _link a incluir_ · roteiro em [docs/ROTEIRO_VIDEO.md](docs/ROTEIRO_VIDEO.md)
+- **Prints das telas:** [logo abaixo](#prints-das-telas)
+- **Rodar o app:** [Como rodar](#como-rodar) · andamento e testes no aparelho: [docs/ETAPAS_MOBILE.md](docs/ETAPAS_MOBILE.md)
 
-## Ficha da CitizenTech (rascunho, conferir com a equipe)
+## Ficha da CitizenTech
 
 | Pergunta | Resposta |
 | --- | --- |
-| **Cidadão** | Motociclistas da capital paulista, com foco no entregador por aplicativo: quem passa mais horas nas vias de maior risco, nem sempre escolhe a rota e trabalha sob pressão de prazo. |
+| **Público beneficiado** | Motociclistas da capital paulista, com foco no entregador por aplicativo: quem passa mais horas nas vias de maior risco, nem sempre escolhe a rota e trabalha sob pressão de prazo. Também os contatos de emergência e quem presta o primeiro socorro. |
 | **Problema** | Motociclistas são o maior grupo de mortes no trânsito da capital (475 de 1.034 em 2025, Infosiga) e batem recorde em 2026; 67,3% dos sinistros graves ou fatais de jan–ago de 2026 envolvem moto. O risco tem hora e lugar. |
 | **Como funciona** | Cadastro em camadas (nome, telefone e um contato; ficha médica, uso da moto e distritos opcionais). Antes do turno, o plano mostra os poucos pontos críticos das áreas da pessoa, no horário e com a chuva do momento (pela previsão do tempo ou escolhida à mão). Com o turno ativo, o app fica em segundo plano: avisa ao chegar perto de um ponto crítico (bipe, vibração e banner curto), detecta a queda (impacto + queda de velocidade + imobilidade), abre uma contagem de 30 s e, sem resposta, registra o SOS com a posição. O contato recebe um link de acompanhamento; quem socorre vê a ficha médica pela tela de bloqueio e liga ao 192. |
 | **Tecnologias** | App: Expo (React Native, TypeScript), SQLite, Google Maps, localização e sensores em segundo plano, notificações. Modelo de risco: Python com XGBoost (Infosiga, INMET), [garupa-sp-ml](https://github.com/Viniciuscont2/garupa-sp-ml). API: C#/.NET com PostgreSQL, [garupa-sp-api](https://github.com/caio-alex/garupa-sp-api). Pulseira opcional: ESP32 no Wokwi. |
 | **Ecossistema** | Motociclistas e entregadores; contatos de emergência; SAMU 192 (discagem confirmada pela pessoa); dados abertos (Infosiga, INMET, GeoSampa). Futuro: CET-SP, plataformas de entrega e seguradoras. |
-| **Medição de impacto** | Lift do modelo contra o mapa histórico; erros do detector em cenários de teste (matriz de confusão); tempo entre a queda e o link disponível ao contato; tempo do cadastro mínimo (meta: até 2 min). |
+| **Hipóteses** | H1: ver antes do turno os poucos pontos e horários de maior risco das próprias áreas faz o motociclista reduzir a velocidade nesses pontos. H2: um aviso curto por som e vibração ao chegar perto de um ponto crítico é percebido sem tirar os olhos da via. H3: detectar a queda e avisar o contato sozinho encurta o tempo até a ajuda, mesmo quando a pessoa não consegue pedir. H4: um cadastro curto, que pede só o distrito (nunca o endereço), aumenta a adesão de quem trabalha com pressa. |
+| **Indicadores** | Lift do modelo: quanto os pontos críticos concentram mais sinistros graves que a média da cidade (H1). Alertas avaliados como úteis na tela do alerta, em % (H1, H2). Acertos e erros do detector nos cenários de teste, em matriz de confusão: queda, buraco, semáforo, celular derrubado (H3). Tempo entre a queda e o SMS ao contato com o mapa (H3). Cancelamentos com "Estou bem" por turno, para medir falsos alarmes (H3). Tempo do cadastro mínimo, medido no app (meta: até 2 min) (H4). |
 
 O app informa e avisa mais rápido; não promete salvar vidas. O mapa mostra histórico, não garantia.
+
+## Requisitos da disciplina no código
+
+| Requisito | Onde está |
+| --- | --- |
+| Navegação com rotas | Expo Router: uma tela por arquivo em `src/app/`, abas em `src/app/(abas)/`, rotas protegidas até o cadastro mínimo (`src/app/_layout.tsx`) |
+| Context API para autenticação | `src/contexto/autenticacao.tsx`: `AutenticacaoProvider` envolve o app; `useAutenticacao()` dá a sessão, se o cadastro está feito, se a sessão venceu, `entrar` e `sair` |
+| Login | `src/app/entrar.tsx`: celular e senha (`POST /autenticacao/login`); a sessão vence em 1 hora e o app pede a senha de novo sem perder os dados do celular |
+| Persistência com AsyncStorage, em camada de serviço | `src/dados-locais/armazenamento.ts`: sessão, preferências, estado do turno e do SMS do SOS. Telas e serviços passam por essa camada. O SQLite guarda só o que precisa de fila e consulta (SOS e relatos sem internet, cache do plano), e o armazenamento seguro guarda ficha médica, contatos e token |
+| Formulários com validação e máscaras | Cadastro, login, contatos e Meus dados: máscara e validação do celular (`src/domain/telefone.ts`), regras da senha (`src/domain/senha.ts`), campos obrigatórios e limites |
+| Dados mockados ou simulados | API simulada com o mesmo contrato da API C# e os dados do modelo de ML (`src/api/mock/`), padrão sem `.env` |
+| Simulação IoT que gera alertas e ações | Pulseira (ESP32, simulada em `/pulseira`): impacto abre a contagem da queda, SOS dispara o socorro, e o app acende as luzes da pulseira a cada alerta. O celular também é sensor: acelerômetro e GPS no turno (`src/servicos/turno.ts`) |
+| Camadas separadas | Telas (`src/app`), componentes (`src/components`), serviços (`src/servicos`), contexto (`src/contexto`), estilos (`src/theme`: cores, tipografia e medidas; cada tela monta os seus com `StyleSheet` a partir do tema), regras puras e testadas (`src/domain`), dados locais (`src/dados-locais`), API (`src/api`) |
+| Interface simples e acessível | Textos curtos, botões grandes, leitor de tela (rótulos e anúncios), tema claro e escuro, "reduzir movimento" respeitado |
+
+## Prints das telas
+
+Prévia web em tamanho de celular, com a API simulada e dados fictícios. No celular, o mapa é o Google Maps de verdade.
+
+| | | |
+| --- | --- | --- |
+| <img src="docs/prints/01-boas-vindas.png" width="230" alt="Boas-vindas"> | <img src="docs/prints/02-cadastro.png" width="230" alt="Cadastro com máscara do celular"> | <img src="docs/prints/03-plano.png" width="230" alt="Plano do turno"> |
+| Boas-vindas | Cadastro (validação e máscara) | Plano do turno |
+| <img src="docs/prints/04-mapa-lista.png" width="230" alt="Pontos críticos"> | <img src="docs/prints/05-relatar.png" width="230" alt="Relatar perigo e SOS manual"> | <img src="docs/prints/06-perfil.png" width="230" alt="Perfil"> |
+| Pontos críticos | Relatar perigo e SOS manual | Perfil e privacidade |
+| <img src="docs/prints/07-pulseira.png" width="230" alt="Pulseira simulada"> | <img src="docs/prints/08-antes-de-sair.png" width="230" alt="Antes de sair"> | <img src="docs/prints/09-turno-ativo.png" width="230" alt="Turno ativo"> |
+| Pulseira (IoT simulada) | Antes de sair | Turno ativo |
+| <img src="docs/prints/10-queda.png" width="230" alt="Contagem da queda"> | <img src="docs/prints/11-sos.png" width="230" alt="SOS enviado"> | <img src="docs/prints/12-testemunha.png" width="230" alt="Tela para quem ajudar"> |
+| Queda: contagem de 30 s | SOS enviado | Tela para quem ajudar |
 
 ## O que o app faz (por tela do design)
 
@@ -52,6 +84,22 @@ O app informa e avisa mais rápido; não promete salvar vidas. O mapa mostra his
 | Diagnóstico do segundo plano | `/diagnostico` | RT20, RNF24 (o teste do primeiro dia) |
 
 ## Como rodar
+
+**Para avaliar, sem configurar nada:** com Node 22 instalado, baixe o repositório e rode os comandos abaixo. Sem `.env`, o app usa a API simulada (mesmo contrato e mesmos dados do modelo), então funciona sem servidor e sem internet para a API.
+
+```bash
+npm install
+```
+
+```bash
+npm run go
+```
+
+Escaneie o QR code com o **Expo Go** (SDK 58) no celular, no mesmo Wi-Fi do computador. Para ver no navegador, sem sensores nem GPS:
+
+```bash
+npm run web
+```
 
 **Só quer instalar?** Baixe o APK de Android na página [Releases](https://github.com/mmaniezo/garupa-sp-mobile/releases). Ele fala com a API de produção (`https://garupa-sp-api-production.up.railway.app`): o cadastro, o login, o plano do turno, o SOS e os relatos ficam no servidor. Cada tag `v*` enviada ao GitHub gera um APK novo pelo workflow `.github/workflows/release-android.yml`:
 
@@ -99,7 +147,7 @@ Prévia rápida das telas no navegador (sem sensores, GPS nem segundo plano):
 npm run web
 ```
 
-Verificações (typecheck, lint e os 56 testes; os 7 de integração com a API real só rodam com `GARUPA_API_URL`):
+Verificações (typecheck, lint e os 122 testes; os 8 de integração com a API real só rodam com `GARUPA_API_URL`):
 
 ```bash
 npm run typecheck
@@ -258,17 +306,20 @@ Os atalhos para gravar o vídeo aparecem também no APK de produção (desliga c
 index.js                 ponto de entrada (define a tarefa do GPS antes de tudo)
 app.config.js            chave do Google Maps a partir do ambiente
 modules/tela-bloqueio/   módulo nativo Android (testemunha pela tela de bloqueio)
+modules/sms-socorro/     módulo nativo Android (SMS de socorro sem abrir o app de mensagens)
+modules/sensor-queda/    módulo nativo Android (acelerômetro da queda com a tela bloqueada)
 scripts/                 gera os dados do mock a partir do CSV do modelo e dos distritos da API
 src/
 ├── app/                 rotas (Expo Router): uma tela por arquivo
 ├── api/                 contrato tipado, cliente HTTP da API C# e mock com os dados do modelo
 ├── components/          componentes do manual da marca, logos, barra de abas, mapa
-├── dados-locais/        preferências, dados sensíveis (armazenamento seguro) e repositórios SQLite
-├── db/                  SQLite: migrações e chave-valor
+├── contexto/            autenticação (Context API): sessão, entrar e sair
+├── dados-locais/        AsyncStorage (armazenamento.ts), preferências, dados sensíveis e repositórios SQLite
+├── db/                  SQLite: migrações, filas e cache
 ├── domain/              regras puras e testadas: queda, alertas, mensagens, períodos, telefone, risco
 ├── servicos/            turno, queda, SOS, plano, pulseira, notificações, permissões, filas
-├── state/               sessão do motociclista no aparelho
-├── theme/               cores, tipografia e medidas do manual da marca
+├── state/               sessão do motociclista no aparelho (lida pelas telas via contexto)
+├── theme/               estilos: cores, tipografia e medidas do manual da marca
 └── config.ts            endereço da API e os limites propostos no documento de requisitos
 ```
 

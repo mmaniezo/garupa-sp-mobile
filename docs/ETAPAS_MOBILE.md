@@ -6,7 +6,7 @@ Entrega: **19/11/2026, 23h55**. Rubrica: telas e navegação · consumo de dados
 
 ## Situação
 
-O código das 11 etapas está escrito e verificado com typecheck, lint, 56 testes automatizados e o fluxo completo na prévia web (cadastro → plano → mapa → turno → queda → SOS → testemunha → cancelamento, pulseira, relato, perfil). **O que só o celular prova ainda não foi testado**: segundo plano com a tela bloqueada, notificações, alarme, GPS real, o módulo nativo da tela de bloqueio e o Google Maps num aparelho.
+O código das 11 etapas está escrito e verificado com typecheck, lint, 122 testes automatizados e o fluxo completo na prévia web (cadastro → plano → mapa → turno → queda → SOS → testemunha → cancelamento, pulseira, relato, perfil). **O que só o celular prova ainda não foi testado**: segundo plano com a tela bloqueada, notificações, alarme, GPS real, o módulo nativo da tela de bloqueio e o Google Maps num aparelho.
 
 **Integração com as outras frentes (11/11/2026):** o app foi ligado à API C# ([garupa-sp-api](https://github.com/caio-alex/garupa-sp-api)) e ao modelo de ML ([garupa-sp-ml](https://github.com/Viniciuscont2/garupa-sp-ml)). Com a API rodando localmente (PostgreSQL e o `risco_celula.csv` carregados), os 7 testes de integração de `src/api/__tests__/api-real.test.ts` passam por todos os endpoints que o app usa e conferem que o mock devolve os mesmos pontos, scores e mensagens que a API. O mapa usa o Google Maps (react-native-maps). O notebook do ML (versão de 11/11, 21h06) foi executado de novo do zero: o `risco_celula.csv` saiu idêntico ao do repositório e as métricas batem com o relatório (PR-AUC 0,63 e lift 4,5× no teste de 2025), então os dados do app não mudaram.
 
